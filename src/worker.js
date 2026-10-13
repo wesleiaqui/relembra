@@ -617,6 +617,7 @@ async function handle(request, env) {
       return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=? AND owner_id=?`).bind(id,user.id).first() });
     }
     if (method === 'DELETE') {
+      if (!await env.DB.prepare('SELECT id FROM thought_entries WHERE id=? AND owner_id=?').bind(id,user.id).first()) return error('Registro não encontrado.',404);
       await env.DB.prepare('DELETE FROM thought_entries WHERE id=? AND owner_id=?').bind(id,user.id).run();
       return json({ ok: true });
     }
