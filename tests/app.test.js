@@ -636,3 +636,16 @@ test('primeiro cadastro preserva os conteúdos anteriores da instância',async()
   assert.equal((await req('/api/session')).data.setupRequired,false);
   assert.equal((await req('/api/setup-owner','POST',{setup_key:'um-passphrase-longo-de-verdade',username:'outro',password:'senha-dono-123456'})).status,409);
 });
+
+
+test('tela de contas oferece cadastro por convite e recuperação sem expor dados antigos',()=>{
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const js=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  for(const id of ['loginForm','ownerSetupForm','inviteRegisterForm','ownerRecoverForm','loginModeTitle','loginModeDescription','inviteBtn','inviteModal','inviteCode','generateInviteBtn','accountLabel']) {
+    assert.equal((html.match(new RegExp('id="'+id+'"','g')) || []).length,1,id);
+  }
+  for(const endpoint of ['/api/setup-owner','/api/login','/api/register','/api/recover-owner','/api/invites'])
+    assert.ok(js.includes(endpoint),'Endpoint '+endpoint);
+  for(const target of ['closeEditor()','resetThoughtForm()','closeImageViewer()','closeMediaPlayer()','chatMessages'])
+    assert.ok(js.includes(target),'Limpeza '+target);
+});
