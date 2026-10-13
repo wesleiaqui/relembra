@@ -103,19 +103,43 @@ function thoughtValues(entry) {
     entry.intensity_after, entry.source_url];
 }
 
+function normalizeSearch(value) {
+  return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/\bdust\s*2\b/g, 'dust2').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+const CS2_MAPS = ['mirage', 'inferno', 'dust2', 'nuke', 'ancient', 'anubis', 'overpass', 'vertigo', 'train'];
+function requestedMap(message) {
+  const tokens = new Set(normalizeSearch(message).split(' '));
+  return CS2_MAPS.find(map => tokens.has(map)) || '';
+}
 function terms(message) {
-  const normalized = clean(message, 500).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const words = (normalized.match(/[a-z0-9]{2,}/g) || []).filter(t => !STOP_WORDS.has(t));
-  // Expansão simples das categorias para perguntas naturais, sem API externa.
+  const normalized = normalizeSearch(clean(message, 500));
+  const words = (normalized.match(/[a-z0-9]{2,}/g) || []).filter(t => !STOP_WORDS.has(t))
+    .map(t => /^(?:posicao|posicoes|posicionamento|posicionamentos)$/.test(t) ? 'posic' : t);
+  // Variantes portuguesas frequentes, sem usar a IA para adivinhar o assunto.
+  if (/\bposic\w*\b/.test(normalized)) words.push('posic');
   if (/viaj|turism|destin|ferias|passei/.test(normalized)) words.push('turismo');
   if (/apartam|decor|imov|moradia/.test(normalized)) words.push('apartamento');
   if (/receit|culin|prato|macarrao|cozinhar/.test(normalized)) words.push('culinaria');
-  if (/cs2|counter.strike|smoke|jogada/.test(normalized)) words.push('cs2');
+  if (/cs2|counter.strike|smoke|jogada|flashbang|molotov/.test(normalized) || requestedMap(message)) words.push('cs2');
   return [...new Set(words)].slice(0, 12);
 }
 function ftsTerms(message) {
+  // O mapa indicado pelo usuário precisa ter prioridade: OR entre "posicoes",
+  // "cs2" e "mirage" trazia falsos positivos como Inferno e Dust2.
+  const map = requestedMap(message);
+  if (map) return map === 'dust2' ? '"dust2"* OR "dust"*' : '"' + map + '"*';
   return terms(message).map(w => '"' + w.replaceAll('"', '') + '"*').join(' OR ');
 }
+function listingIntent(message) {
+  const normalized = normalizeSearch(message);
+  if (/^(?:quais|qual|liste|lista|listar|mostre|mostrar|encontre|encontrar|me mostre|me liste)\b/.test(normalized)) return true;
+  // Pesquisas curtas, como "posições da Mirage", pedem fichas salvas,
+  // não instruções detalhadas extraídas de uma imagem não analisada.
+  return normalized.length < 90 && /\b(posic\w*|lugares|destinos|videos|salvos|salvei)\b/.test(normalized)
+    && !/^(?:como|explique|ensine|ensina|passo a passo|por que|porque)\b/.test(normalized);
+}
+
 async function categories(env) { return (await env.DB.prepare('SELECT id, name, emoji, color FROM categories ORDER BY CASE id WHEN \'outros\' THEN 1 ELSE 0 END, name COLLATE NOCASE').all()).results; }
 async function fetchVideos(env, filters) {
   const where = [];
