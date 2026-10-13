@@ -392,7 +392,7 @@ test('chat informa captura Lightshot e imagem anexada sem expor o arquivo public
 test('chat não inventa screenshot em ficha sem link e sem imagem', async () => {
   const {req} = setup();
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
-  await req('/api/videos','POST',{...vid,title:'VIAGEM AO PONTAL'});
+  await req('/api/videos','POST',{...vid,category:'turismo',title:'VIAGEM AO PONTAL'});
   const result = (await req('/api/chat','POST',{message:'lugares para viajar'})).data;
   assert.equal(result.sources.length,1);
   assert.equal(result.sources[0].screenshot_link,'');
