@@ -68,3 +68,8 @@ A recuperação automática por e-mail não foi implementada, e contas convidada
 ## Observações de segurança
 O APP_PASSWORD é um segredo com poder administrativo: quem o conhece poderá redefinir a conta principal. Ele não deve ser compartilhado com pessoas convidadas.
 Não existe acesso direto entre as bibliotecas de usuários pela interface e API. O proprietário da infraestrutura Cloudflare mantém acesso técnico ao banco de dados, como qualquer operador do servidor.
+
+## Correção v1.9.1 — erro PBKDF2 na ativação
+Se a tela de criar conta falhou com `Pbkdf2 failed: iteration counts above 100000 are not supported (requested 160000)`, o problema foi identificado e corrigido na v1.9.1.
+O limite foi ajustado para **100.000 iterações**, aceitas pelo ambiente Cloudflare Workers. Como a falha acontecia antes do cadastro, não era criada nenhuma conta e os dados antigos permaneciam no D1.
+Depois de publicar a correção, volte ao Relembra, atualize a página com Ctrl+Shift+R e tente cadastrar a conta principal **uma única vez**. Confira primeiro o seu backup/ponto de recuperação. Não exclua o banco nem o segredo `APP_PASSWORD`.
