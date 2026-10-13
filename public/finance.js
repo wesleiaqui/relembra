@@ -59,7 +59,7 @@ function shiftMonth(shift){
 const monthLabel = () => {
   const [year, month] = currentMonth.split('-').map(Number);
   const label = new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(new Date(year,month-1,1));
-  return label.charAt(0).toUpperCase()+label.slice(1);
+  return (label.charAt(0).toUpperCase()+label.slice(1)).replace(' de ',' ');
 };
 const normalizeFinance = value => String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
 const matchFinance = text => !financeQuery || normalizeFinance(text).includes(normalizeFinance(financeQuery));
@@ -160,8 +160,7 @@ function render(){
               '<option value="due" '+(financeSort==='due'?'selected':'')+'>Ordenar por vencimento</option>'+
               '<option value="amount" '+(financeSort==='amount'?'selected':'')+'>Maior valor primeiro</option></select></label>'+
               button('new','+ Nova conta','bills')+'</div></div>'+
-            (shownBills.length?'<div class="finance-table-wrap"><table class="finance-table finance-bills-table">'+tableHead+'<tbody>'+billRows+'</tbody></table></div>':
-            '<div class="finance-table-empty">'+emptyAccounts+'</div>')+
+            '<div class="finance-table-wrap"><table class="finance-table finance-bills-table">'+tableHead+'<tbody>'+billRows+'</tbody></table></div>'+(!shownBills.length?'<div class="finance-table-empty">'+emptyAccounts+'</div>':'')+
           '</section>'+
           '<section class="finance-panel finance-goals"><div class="finance-panel-head"><div class="finance-heading-group">'+icon('goal','finance-section-icon')+
             '<div><h2>Reservas e metas</h2><p>Seus objetivos, separados do dinheiro usado para as contas.</p></div></div>'+button('new','+ Nova meta','goals')+'</div>'+
@@ -181,14 +180,12 @@ function render(){
           '</section>'+
           '<section class="finance-panel finance-income"><div class="finance-panel-head"><div class="finance-heading-group">'+icon('income','finance-section-icon')+
             '<div><h2>Entradas do mês</h2><p>Recebimentos reais e previstos.</p></div></div>'+button('new','+ Adicionar entrada','entries')+'</div>'+
-            (shownIncome.length?'<div class="finance-table-wrap"><table class="finance-table finance-income-table">'+shortHead+'<tbody>'+entryRows(shownIncome)+'</tbody></table></div>':
-            '<div class="finance-table-empty">'+emptyIncome+'</div>')+
+            '<div class="finance-table-wrap"><table class="finance-table finance-income-table">'+shortHead+'<tbody>'+entryRows(shownIncome)+'</tbody></table></div>'+(!shownIncome.length?'<div class="finance-table-empty">'+emptyIncome+'</div>':'')+
             '<div class="finance-panel-footer"><span>Recebido no mês</span><strong>'+money(incomeTotal)+'</strong></div>'+
           '</section>'+
           '<section class="finance-panel finance-expenses"><div class="finance-panel-head"><div class="finance-heading-group">'+icon('expense','finance-section-icon')+
             '<div><h2>Gastos avulsos</h2><p>Despesas que não estão na lista de contas.</p></div></div>'+button('new','+ Adicionar gasto','expenses')+'</div>'+
-            (shownExpenses.length?'<div class="finance-table-wrap"><table class="finance-table finance-income-table">'+shortHead+'<tbody>'+entryRows(shownExpenses)+'</tbody></table></div>':
-            '<div class="finance-table-empty">'+emptyExpenses+'</div>')+
+            '<div class="finance-table-wrap"><table class="finance-table finance-income-table">'+shortHead+'<tbody>'+entryRows(shownExpenses)+'</tbody></table></div>'+(!shownExpenses.length?'<div class="finance-table-empty">'+emptyExpenses+'</div>':'')+
             '<div class="finance-panel-footer"><span>Gastos confirmados do mês</span><strong>'+money(sum(spent.filter(e=>e.status==='confirmed')))+'</strong></div>'+
           '</section>'+
         '</div>'+
