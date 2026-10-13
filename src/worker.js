@@ -565,27 +565,29 @@ async function handle(request, env) {
       .bind(hash,user.id,Date.now()+24*60*60*1000,stamp).run();
     return json({invitation:code,expiresInHours:24},201);
   }
-  if (path === '/api/categories' && method === 'GET') return json({ categories: await categories(env) });
+  if (path === '/api/categories' && method === 'GET') return json({ categories: await categories(env,user.id) });
   if (path === '/api/categories' && method === 'POST') {
-    const body = await getBody(request);
-    const name = clean(body.name, 40);
-    const id = slug(name);
-    if (!name || !id) return error('Informe um nome de categoria válido.');
-    const emoji = clean(body.emoji, 8) || '📁';
-    const color = /^#[0-9a-fA-F]{6}$/.test(body.color) ? body.color : '#64748b';
-    const exists = await env.DB.prepare('SELECT id FROM categories WHERE id=?').bind(id).first();
-    if (exists) return error('Já existe uma categoria com esse nome.', 409);
-    await env.DB.prepare('INSERT INTO categories(id, name, emoji, color) VALUES (?, ?, ?, ?)').bind(id, name, emoji, color).run();
-    return json({ categories: await categories(env) }, 201);
+    const body=await getBody(request),name=clean(body.name,40);
+    const slugId=slug(name);
+    if (!name || !slugId) return error('Informe um nome de categoria válido.');
+    const same=await env.DB.prepare('SELECT id FROM categories WHERE owner_id=? AND name=? COLLATE NOCASE').bind(user.id,name).first();
+    if(same) return error('Já existe uma categoria com esse nome.',409);
+    const id=ownerCategoryId(user.id,name),emoji=clean(body.emoji,8)||'📁',color=/^#[0-9a-fA-F]{6}$/.test(body.color)?body.color:'#64748b';
+    await env.DB.prepare('INSERT INTO categories(id,name,emoji,color,owner_id) VALUES (?,?,?,?,?)').bind(id,name,emoji,color,user.id).run();
+    return json({categories:await categories(env,user.id)},201);
   }
   if (path.startsWith('/api/categories/') && method === 'DELETE') {
-    const id = slug(decodeURIComponent(path.slice('/api/categories/'.length)));
-    if (id === 'outros') return error('A categoria Outros não pode ser excluída.');
+    const id=slug(decodeURIComponent(path.slice('/api/categories/'.length)));
+    const category=await env.DB.prepare('SELECT id,name FROM categories WHERE id=? AND owner_id=?').bind(id,user.id).first();
+    if(!category)return error('Categoria não encontrada.',404);
+    if(category.name.toLowerCase()==='outros')return error('A categoria Outros não pode ser excluída.');
+    const base=await env.DB.prepare("SELECT id FROM categories WHERE owner_id=? AND name='Outros' COLLATE NOCASE").bind(user.id).first();
+    if(!base)return error('Categoria padrão não encontrada.',404);
     await env.DB.batch([
-      env.DB.prepare('UPDATE videos SET category = ?, updated_at = ? WHERE category = ?').bind('outros', now(), id),
-      env.DB.prepare('DELETE FROM categories WHERE id = ?').bind(id)
+      env.DB.prepare('UPDATE videos SET category=?,updated_at=? WHERE category=? AND owner_id=?').bind(base.id,now(),id,user.id),
+      env.DB.prepare('DELETE FROM categories WHERE id=? AND owner_id=?').bind(id,user.id)
     ]);
-    return json({ ok: true });
+    return json({ok:true});
   }
   // Diário de pensamentos: separado dos vídeos para não contaminar a busca de conteúdos.
   if (path === '/api/thoughts' && method === 'GET') {
