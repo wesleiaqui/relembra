@@ -299,7 +299,7 @@ test('registros entram no backup, não vazam ao chat de vídeos e importação n
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   await req('/api/thoughts','POST',reflection);
   const backup = (await req('/api/export')).data;
-  assert.equal(backup.format,'relembra-v1.9');
+  assert.equal(backup.format,'relembra-v1.10');
   assert.equal(backup.thoughts.length,1);
   assert.equal((await req('/api/chat','POST',{message:'conversa estranho reação'})).data.sources.length,0);
   const res = await req('/api/import','POST',backup);
@@ -479,7 +479,7 @@ test('backup de dicas restaura registros sem duplicação e não mistura com o c
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   const entry = await req('/api/tips','POST',{title:'Lembrete pessoal',content:'Meu texto reservado',situation:'Para mim',kind:'dica',favorite:true});
   const backup = (await req('/api/export')).data;
-  assert.equal(backup.format,'relembra-v1.9');
+  assert.equal(backup.format,'relembra-v1.10');
   assert.ok(backup.tips.some(x=>x.id===entry.data.tip.id));
   assert.equal((await req('/api/chat','POST',{message:'Meu texto reservado'})).data.sources.length,0);
   await req('/api/tips/'+entry.data.tip.id,'DELETE');
