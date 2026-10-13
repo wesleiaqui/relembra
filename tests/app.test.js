@@ -649,3 +649,22 @@ test('tela de contas oferece cadastro por convite e recuperação sem expor dado
   for(const target of ['closeEditor()','resetThoughtForm()','closeImageViewer()','closeMediaPlayer()','chatMessages'])
     assert.ok(js.includes(target),'Limpeza '+target);
 });
+
+
+test('PBKDF2 respeita limite de 100 mil iterações do Cloudflare Workers', async () => {
+  const source = readFileSync(new URL('../src/worker.js', import.meta.url), 'utf8');
+  const matched = source.match(/const ITERATIONS = (\d+);/);
+  assert.ok(matched, 'Parâmetro de derivação de senha está definido');
+  const iterations = Number(matched[1]);
+  assert.equal(iterations, 100000, 'Não ultrapassar 100000 iterações no Workers sem migrar os hashes');
+  const { req } = setup();
+  const owner = await req('/api/setup-owner', 'POST', {
+    username: 'principal', setup_key: 'um-passphrase-longo-de-verdade', password: 'uma-senha-bem-forte-123'
+  });
+  assert.equal(owner.status, 201, JSON.stringify(owner.data));
+  await req('/api/logout', 'POST');
+  const login = await req('/api/login', 'POST', {
+    username: 'principal', password: 'uma-senha-bem-forte-123'
+  });
+  assert.equal(login.status, 200, JSON.stringify(login.data));
+});

@@ -19,7 +19,9 @@ const base64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, 
 const unbase64url = (value) => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4)), c => c.charCodeAt(0));
 async function sha256(value) { return base64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))); }
 async function hmacKey(secret) { return crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']); }
-const ITERATIONS = 160000;
+// Cloudflare Workers WebCrypto restringe PBKDF2 a no máximo 100.000 iterações.
+// Alterar somente junto de uma estratégia de versionamento dos hashes armazenados.
+const ITERATIONS = 100000;
 function validateAccount(body) {
   const username = String(body?.username || '').trim().toLowerCase();
   const password = String(body?.password || '');
