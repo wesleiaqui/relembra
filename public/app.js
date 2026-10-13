@@ -996,8 +996,8 @@ function showAccountMode(mode) {
   $('loginError').textContent='';
 }
 function wipePreviousAccount() {
-  document.body.classList.remove('finance-mode');
   closeMotivation();
+  document.body.classList.remove('finance-mode');
   resetFinance();
   state.videos=[];state.homeVideos=[];state.categories=[];
   state.thoughts=[];state.tips=[];state.total=0;state.offset=0;
