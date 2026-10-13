@@ -10,6 +10,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0002_visual.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0003_multiple_records.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0004_thought_journal.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0005_situational_tips.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -280,7 +281,7 @@ test('registros entram no backup, não vazam ao chat de vídeos e importação n
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   await req('/api/thoughts','POST',reflection);
   const backup = (await req('/api/export')).data;
-  assert.equal(backup.format,'relembra-v1.3');
+  assert.equal(backup.format,'relembra-v1.7');
   assert.equal(backup.thoughts.length,1);
   assert.equal((await req('/api/chat','POST',{message:'conversa estranho reação'})).data.sources.length,0);
   const res = await req('/api/import','POST',backup);
@@ -404,18 +405,102 @@ test('diário redesenhado mantém todos os campos e controles essenciais', () =>
   const html = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../public/styles.css', import.meta.url), 'utf8');
   const js = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  const thoughtHtml = html.split('<section id="thoughtsView"')[1].split('<section id="tipsView"')[0];
   for (const name of ['situation','emotion','intensity_before','automatic_thought','evidence_for','evidence_against','balanced_thought','next_step','intensity_after','source_url']) {
-    assert.equal((html.match(new RegExp('name="' + name + '"','g')) || []).length, 1, 'Campo '+name);
+    assert.equal((thoughtHtml.match(new RegExp('name="' + name + '"','g')) || []).length, 1, 'Campo '+name);
   }
   for (const id of ['thoughtForm','thoughtFormTitle','thoughtSaveBtn','thoughtCancelBtn','thoughtNewBtn','thoughtSuggestion','thoughtSuggestionText','suggestThoughtBtn','useThoughtSuggestion','thoughtList','thoughtCount','thoughtProgressBar','thoughtProgressFill','thoughtProgressText']) {
     // O track tem um ID próprio para a leitura de progresso por acessibilidade.
     const actual = id === 'thoughtProgressBar' ? 'thoughtProgressTrack' : id;
-    assert.equal((html.match(new RegExp('id="' + actual + '"','g')) || []).length, 1, 'Controle '+actual);
+    assert.equal((thoughtHtml.match(new RegExp('id="' + actual + '"','g')) || []).length, 1, 'Controle '+actual);
   }
-  assert.equal((html.match(/class="thought-step"/g)||[]).length, 5);
-  assert.match(html,/name="situation"[^>]*required/);
-  assert.match(html,/name="automatic_thought"[^>]*required/);
+  assert.equal((thoughtHtml.match(/class="thought-step"/g)||[]).length, 5);
+  assert.match(thoughtHtml,/name="situation"[^>]*required/);
+  assert.match(thoughtHtml,/name="automatic_thought"[^>]*required/);
   assert.match(css,/@media\(max-width:680px\)/);
   assert.match(js,/function updateThoughtProgress\(\)/);
   assert.match(js,/thoughtForm'\)\.addEventListener\('input', updateThoughtProgress\)/);
+});
+
+
+test('dicas iniciais de conversas e frases ficam disponíveis somente com login', async () => {
+  const { req } = setup();
+  assert.equal((await req('/api/tips')).status, 401);
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const data = (await req('/api/tips')).data;
+  assert.equal(data.tips.length, 13);
+  assert.equal(data.tips.filter(t => t.situation === 'Conversar').length, 11);
+  assert.equal(data.tips.filter(t => t.kind === 'frase').length, 6);
+  assert.ok(data.tips.some(t => t.title.includes('Escute antes')));
+  assert.ok(data.tips.some(t => t.content.includes('Como você chegou')));
+  assert.ok(data.tips.some(t => t.situation === 'Sair de casa'));
+});
+
+test('dicas pessoais: criar, editar, favoritar, pesquisar, excluir, validar', async () => {
+  const { req } = setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const item = {title:'Checar o trajeto',content:'Verificar caminho e horário antes de ir',situation:'Na rua',kind:'dica',favorite:false,source_url:''};
+  assert.equal((await req('/api/tips','POST',{...item,title:''})).status,400);
+  assert.equal((await req('/api/tips','POST',{...item,source_url:'javascript:alert(1)'})).status,400);
+  const created = await req('/api/tips','POST',item);
+  assert.equal(created.status,201);
+  const id = created.data.tip.id;
+  assert.equal((await req('/api/tips/'+id)).data.tip.title,item.title);
+  const changed = await req('/api/tips/'+id,'PUT',{...item,kind:'frase',situation:'Para mim',content:'Falar com calma'});
+  assert.equal(changed.status,200);
+  assert.equal(changed.data.tip.kind,'frase');
+  assert.equal((await req('/api/tips/'+id,'PATCH',{favorite:true})).data.tip.favorite,1);
+  assert.equal((await req('/api/tips/'+id,'PATCH',{favorite:'sim'})).status,400);
+  assert.equal((await req('/api/tips')).data.tips[0].id,id);
+  assert.equal((await req('/api/tips/'+id,'DELETE')).status,200);
+  assert.equal((await req('/api/tips/'+id)).status,404);
+});
+
+test('backup de dicas restaura registros sem duplicação e não mistura com o chat de vídeos', async () => {
+  const { req } = setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const entry = await req('/api/tips','POST',{title:'Lembrete pessoal',content:'Meu texto reservado',situation:'Para mim',kind:'dica',favorite:true});
+  const backup = (await req('/api/export')).data;
+  assert.equal(backup.format,'relembra-v1.7');
+  assert.ok(backup.tips.some(x=>x.id===entry.data.tip.id));
+  assert.equal((await req('/api/chat','POST',{message:'Meu texto reservado'})).data.sources.length,0);
+  await req('/api/tips/'+entry.data.tip.id,'DELETE');
+  const restore = (await req('/api/import','POST',backup)).data;
+  assert.equal(restore.tipsImported,1);
+  assert.equal((await req('/api/tips/'+entry.data.tip.id)).status,200);
+  const again = (await req('/api/import','POST',backup)).data;
+  assert.equal(again.tipsImported,0);
+  assert.ok(again.tipsSkipped>=13);
+});
+
+test('migração de dicas é aditiva e não afeta os dados de vídeos e diário', () => {
+  const db = new DatabaseSync(':memory:');
+  for(const name of ['0001_initial.sql','0002_visual.sql','0003_multiple_records.sql','0004_thought_journal.sql'])
+    db.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
+  const stamp = new Date().toISOString();
+  db.prepare('INSERT INTO videos (id,url,title,category,created_at,updated_at) VALUES (?,?,?,?,?,?)')
+    .run('video-antigo','https://example.com/','Video antigo','cs2',stamp,stamp);
+  db.prepare('INSERT INTO thought_entries (id,situation,automatic_thought,intensity_before,created_at,updated_at) VALUES (?,?,?,?,?,?)')
+    .run('thought-antigo','Teste','Pensamento de teste',5,stamp,stamp);
+  db.exec(readFileSync(new URL('../migrations/0005_situational_tips.sql',import.meta.url),'utf8'));
+  assert.equal(db.prepare('SELECT COUNT(*) AS total FROM situational_tips').get().total,13);
+  assert.equal(db.prepare('SELECT COUNT(*) AS total FROM videos').get().total,1);
+  assert.equal(db.prepare('SELECT COUNT(*) AS total FROM thought_entries').get().total,1);
+  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
+});
+
+
+test('interface de dicas possui navegação, filtros, edição e campos esperados', () => {
+  const html = readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const app = readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  for (const id of ['tipsView','tipsAddBtn','tipsPresets','tipsCustomContexts','tipsSearch','tipsKind','tipsFavoritesOnly','tipsGrid','tipsCurrentHeading','tipsResultCount','tipModal','tipModalTitle','tipForm','tipCloseBtn','tipCancelBtn','tipSaveBtn','tipDeleteBtn']) {
+    assert.equal((html.match(new RegExp('id="' + id + '"','g')) || []).length,1,id);
+  }
+  for(const name of ['title','content','situation','kind','source_url','favorite'])
+    assert.equal((html.match(new RegExp('name="' + name + '"','g'))||[]).length>=1,true,name);
+  assert.match(html,/data-view="tips"/);
+  assert.match(app,/async function loadTips\(\)/);
+  assert.match(app,/async function saveTip\(event\)/);
+  assert.match(app,/async function toggleTipFavorite\(id\)/);
+  assert.match(app,/tipGroups\[index\]/);
 });

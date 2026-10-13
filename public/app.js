@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const state = { thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
+const state = { thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
 let toastTimer;
 let listRequest = 0;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -68,7 +68,7 @@ async function loadList(append = false) {
   } catch(e) { if (requestNumber === listRequest) { box.innerHTML = skeletonEmpty('Erro ao carregar vídeos', e.message, '⚠️', false); toast(e.message, true); } }
   finally { if (requestNumber === listRequest) state.busy = false; }
 }
-const viewNames = { home: 'Visão geral', library: 'Minha biblioteca', favorites: 'Favoritos', unwatched: 'Para assistir', chat: 'Chat inteligente', thoughts: 'Diário de pensamentos', backup: 'Backup e dados' };
+const viewNames = { home: 'Visão geral', library: 'Minha biblioteca', favorites: 'Favoritos', unwatched: 'Para assistir', chat: 'Chat inteligente', thoughts: 'Diário de pensamentos', tips: 'Dicas para o momento', backup: 'Backup e dados' };
 async function navigate(view, category = 'all') {
   const known = viewNames[view] ? view : 'home';
   state.view = known;
@@ -76,13 +76,14 @@ async function navigate(view, category = 'all') {
   else state.category = 'all';
   state.search = ''; state.sort = 'recent'; state.videos = [];
   document.querySelectorAll('.view').forEach(el => el.hidden = true);
-  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
+  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
   $('breadcrumbActive').textContent = known === 'library' && state.category !== 'all' ? catOf(state.category).name : viewNames[known];
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === known && (known !== 'library' || state.category === 'all')));
   document.querySelectorAll('[data-cat]').forEach(el => el.classList.toggle('active', known === 'library' && el.dataset.cat === category));
   $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true;
   if (known === 'home') await loadHome();
   if (known === 'thoughts') await loadThoughts();
+  if (known === 'tips') await loadTips();
   if (['library', 'favorites', 'unwatched'].includes(known)) {
     $('libraryTitle').textContent = known === 'favorites' ? 'Meus favoritos' : known === 'unwatched' ? 'Para assistir depois' : state.category !== 'all' ? catOf(state.category).name : 'Minha biblioteca';
     $('librarySubtitle').textContent = known === 'favorites' ? 'Tudo que você mais gostou, num só lugar.' : known === 'unwatched' ? 'Vídeos que ainda merecem sua atenção.' : 'Encontre qualquer ideia pelo assunto, resumo ou transcrição.';
@@ -402,6 +403,130 @@ async function submitChat(message) {
   } catch(e) { loading.remove(); appendMessage('bot', 'Não consegui buscar agora: ' + e.message); }
   finally { $('sendChatBtn').disabled = false; $('chatInput').focus(); }
 }
+
+/* Dicas para o momento: cartões práticos filtrados por situação, independentes do diário. */
+const standardTipContexts = ['Conversar','Sair de casa','Na rua','Segurança','Para mim'];
+const tipLabel = situation => ({
+  'Conversar':'Vou conversar','Sair de casa':'Vou sair','Na rua':'Na rua',
+  'Segurança':'Segurança','Para mim':'Para mim','Geral':'Geral'
+})[situation] || situation;
+function normalizeTipText(text) {
+  return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+async function loadTips() {
+  try {
+    const result = await api('/api/tips');
+    state.tips = result.tips || [];
+    renderTips();
+  } catch(e) {
+    $('tipsGrid').replaceChildren();
+    const msg = document.createElement('p');
+    msg.className = 'tips-empty';
+    msg.textContent = 'Não consegui carregar suas dicas: ' + e.message;
+    $('tipsGrid').append(msg);
+  }
+}
+function renderTips() {
+  const contexts = [...new Set(state.tips.map(t => t.situation || 'Geral'))];
+  const extra = contexts.filter(c => !standardTipContexts.includes(c));
+  const extraBox = $('tipsCustomContexts');
+  extraBox.replaceChildren();
+  extraBox.hidden = extra.length === 0;
+  extra.forEach(context => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'tips-extra-button';
+    button.dataset.tipContext = context;
+    button.textContent = '# ' + context;
+    extraBox.append(button);
+  });
+  document.querySelectorAll('[data-tip-context]').forEach(button => {
+    const selected = button.dataset.tipContext === state.tipsContext;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+  const q = normalizeTipText(state.tipsSearch.trim());
+  const tips = state.tips.filter(t =>
+    (state.tipsContext === 'all' || t.situation === state.tipsContext) &&
+    (state.tipsKind === 'all' || t.kind === state.tipsKind) &&
+    (!state.tipsFavoritesOnly || Boolean(t.favorite)) &&
+    (!q || normalizeTipText([t.title,t.content,t.situation].join(' ')).includes(q))
+  );
+  $('tipsCurrentHeading').textContent = state.tipsContext === 'all' ? 'Minhas dicas' : tipLabel(state.tipsContext);
+  $('tipsResultCount').textContent = tips.length + (tips.length === 1 ? ' lembrete disponível' : ' lembretes disponíveis');
+  const box = $('tipsGrid');
+  box.innerHTML = tips.length ? tips.map(t => {
+    const icon = t.kind === 'frase' ? '❝' : '✦';
+    const tag = t.kind === 'frase' ? 'FRASE PRÁTICA' : 'DICA ÚTIL';
+    const url = t.source_url && /^https?:\/\//i.test(t.source_url) ? t.source_url : '';
+    return '<article class="tip-card">' +
+      '<div class="tip-card-top"><span class="tip-kind"><i aria-hidden="true">'+icon+'</i>'+tag+'</span>' +
+      '<button class="tip-star '+(t.favorite?'is-favorite':'')+'" type="button" data-tip-fav="'+esc(t.id)+'" aria-label="'+(t.favorite?'Remover favorito':'Favoritar dica')+'" title="Destacar">'+(t.favorite?'★':'☆')+'</button></div>' +
+      '<h3>'+esc(t.title)+'</h3><p class="tip-content">'+esc(t.content)+'</p>' +
+      '<div class="tip-card-foot"><span class="tip-context-tag">'+esc(tipLabel(t.situation))+'</span>' +
+      '<div class="tip-card-actions">'+(url?'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">Ver origem ↗</a>':'')+
+      '<button type="button" data-tip-edit="'+esc(t.id)+'">Editar</button></div></div></article>';
+  }).join('') : '<div class="tips-empty"><span aria-hidden="true">✧</span><strong>Nenhuma dica por aqui ainda.</strong><p>Você pode adicionar uma dica para esta situação, ou mudar os filtros.</p><button type="button" class="button button-primary" id="tipsEmptyAdd">＋ Criar dica</button></div>';
+}
+function setTipContext(context) {
+  state.tipsContext = context;
+  renderTips();
+}
+function closeTipEditor() {
+  $('tipModal').hidden = true;
+  state.tipEditId = null;
+}
+function openTipEditor(id = null) {
+  const existing = id ? state.tips.find(x => x.id === id) : null;
+  if (id && !existing) { toast('Dica não encontrada, atualize a página.', true); return; }
+  state.tipEditId = existing?.id || null;
+  const form = $('tipForm');
+  form.reset();
+  for (const key of ['title','content','situation','kind','source_url']) {
+    form.elements.namedItem(key).value = existing?.[key] || (key === 'situation' ? (state.tipsContext === 'all' ? 'Conversar' : state.tipsContext) : key === 'kind' ? 'dica' : '');
+  }
+  form.elements.namedItem('favorite').checked = Boolean(existing?.favorite);
+  $('tipModalTitle').textContent = existing ? 'Editar dica' : 'Nova dica';
+  $('tipSaveBtn').textContent = existing ? 'Salvar alterações' : 'Salvar dica';
+  $('tipDeleteBtn').hidden = !existing;
+  $('tipModal').hidden = false;
+  form.elements.namedItem('title').focus();
+}
+async function saveTip(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const input = Object.fromEntries(new FormData(form).entries());
+  input.favorite = form.elements.namedItem('favorite').checked;
+  const button = $('tipSaveBtn');
+  button.disabled = true;
+  try {
+    await api(state.tipEditId ? '/api/tips/' + state.tipEditId : '/api/tips', {
+      method: state.tipEditId ? 'PUT' : 'POST', body: JSON.stringify(input)
+    });
+    closeTipEditor();
+    await loadTips();
+    toast('Dica salva para consultar quando precisar.');
+  } catch(e) { toast(e.message,true); }
+  finally { button.disabled = false; }
+}
+async function deleteTip() {
+  if (!state.tipEditId || !confirm('Excluir esta dica? Esta ação não pode ser desfeita.')) return;
+  const id = state.tipEditId;
+  try {
+    await api('/api/tips/' + id, { method: 'DELETE' });
+    closeTipEditor(); await loadTips(); toast('Dica excluída.');
+  } catch(e) { toast(e.message,true); }
+}
+async function toggleTipFavorite(id) {
+  const tip = state.tips.find(t=>t.id === id);
+  if (!tip) return;
+  try {
+    const res = await api('/api/tips/' + id, { method: 'PATCH', body: JSON.stringify({favorite:!Boolean(tip.favorite)}) });
+    Object.assign(tip,res.tip);
+    renderTips();
+  } catch(e) { toast(e.message,true); }
+}
+
 // Diário de pensamentos. Sem inferir emoções nem avaliar os registros automaticamente.
 function updateThoughtProgress() {
   const form = $('thoughtForm');
@@ -511,10 +636,11 @@ async function importData(file) {
   if (file.size > 25_000_000) { toast('Arquivo muito grande. Limite: 25 MB.', true); return; }
   try {
     const data = JSON.parse(await file.text());
-    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts)) throw new Error('Esse arquivo não contém um backup válido.');
+    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts) && !Array.isArray(data.tips)) throw new Error('Esse arquivo não contém um backup válido.');
     const videos = Array.isArray(data.videos) ? data.videos : [];
     const thoughts = Array.isArray(data.thoughts) ? data.thoughts : [];
-    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0;
+    const tips = Array.isArray(data.tips) ? data.tips : [];
+    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0, tipsImported = 0, tipsSkipped = 0;
     const videoGroups = []; let group = [], groupBytes = 0;
     for (const video of videos) {
       const size = new TextEncoder().encode(JSON.stringify(video)).length + 50;
@@ -529,16 +655,25 @@ async function importData(file) {
       group.push(thought); groupBytes += size;
     }
     if (group.length) thoughtGroups.push(group);
-    const total = Math.max(videoGroups.length, thoughtGroups.length, 1);
+    const tipGroups = []; group = []; groupBytes = 0;
+    for (const tip of tips) {
+      const size = new TextEncoder().encode(JSON.stringify(tip)).length + 50;
+      if (group.length && (group.length >= 200 || groupBytes + size > 2_000_000)) { tipGroups.push(group); group = []; groupBytes = 0; }
+      group.push(tip); groupBytes += size;
+    }
+    if (group.length) tipGroups.push(group);
+    const total = Math.max(videoGroups.length, thoughtGroups.length, tipGroups.length, 1);
     for (let index = 0; index < total; index++) {
       toast(`Restaurando backup: lote ${index + 1} de ${total}...`);
-      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [] }) });
+      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [] }) });
       imported += res.imported; skipped += res.skipped;
       thoughtsImported += res.thoughtsImported || 0; thoughtsSkipped += res.thoughtsSkipped || 0;
+      tipsImported += res.tipsImported || 0; tipsSkipped += res.tipsSkipped || 0;
     }
     await syncCategories();
     if (state.view === 'thoughts') await loadThoughts();
-    toast(`${imported} vídeos e ${thoughtsImported} reflexões importados; ${skipped + thoughtsSkipped} já existentes/ignorados.`);
+    if (state.view === 'tips') await loadTips();
+    toast(`${imported} vídeos, ${thoughtsImported} reflexões e ${tipsImported} dicas importados; ${skipped + thoughtsSkipped + tipsSkipped} já existentes/ignorados.`);
   } catch (e) { toast(e.message, true); }
   finally { $('importFile').value = ''; }
 }
@@ -584,7 +719,7 @@ function bindEvents() {
   $('logoutBtn').addEventListener('click', async () => { try { await api('/api/logout', { method: 'POST' }); $('loginOverlay').hidden = false; $('passwordInput').value = ''; toast('Você saiu da biblioteca.'); } catch (e) { toast(e.message, true); } });
   $('menuBtn').addEventListener('click', () => { $('sidebar').classList.add('open'); $('sidebarBackdrop').hidden = false; });
   $('sidebarBackdrop').addEventListener('click', () => { $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeEditor(); $('categoryModal').hidden = true; $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeTipEditor(); closeEditor(); $('categoryModal').hidden = true; $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; } });
   document.addEventListener('click', e => {
     const a = e.target.closest('[data-view]'); if (a) { navigate(a.dataset.view); return; }
     const cat = e.target.closest('[data-cat]'); if (cat) { navigate('library', cat.dataset.cat); return; }
@@ -593,6 +728,10 @@ function bindEvents() {
     const favorite = e.target.closest('[data-fav]'); if (favorite) { toggleFavorite(favorite.dataset.fav); return; }
     const edit = e.target.closest('[data-edit]'); if (edit) { editVideo(edit.dataset.edit); return; }
     const moreInfo = e.target.closest('[data-newinfo]'); if (moreInfo) { newInformation(moreInfo.dataset.newinfo); return; }
+    const ctx = e.target.closest('[data-tip-context]'); if (ctx) { setTipContext(ctx.dataset.tipContext); return; }
+    const tipEdit = e.target.closest('[data-tip-edit]'); if (tipEdit) { openTipEditor(tipEdit.dataset.tipEdit); return; }
+    const tipFav = e.target.closest('[data-tip-fav]'); if (tipFav) { toggleTipFavorite(tipFav.dataset.tipFav); return; }
+    if (e.target.closest('#tipsEmptyAdd')) { openTipEditor(); return; }
     const thoughtEdit = e.target.closest('[data-thought-edit]'); if (thoughtEdit) { editThought(thoughtEdit.dataset.thoughtEdit); return; }
     const thoughtDelete = e.target.closest('[data-thought-delete]'); if (thoughtDelete) { deleteThought(thoughtDelete.dataset.thoughtDelete); return; }
     const prompt = e.target.closest('[data-prompt]'); if (prompt) { submitChat(prompt.dataset.prompt); return; }
@@ -604,6 +743,15 @@ function bindEvents() {
   $('clearFilters').addEventListener('click', () => { state.search = ''; state.category = 'all'; $('searchInput').value = ''; $('categoryFilter').value = 'all'; loadList(); });
   $('loadMore').addEventListener('click', () => loadList(true));
   $('chatForm').addEventListener('submit', e => { e.preventDefault(); submitChat($('chatInput').value); });
+  $('tipsAddBtn').addEventListener('click', () => openTipEditor());
+  $('tipsSearch').addEventListener('input', e => { state.tipsSearch = e.target.value; renderTips(); });
+  $('tipsKind').addEventListener('change', e => { state.tipsKind = e.target.value; renderTips(); });
+  $('tipsFavoritesOnly').addEventListener('change', e => { state.tipsFavoritesOnly = e.target.checked; renderTips(); });
+  $('tipCloseBtn').addEventListener('click', closeTipEditor);
+  $('tipCancelBtn').addEventListener('click', closeTipEditor);
+  $('tipModal').addEventListener('click', e => { if (e.target === $('tipModal')) closeTipEditor(); });
+  $('tipForm').addEventListener('submit', saveTip);
+  $('tipDeleteBtn').addEventListener('click', deleteTip);
   $('thoughtForm').addEventListener('submit', saveThought);
   $('thoughtForm').addEventListener('input', updateThoughtProgress);
   $('thoughtNewBtn').addEventListener('click', resetThoughtForm);

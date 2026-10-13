@@ -1,9 +1,9 @@
 {
   "name": "relembra-cloudflare",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "type": "module",
-  "description": "Biblioteca de videos e diario de pensamentos com Cloudflare D1 e IA",
+  "description": "Biblioteca de vídeos, diário de pensamentos e dicas situacionais com Cloudflare D1 e IA",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
