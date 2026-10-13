@@ -20,6 +20,7 @@ const pill = (label,variant) => '<span class="finance-pill finance-'+variant+'">
 
 export function resetFinance(){
   version++; snapshot = null;
+  financeSort = 'priority'; financeQuery = ''; currentMonth = nowMonth();
   if (node()) node().replaceChildren();
 }
 export async function loadFinance(){
@@ -71,8 +72,7 @@ function render(){
   if(!snapshot || !node()) return;
   const {entries,bills,goals,balance_cents:balance} = snapshot;
   const [selectedYear,selectedMonth] = currentMonth.split('-').map(Number);
-  const periodEnd = new Date(selectedYear,selectedMonth,0).toLocaleDateString('en-CA').slice(0,10);
-  // Formatação local independente do suporte a locale en-CA.
+  // Último dia do mês, evitando datas inválidas como 31 de fevereiro.
   const monthLastDay = currentMonth + '-' + String(new Date(selectedYear,selectedMonth,0).getDate()).padStart(2,'0');
   const relevant = bills.filter(b=>b.due_date.slice(0,7)===currentMonth || (!b.paid_at && b.due_date<=monthLastDay));
   const pending = relevant.filter(b=>!b.paid_at);
@@ -111,7 +111,7 @@ function render(){
   const entryRows = array=>array.map(e=>
     '<tr><td>'+shortDate(e.entry_date)+'</td><td><strong class="finance-item-name">'+escapeHtml(e.description)+'</strong></td>'+
     '<td class="finance-number">'+money(e.amount_cents)+'</td><td>'+
-    (e.status==='confirmed'?pill('Recebido','ok'):pill('Previsto','planned'))+'</td>'+
+    (e.status==='confirmed'?pill(e.type==='expense'?'Registrado':'Recebido','ok'):pill('Previsto','planned'))+'</td>'+
     '<td>'+menu('entries',e.id)+'</td></tr>').join('');
   const goalsList = goals.filter(g=>matchFinance(g.name));
   const goalCards = goalsList.map((g,i)=>{
@@ -126,6 +126,8 @@ function render(){
     financeQuery?'Tente outra busca.':'Cadastre a primeira conta com data de vencimento e prioridade.');
   const emptyIncome=blank(financeQuery?'Nenhuma entrada encontrada':'Você ainda não registrou entradas',
     financeQuery?'Tente outra busca.':'Adicione um recebimento confirmado ou uma entrada prevista.');
+  const emptyGoals=blank(financeQuery?'Nenhuma meta encontrada':'Nenhuma meta cadastrada',
+    financeQuery?'Tente outra busca.':'Crie uma reserva de emergência ou outra meta financeira.');
   const emptyExpenses=blank(financeQuery?'Nenhum gasto encontrado':'Nenhum gasto avulso registrado',
     financeQuery?'Tente outra busca.':'Gastos confirmados são descontados do saldo.');
   const tableHead='<thead><tr><th>Prioridade</th><th>Conta</th><th>Vencimento</th><th>Valor</th><th>Essencial</th><th>Status</th><th><span class="sr-only">Ações</span></th></tr></thead>';
@@ -163,7 +165,7 @@ function render(){
           '</section>'+
           '<section class="finance-panel finance-goals"><div class="finance-panel-head"><div class="finance-heading-group">'+icon('goal','finance-section-icon')+
             '<div><h2>Reservas e metas</h2><p>Seus objetivos, separados do dinheiro usado para as contas.</p></div></div>'+button('new','+ Nova meta','goals')+'</div>'+
-            (goalCards?'<div class="finance-goal-grid">'+goalCards+'</div>':emptyAccounts.replace('Suas próximas contas aparecerão aqui','Nenhuma meta cadastrada').replace('Cadastre a primeira conta com data de vencimento e prioridade.','Crie uma reserva de emergência ou outra meta financeira.'))+
+            (goalCards?'<div class="finance-goal-grid">'+goalCards+'</div>':emptyGoals)+
           '</section>'+
         '</div>'+
         '<div class="finance-column finance-side-column">'+
@@ -201,6 +203,7 @@ function openForm(kind,id=null){
   const record = id ? snapshot[normalized].find(e=>e.id===id) : null;
   if(id && !record) return;
   const initialType = kind==='expenses'?'expense':record?.type || 'income';
+  const formDate = currentMonth === nowMonth() ? nowDate() : currentMonth+'-01';
   const field = (name,label,type,value='',extra='') => '<label class="finance-field"><span>'+label+'</span><input name="'+name+'" type="'+type+'" value="'+escapeHtml(value)+'" '+extra+'></label>';
   const select = (name,label,options,current) => '<label class="finance-field"><span>'+label+'</span><select name="'+name+'">'+options.map(([value,text])=>'<option value="'+value+'" '+(String(value)===String(current)?'selected':'')+'>'+text+'</option>').join('')+'</select></label>';
   let fields = '';
@@ -208,12 +211,12 @@ function openForm(kind,id=null){
     fields = select('type','Movimentação',[['income','Entrada'],['expense','Gasto']],initialType)+
       field('description','Descrição','text',record?.description || '', 'required maxlength="160"')+
       field('amount','Valor (R$)','number',record ? (record.amount_cents/100).toFixed(2):'','required min="0.01" max="1000000000" step="0.01"')+
-      field('entry_date','Data','date',record?.entry_date || nowDate(),'required')+
+      field('entry_date','Data','date',record?.entry_date || formDate,'required')+
       select('status','Situação',[['planned','Previsto'],['confirmed','Confirmado']],record?.status || 'confirmed');
   } else if(normalized==='bills'){
     fields = field('name','Nome da conta','text',record?.name || '', 'required maxlength="160"')+
       field('amount','Valor (R$)','number',record ? (record.amount_cents/100).toFixed(2):'','required min="0.01" max="1000000000" step="0.01"')+
-      field('due_date','Vencimento','date',record?.due_date || nowDate(),'required')+
+      field('due_date','Vencimento','date',record?.due_date || formDate,'required')+
       select('priority','Prioridade (1 = mais importante)',[[1,'1 · Urgente'],[2,'2 · Alta'],[3,'3 · Média'],[4,'4 · Baixa'],[5,'5 · Opcional']],record?.priority || 3)+
       '<label class="finance-check"><input type="checkbox" name="essential" '+(record?.essential?'checked':'')+'> Conta essencial</label>'+
       field('paid_at','Data do pagamento (vazio = pendente)','date',record?.paid_at || '');
