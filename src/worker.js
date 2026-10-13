@@ -713,7 +713,7 @@ async function handle(request, env) {
           .bind(input.title, input.content, input.situation, input.kind).first();
         if (exists || same) { tipsSkipped++; continue; }
         const stamp = now();
-        const created = /^\\d{4}-\\d{2}-\\d{2}T/.test(raw.created_at || '') ? clean(raw.created_at, 40) : stamp;
+        const created = /^\d{4}-\d{2}-\d{2}T/.test(raw.created_at || '') ? clean(raw.created_at, 40) : stamp;
         await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
           .bind(rawId || crypto.randomUUID(), ...tipValues(input), created, stamp).run();
         tipsImported++;
