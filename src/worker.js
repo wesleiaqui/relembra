@@ -592,32 +592,32 @@ async function handle(request, env) {
   // Diário de pensamentos: separado dos vídeos para não contaminar a busca de conteúdos.
   if (path === '/api/thoughts' && method === 'GET') {
     const limit = Math.min(Math.max(safeNumber(url.searchParams.get('limit'), 100), 1), 250);
-    const rows = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries ORDER BY created_at DESC LIMIT ?`).bind(limit).all()).results;
+    const rows = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE owner_id=? ORDER BY created_at DESC LIMIT ?`).bind(user.id,limit).all()).results;
     return json({ thoughts: rows });
   }
   if (path === '/api/thoughts' && method === 'POST') {
     const entry = validateThought(await getBody(request, 24000));
     const id = crypto.randomUUID(), stamp = now();
-    await env.DB.prepare(`INSERT INTO thought_entries (${THOUGHT_COLUMNS}) VALUES (${Array(13).fill('?').join(', ')})`)
-      .bind(id, ...thoughtValues(entry), stamp, stamp).run();
-    return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=?`).bind(id).first() }, 201);
+    await env.DB.prepare(`INSERT INTO thought_entries (${THOUGHT_COLUMNS},owner_id) VALUES (${Array(14).fill('?').join(', ')})`)
+      .bind(id, ...thoughtValues(entry), stamp, stamp,user.id).run();
+    return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=? AND owner_id=?`).bind(id,user.id).first() }, 201);
   }
   const thoughtMatch = path.match(/^\/api\/thoughts\/([a-f0-9-]{36})$/i);
   if (thoughtMatch) {
     const id = thoughtMatch[1];
     if (method === 'GET') {
-      const thought = await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=?`).bind(id).first();
+      const thought = await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=? AND owner_id=?`).bind(id,user.id).first();
       return thought ? json({ thought }) : error('Registro não encontrado.', 404);
     }
     if (method === 'PUT') {
-      if (!await env.DB.prepare('SELECT id FROM thought_entries WHERE id=?').bind(id).first()) return error('Registro não encontrado.', 404);
+      if (!await env.DB.prepare('SELECT id FROM thought_entries WHERE id=? AND owner_id=?').bind(id,user.id).first()) return error('Registro não encontrado.', 404);
       const entry = validateThought(await getBody(request, 24000));
-      await env.DB.prepare(`UPDATE thought_entries SET situation=?, emotion=?, intensity_before=?, automatic_thought=?, evidence_for=?, evidence_against=?, balanced_thought=?, next_step=?, intensity_after=?, source_url=?, updated_at=? WHERE id=?`)
-        .bind(...thoughtValues(entry), now(), id).run();
-      return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=?`).bind(id).first() });
+      await env.DB.prepare(`UPDATE thought_entries SET situation=?, emotion=?, intensity_before=?, automatic_thought=?, evidence_for=?, evidence_against=?, balanced_thought=?, next_step=?, intensity_after=?, source_url=?, updated_at=? WHERE id=? AND owner_id=?`)
+        .bind(...thoughtValues(entry), now(), id,user.id).run();
+      return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=? AND owner_id=?`).bind(id,user.id).first() });
     }
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM thought_entries WHERE id=?').bind(id).run();
+      await env.DB.prepare('DELETE FROM thought_entries WHERE id=? AND owner_id=? AND owner_id=?').bind(id,user.id).run();
       return json({ ok: true });
     }
   }
@@ -641,7 +641,7 @@ async function handle(request, env) {
 
   // Dicas privadas por situação: independentes dos pensamentos e do chat de vídeos.
   if (path === '/api/tips' && method === 'GET') {
-    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips ORDER BY favorite DESC, CASE kind WHEN 'dica' THEN 0 ELSE 1 END, created_at ASC LIMIT 750`).all()).results;
+    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE owner_id=? ORDER BY favorite DESC, CASE kind WHEN 'dica' THEN 0 ELSE 1 END, created_at ASC LIMIT 750`).bind(user.id).all()).results;
     return json({ tips });
   }
   if (path === '/api/tips' && method === 'POST') {
@@ -649,34 +649,34 @@ async function handle(request, env) {
     try { input = validateTip(await getBody(request, 10000)); }
     catch(e) { return error(e.message); }
     const id = crypto.randomUUID(), stamp = now();
-    await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(id, ...tipValues(input), stamp, stamp).run();
-    return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first() }, 201);
+    await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS},owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, ...tipValues(input), stamp, stamp,user.id).run();
+    return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=? AND owner_id=?`).bind(id,user.id).first() }, 201);
   }
   const tipMatch = path.match(/^\/api\/tips\/([a-f0-9-]{36})$/i);
   if (tipMatch) {
     const id = tipMatch[1];
-    const previous = await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first();
+    const previous = await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=? AND owner_id=?`).bind(id,user.id).first();
     if (!previous) return error('Dica não encontrada.', 404);
     if (method === 'GET') return json({ tip: previous });
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM situational_tips WHERE id=?').bind(id).run();
+      await env.DB.prepare('DELETE FROM situational_tips WHERE id=? AND owner_id=?').bind(id,user.id).run();
       return json({ ok: true });
     }
     if (method === 'PATCH') {
       const body = await getBody(request, 2000);
       if (typeof body.favorite !== 'boolean') return error('Informe true ou false para favorito.');
-      await env.DB.prepare('UPDATE situational_tips SET favorite=?, updated_at=? WHERE id=?')
-        .bind(body.favorite ? 1 : 0, now(), id).run();
-      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first() });
+      await env.DB.prepare('UPDATE situational_tips SET favorite=?, updated_at=? WHERE id=? AND owner_id=?')
+        .bind(body.favorite ? 1 : 0, now(), id,user.id).run();
+      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=? AND owner_id=?`).bind(id,user.id).first() });
     }
     if (method === 'PUT') {
       let input;
       try { input = validateTip(await getBody(request, 10000)); }
       catch(e) { return error(e.message); }
-      await env.DB.prepare('UPDATE situational_tips SET title=?, content=?, situation=?, kind=?, favorite=?, source_url=?, updated_at=? WHERE id=?')
-        .bind(...tipValues(input), now(), id).run();
-      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first() });
+      await env.DB.prepare('UPDATE situational_tips SET title=?, content=?, situation=?, kind=?, favorite=?, source_url=?, updated_at=? WHERE id=? AND owner_id=?')
+        .bind(...tipValues(input), now(), id,user.id).run();
+      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=? AND owner_id=?`).bind(id,user.id).first() });
     }
   }
   if (path === '/api/stats' && method === 'GET') {
