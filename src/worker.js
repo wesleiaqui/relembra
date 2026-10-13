@@ -382,7 +382,7 @@ async function storeImage(env, id, bytes, mediaType, userId) {
   await env.DB.prepare('INSERT INTO video_images (video_id, media_type, data_base64, bytes, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(video_id) DO UPDATE SET media_type=excluded.media_type, data_base64=excluded.data_base64, bytes=excluded.bytes, updated_at=excluded.updated_at')
     .bind(id, mediaType, encodeImage(bytes), bytes.length, stamp).run();
   // Nunca preserve uma análise visual após a imagem ter sido substituída.
-  await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=?').bind('', stamp, id).run();
+  await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=? AND owner_id=?').bind('', stamp, id,userId).run();
   return json({ ok: true, bytes: bytes.length });
 }
 const TRUSTED_IMAGE_HOSTS = new Set([
@@ -617,7 +617,7 @@ async function handle(request, env) {
       return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=? AND owner_id=?`).bind(id,user.id).first() });
     }
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM thought_entries WHERE id=? AND owner_id=? AND owner_id=?').bind(id,user.id).run();
+      await env.DB.prepare('DELETE FROM thought_entries WHERE id=? AND owner_id=?').bind(id,user.id).run();
       return json({ ok: true });
     }
   }
@@ -707,7 +707,7 @@ async function handle(request, env) {
     const id = imageMatch[1];
     if (!await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(id,user.id).first()) return error('Vídeo não encontrado.',404);
     if (method === 'GET') {
-      const img = await env.DB.prepare('SELECT data_base64, media_type FROM video_images WHERE video_id=?').bind(id,user.id).first();
+      const img = await env.DB.prepare('SELECT data_base64, media_type FROM video_images WHERE video_id=?').bind(id).first();
       if (!img) return error('Imagem não encontrada.', 404);
       return new Response(imageBytes(img.data_base64), { headers: {
         'content-type': img.media_type, 'content-security-policy': "default-src 'none'; sandbox",
@@ -740,6 +740,7 @@ async function handle(request, env) {
   const videoMatch = path.match(/^\/api\/videos\/([a-f0-9-]{36})$/i);
   if (videoMatch) {
     const id = videoMatch[1];
+    if (!await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(id,user.id).first()) return error('Vídeo não encontrado.',404);
     if (method === 'GET') {
       const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ? AND owner_id=?`).bind(id,user.id).first();
       if (!video) return error('Vídeo não encontrado.', 404);
