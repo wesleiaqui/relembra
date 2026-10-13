@@ -79,7 +79,7 @@ body.finance-mode #financeView{min-height:calc(100vh - 79px);padding:0;backgroun
 .finance-btn{background:#0b9879;color:#fff;border:1px solid #0b9879;border-radius:9px;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer;line-height:1.2;white-space:nowrap}
 .finance-btn:hover{background:#087e66;border-color:#087e66}
 .finance-btn:disabled{opacity:.5;cursor:not-allowed}
-.finance-table-wrap{max-width:100%;overflow-x:auto;border-top:1px solid #eaf0f2}
+.finance-table-wrap{max-width:100%;overflow:visible;border-top:1px solid #eaf0f2}
 .finance-table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap;font-size:12px;color:#384b60}
 .finance-table thead{background:#f5f8fa}
 .finance-table th{background:#f5f8fa;color:#7c8d9b;font-size:11px;font-weight:700;padding:13px 14px;white-space:nowrap}
@@ -179,6 +179,7 @@ body.finance-mode #financeView{min-height:calc(100vh - 79px);padding:0;backgroun
   .finance-kpi{min-height:105px}
   .finance-heading-actions{width:100%;justify-content:flex-start}
   .finance-goal-grid{grid-template-columns:1fr}
+  .finance-table-wrap{overflow-x:auto;overflow-y:auto}
   .finance-table{min-width:570px}
   .finance-income-table{min-width:510px}
   .finance-sort select{max-width:100%}
@@ -192,3 +193,5 @@ body.finance-mode #financeView{min-height:calc(100vh - 79px);padding:0;backgroun
   .finance-goal-bottom{gap:5px}
   .finance-modal{padding:19px}
 }
+
+#financeRoot button:focus-visible,#financeRoot select:focus-visible,#financeRoot input:focus-visible,#financeRoot summary:focus-visible{outline:2px solid #0b9d79;outline-offset:2px}
