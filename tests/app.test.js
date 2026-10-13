@@ -656,7 +656,7 @@ test('PBKDF2 respeita limite de 100 mil iterações do Cloudflare Workers', asyn
   const matched = source.match(/const ITERATIONS = (\d+);/);
   assert.ok(matched, 'Parâmetro de derivação de senha está definido');
   const iterations = Number(matched[1]);
-  assert.ok(iterations >= 100000 && iterations <= 100000, 'Workers aceita no máximo 100000 iterações');
+  assert.equal(iterations, 100000, 'Não ultrapassar 100000 iterações no Workers sem migrar os hashes');
   const { req } = setup();
   const owner = await req('/api/setup-owner', 'POST', {
     username: 'principal', setup_key: 'um-passphrase-longo-de-verdade', password: 'uma-senha-bem-forte-123'
