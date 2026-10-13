@@ -149,7 +149,7 @@ test('migração mantém vídeos antigos, captura e análise visual entram na bu
   const png = Uint8Array.from([137,80,78,71,13,10,26,10,0,0,0,0,0]);
   const headers = { origin:'https://relembra.example', 'content-type':'image/png' };
   // login separado para reproduzir a sessão obtida pelo req
-  const logged = await worker.fetch(new Request('https://relembra.example/api/login',{method:'POST',headers:{origin:'https://relembra.example','content-type':'application/json'},body:JSON.stringify({password:'um-passphrase-longo-de-verdade'})}),env);
+  const logged = await worker.fetch(new Request('https://relembra.example/api/login',{method:'POST',headers:{origin:'https://relembra.example','content-type':'application/json'},body:JSON.stringify({username:'principal',password:'um-passphrase-longo-de-verdade'})}),env);
   const c = logged.headers.get('set-cookie').split(';')[0];
   headers.cookie = c;
   const upload = await worker.fetch(new Request(`https://relembra.example/api/videos/${id}/image`, {method:'POST',headers,body:png}),env);
@@ -190,7 +190,7 @@ test('upload de imagem exige login, formatos válidos e tamanho limitado', async
   }
   const wrongType = await img('POST',Uint8Array.from([60,115,118,103,62]),'image/svg+xml');
   assert.equal(wrongType.status,401); // sem sessão sequer há acesso
-  const login = await worker.fetch(new Request('https://relembra.example/api/login',{method:'POST',headers:{origin:'https://relembra.example','content-type':'application/json'},body:JSON.stringify({password:'um-passphrase-longo-de-verdade'})}),env);
+  const login = await worker.fetch(new Request('https://relembra.example/api/login',{method:'POST',headers:{origin:'https://relembra.example','content-type':'application/json'},body:JSON.stringify({username:'principal',password:'um-passphrase-longo-de-verdade'})}),env);
   const cookie = login.headers.get('set-cookie').split(';')[0];
   assert.equal((await img('POST',Uint8Array.from([60,115,118,103,62]),'image/svg+xml',cookie)).status,413);
   assert.equal((await img('POST',new Uint8Array(450001),'image/png',cookie)).status,413);
@@ -295,7 +295,7 @@ test('registros entram no backup, não vazam ao chat de vídeos e importação n
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   await req('/api/thoughts','POST',reflection);
   const backup = (await req('/api/export')).data;
-  assert.equal(backup.format,'relembra-v1.7');
+  assert.equal(backup.format,'relembra-v1.9');
   assert.equal(backup.thoughts.length,1);
   assert.equal((await req('/api/chat','POST',{message:'conversa estranho reação'})).data.sources.length,0);
   const res = await req('/api/import','POST',backup);
@@ -475,7 +475,7 @@ test('backup de dicas restaura registros sem duplicação e não mistura com o c
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   const entry = await req('/api/tips','POST',{title:'Lembrete pessoal',content:'Meu texto reservado',situation:'Para mim',kind:'dica',favorite:true});
   const backup = (await req('/api/export')).data;
-  assert.equal(backup.format,'relembra-v1.7');
+  assert.equal(backup.format,'relembra-v1.9');
   assert.ok(backup.tips.some(x=>x.id===entry.data.tip.id));
   assert.equal((await req('/api/chat','POST',{message:'Meu texto reservado'})).data.sources.length,0);
   await req('/api/tips/'+entry.data.tip.id,'DELETE');
