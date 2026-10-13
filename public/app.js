@@ -1,3 +1,4 @@
+import { MOTIVATION_MOMENTS, selectMotivationTips } from './motivation.js';
 import { embeddedMediaLink } from './media-links.js';
 const $ = id => document.getElementById(id);
 const state = { thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
@@ -494,11 +495,76 @@ async function submitChat(message) {
   finally { $('sendChatBtn').disabled = false; $('chatInput').focus(); }
 }
 
+
+/* Motivação contextual — só usa dicas salvas na conta autenticada. */
+let motivationMoment = null;
+let motivationRequest = 0;
+function closeMotivation() {
+  ++motivationRequest;
+  $('motivationModal').hidden = true;
+  motivationMoment = null;
+  $('motivationResult').replaceChildren();
+  document.querySelectorAll('[data-motivation-moment]').forEach(button=>button.setAttribute('aria-pressed','false'));
+}
+function renderMotivation() {
+  const container=$('motivationResult');
+  container.replaceChildren();
+  for(const button of document.querySelectorAll('[data-motivation-moment]'))
+    button.setAttribute('aria-pressed',String(button.dataset.motivationMoment === motivationMoment));
+  const picks=motivationMoment?selectMotivationTips(state.tips,motivationMoment,3):[];
+  const heading=document.createElement('h3');
+  heading.textContent=motivationMoment ? 'Lembretes que você guardou' : 'Escolha o momento';
+  container.append(heading);
+  if(!motivationMoment){
+    const p=document.createElement('p');p.textContent='Escolha uma das opções acima para consultar sua biblioteca.';container.append(p);
+    return;
+  }
+  if(!picks.length){
+    const p=document.createElement('p');
+    p.textContent='Ainda não encontrei lembretes para esta situação. Você pode adicionar um na categoria Motivação e mentalidade.';
+    container.append(p);
+    return;
+  }
+  for(const tip of picks){
+    const article=document.createElement('article');article.className='motivation-advice';
+    const title=document.createElement('strong');title.textContent=tip.title;
+    const content=document.createElement('p');content.textContent=tip.content;
+    const footer=document.createElement('div');footer.className='motivation-advice-foot';
+    const category=document.createElement('small');category.textContent=tip.situation;
+    const open=document.createElement('button');open.type='button';open.textContent='Editar lembrete ↗';
+    open.addEventListener('click',async()=>{
+      closeMotivation();
+      await navigate('tips');
+      openTipEditor(tip.id);
+    });
+    footer.append(category,open);article.append(title,content,footer);
+    container.append(article);
+  }
+}
+async function openMotivation() {
+  if(!$('loginOverlay').hidden) return;
+  const request=++motivationRequest;
+  $('motivationModal').hidden=false;
+  motivationMoment=null;
+  const box=$('motivationResult');
+  box.replaceChildren();
+  const status=document.createElement('p');status.textContent='Procurando seus lembretes...';box.append(status);
+  $('motivationCloseBtn').focus();
+  try{
+    const result=await api('/api/tips');
+    if(request!==motivationRequest || !$('loginOverlay').hidden)return;
+    state.tips=result.tips||[];
+    renderMotivation();
+  }catch(e){
+    if(request===motivationRequest){box.replaceChildren();const p=document.createElement('p');p.textContent='Não consegui buscar suas dicas: '+e.message;box.append(p);}
+  }
+}
+
 /* Dicas para o momento: cartões práticos filtrados por situação, independentes do diário. */
-const standardTipContexts = ['Conversar','Sair de casa','Na rua','Segurança','Para mim','Foco e produtividade'];
+const standardTipContexts = ['Conversar','Sair de casa','Na rua','Segurança','Para mim','Foco e produtividade','Motivação e mentalidade'];
 const tipLabel = situation => ({
   'Conversar':'Vou conversar','Sair de casa':'Vou sair','Na rua':'Na rua',
-  'Segurança':'Segurança','Para mim':'Para mim','Foco e produtividade':'Foco e produtividade','Geral':'Geral'
+  'Segurança':'Segurança','Para mim':'Para mim','Foco e produtividade':'Foco e produtividade','Motivação e mentalidade':'Motivação e mentalidade','Geral':'Geral'
 })[situation] || situation;
 function normalizeTipText(text) {
   return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -780,6 +846,13 @@ async function createCategory(e) {
   finally { button.disabled = false; }
 }
 function bindEvents() {
+  document.querySelectorAll('[data-open-motivation]').forEach(button=>button.addEventListener('click',openMotivation));
+  $('motivationCloseBtn').addEventListener('click',closeMotivation);
+  $('motivationModal').addEventListener('click',event=>{if(event.target===$('motivationModal'))closeMotivation();});
+  document.querySelectorAll('[data-motivation-moment]').forEach(button=>button.addEventListener('click',()=>{motivationMoment=button.dataset.motivationMoment;renderMotivation();}));
+  $('motivationSeeAll').addEventListener('click',async()=>{closeMotivation();await navigate('tips');setTipContext('Motivação e mentalidade');});
+  $('motivationAddTip').addEventListener('click',async()=>{closeMotivation();await navigate('tips');setTipContext('Motivação e mentalidade');openTipEditor();});
+
   setViewMode(savedViewMode());
   document.querySelectorAll('[data-view-mode]').forEach(btn => btn.addEventListener('click', () => setViewMode(btn.dataset.viewMode)));
   $('mediaPlayerClose').addEventListener('click', closeMediaPlayer);
@@ -820,7 +893,7 @@ function bindEvents() {
   $('logoutBtn').addEventListener('click', async () => { try { await api('/api/logout', { method: 'POST' }); wipePreviousAccount(); $('loginOverlay').hidden = false; showAccountMode('login'); toast('Você saiu da biblioteca.'); } catch (e) { toast(e.message, true); } });
   $('menuBtn').addEventListener('click', () => { $('sidebar').classList.add('open'); $('sidebarBackdrop').hidden = false; });
   $('sidebarBackdrop').addEventListener('click', () => { $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMediaPlayer(); closeImageViewer(); closeTipEditor(); closeEditor(); $('categoryModal').hidden = true; $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMotivation(); closeMediaPlayer(); closeImageViewer(); closeTipEditor(); closeEditor(); $('categoryModal').hidden = true; $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; } });
   document.addEventListener('keydown', e => { if (!$('imageViewerModal').hidden && e.key === 'ArrowLeft') showImagePreview(imagePreviewIndex - 1); if (!$('imageViewerModal').hidden && e.key === 'ArrowRight') showImagePreview(imagePreviewIndex + 1); });
   document.addEventListener('click', e => {
     const a = e.target.closest('[data-view]'); if (a) { navigate(a.dataset.view); return; }
@@ -910,6 +983,7 @@ function showAccountMode(mode) {
   $('loginError').textContent='';
 }
 function wipePreviousAccount() {
+  closeMotivation();
   state.videos=[];state.homeVideos=[];state.categories=[];
   state.thoughts=[];state.tips=[];state.total=0;state.offset=0;
   state.editId=null;state.tipEditId=null;state.thoughtEditId=null;
