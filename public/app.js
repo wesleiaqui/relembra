@@ -1,5 +1,6 @@
 import { MOTIVATION_MOMENTS, selectMotivationTips } from './motivation.js';
 import { embeddedMediaLink } from './media-links.js';
+import { setupFinance, loadFinance, resetFinance } from './finance.js';
 const $ = id => document.getElementById(id);
 const state = { thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
 let toastTimer;
@@ -92,7 +93,7 @@ async function loadList(append = false) {
   } catch(e) { if (requestNumber === listRequest) { box.innerHTML = skeletonEmpty('Erro ao carregar vídeos', e.message, '⚠️', false); toast(e.message, true); } }
   finally { if (requestNumber === listRequest) state.busy = false; }
 }
-const viewNames = { home: 'Visão geral', library: 'Minha biblioteca', favorites: 'Favoritos', unwatched: 'Para assistir', chat: 'Chat inteligente', thoughts: 'Diário de pensamentos', tips: 'Dicas para o momento', backup: 'Backup e dados' };
+const viewNames = { home: 'Visão geral', library: 'Minha biblioteca', favorites: 'Favoritos', unwatched: 'Para assistir', chat: 'Chat inteligente', thoughts: 'Diário de pensamentos', tips: 'Dicas para o momento', finance: 'Minhas finanças', backup: 'Backup e dados' };
 async function navigate(view, category = 'all') {
   const known = viewNames[view] ? view : 'home';
   state.view = known;
@@ -100,7 +101,8 @@ async function navigate(view, category = 'all') {
   else state.category = 'all';
   state.search = ''; state.sort = 'recent'; state.videos = [];
   document.querySelectorAll('.view').forEach(el => el.hidden = true);
-  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
+  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'finance' ? 'financeView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
+  $('addVideoBtn').hidden = known === 'finance';
   $('breadcrumbActive').textContent = known === 'library' && state.category !== 'all' ? catOf(state.category).name : viewNames[known];
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === known && (known !== 'library' || state.category === 'all')));
   document.querySelectorAll('[data-cat]').forEach(el => el.classList.toggle('active', known === 'library' && el.dataset.cat === category));
@@ -108,6 +110,7 @@ async function navigate(view, category = 'all') {
   if (known === 'home') await loadHome();
   if (known === 'thoughts') await loadThoughts();
   if (known === 'tips') await loadTips();
+  if (known === 'finance') await loadFinance();
   if (['library', 'favorites', 'unwatched'].includes(known)) {
     $('libraryTitle').textContent = known === 'favorites' ? 'Meus favoritos' : known === 'unwatched' ? 'Para assistir depois' : state.category !== 'all' ? catOf(state.category).name : 'Minha biblioteca';
     $('librarySubtitle').textContent = known === 'favorites' ? 'Tudo que você mais gostou, num só lugar.' : known === 'unwatched' ? 'Vídeos que ainda merecem sua atenção.' : 'Encontre qualquer ideia pelo assunto, resumo ou transcrição.';
@@ -983,6 +986,7 @@ function showAccountMode(mode) {
   $('loginError').textContent='';
 }
 function wipePreviousAccount() {
+  resetFinance();
   closeMotivation();
   state.videos=[];state.homeVideos=[];state.categories=[];
   state.thoughts=[];state.tips=[];state.total=0;state.offset=0;
@@ -1018,6 +1022,7 @@ async function submitAccountForm(event,endpoint) {
 
 async function start() {
   bindEvents();
+  setupFinance({ api, toast });
   try {
     const session=await api('/api/session');
     if(!session.configured){$('loginError').textContent='Configure a senha administrativa e o D1 na Cloudflare.';return;}
