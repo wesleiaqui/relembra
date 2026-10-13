@@ -335,3 +335,5 @@
   .image-viewer-stage img {max-height:69dvh;}
   .card-image-hit span {opacity:1;transform:none;}
 }
+
+#mediaPlayerModal[hidden],#imageViewerModal[hidden]{display:none!important;}
