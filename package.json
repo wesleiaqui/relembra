@@ -1,7 +1,7 @@
 {
   "name": "relembra-cloudflare",
   "private": true,
-  "version": "1.9.1",
+  "version": "1.9.2",
   "type": "module",
   "description": "Biblioteca de vídeos, diário de pensamentos e dicas situacionais com Cloudflare D1 e IA",
   "scripts": {
