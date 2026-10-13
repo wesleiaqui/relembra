@@ -916,7 +916,12 @@ function wipePreviousAccount() {
   for(const id of ['homeGrid','libraryGrid','categoryNav','chatMessages','thoughtList','tipsGrid']) $(id).replaceChildren();
   $('accountLabel').textContent='Sua conta';
   $('inviteBtn').hidden=true;
-  closeMediaPlayer();closeImageViewer();closeTipEditor();
+  closeMediaPlayer();closeImageViewer();closeTipEditor();closeEditor();
+  resetThoughtForm();
+  $('tipForm').reset();
+  $('inviteModal').hidden=true;
+  $('inviteCode').value='';
+  $('thoughtSuggestion').hidden=true;
 }
 async function finishAccountLogin(result) {
   wipePreviousAccount();
