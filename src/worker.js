@@ -78,6 +78,23 @@ function validateVideo(input) {
 const LIST_COLUMNS = 'v.id, v.url, v.title, v.category, v.summary, v.tags, v.cover_url, v.favorite, v.watched, v.created_at, v.updated_at, v.visual_description, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=v.id) AS has_image, (SELECT COUNT(*) FROM videos related WHERE related.url=v.url) AS related_count';
 const FULL_COLUMNS = 'id, url, title, category, summary, transcript, notes, tags, cover_url, favorite, watched, created_at, updated_at, visual_description';
 const THOUGHT_COLUMNS = 'id, situation, emotion, intensity_before, automatic_thought, evidence_for, evidence_against, balanced_thought, next_step, intensity_after, source_url, created_at, updated_at';
+const TIP_COLUMNS = 'id, title, content, situation, kind, favorite, source_url, created_at, updated_at';
+function validateTip(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Dica inválida.');
+  const title = clean(input.title, 180);
+  const content = clean(input.content, 4000);
+  const situation = clean(input.situation, 60) || 'Geral';
+  const kind = input.kind === 'frase' ? 'frase' : input.kind === 'dica' || !input.kind ? 'dica' : '';
+  const source_url = input.source_url ? validUrl(input.source_url) : '';
+  if (!title || !content) throw new Error('Informe um título e o conteúdo da dica.');
+  if (!kind) throw new Error('Escolha Dica ou Frase.');
+  if (input.source_url && !source_url) throw new Error('O link da dica precisa começar com http:// ou https://.');
+  return { title, content, situation, kind, favorite: input.favorite === true || input.favorite === 1 ? 1 : 0, source_url };
+}
+function tipValues(value) {
+  return [value.title, value.content, value.situation, value.kind, value.favorite, value.source_url];
+}
+
 function validateThought(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Registro de pensamento inválido.');
   const situation = clean(body.situation, 1500);
@@ -499,6 +516,47 @@ async function handle(request, env) {
       return json({ suggestion });
     } catch (e) { console.error('Sugestão de pensamento indisponível:', e?.name || 'IA'); return error('A IA está indisponível no momento. O diário continua funcionando sem IA.', 503); }
   }
+
+  // Dicas privadas por situação: independentes dos pensamentos e do chat de vídeos.
+  if (path === '/api/tips' && method === 'GET') {
+    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips ORDER BY favorite DESC, CASE kind WHEN 'dica' THEN 0 ELSE 1 END, created_at ASC LIMIT 750`).all()).results;
+    return json({ tips });
+  }
+  if (path === '/api/tips' && method === 'POST') {
+    let input;
+    try { input = validateTip(await getBody(request, 10000)); }
+    catch(e) { return error(e.message); }
+    const id = crypto.randomUUID(), stamp = now();
+    await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, ...tipValues(input), stamp, stamp).run();
+    return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first() }, 201);
+  }
+  const tipMatch = path.match(/^\/api\/tips\/([a-f0-9-]{36})$/i);
+  if (tipMatch) {
+    const id = tipMatch[1];
+    const previous = await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first();
+    if (!previous) return error('Dica não encontrada.', 404);
+    if (method === 'GET') return json({ tip: previous });
+    if (method === 'DELETE') {
+      await env.DB.prepare('DELETE FROM situational_tips WHERE id=?').bind(id).run();
+      return json({ ok: true });
+    }
+    if (method === 'PATCH') {
+      const body = await getBody(request, 2000);
+      if (typeof body.favorite !== 'boolean') return error('Informe true ou false para favorito.');
+      await env.DB.prepare('UPDATE situational_tips SET favorite=?, updated_at=? WHERE id=?')
+        .bind(body.favorite ? 1 : 0, now(), id).run();
+      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first() });
+    }
+    if (method === 'PUT') {
+      let input;
+      try { input = validateTip(await getBody(request, 10000)); }
+      catch(e) { return error(e.message); }
+      await env.DB.prepare('UPDATE situational_tips SET title=?, content=?, situation=?, kind=?, favorite=?, source_url=?, updated_at=? WHERE id=?')
+        .bind(...tipValues(input), now(), id).run();
+      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first() });
+    }
+  }
   if (path === '/api/stats' && method === 'GET') {
     const stats = await env.DB.prepare('SELECT COUNT(*) AS total, COALESCE(SUM(favorite),0) AS favorites, COALESCE(SUM(CASE WHEN watched=0 THEN 1 ELSE 0 END),0) AS unwatched, COUNT(DISTINCT category) AS categories FROM videos').first();
     return json({ stats });
@@ -591,13 +649,14 @@ async function handle(request, env) {
   if (path === '/api/export' && method === 'GET') {
     const videos = (await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos ORDER BY created_at DESC LIMIT 5000`).all()).results;
     const thoughts = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries ORDER BY created_at DESC LIMIT 5000`).all()).results;
-    const file = { format: 'relembra-v1.3', exported_at: now(), categories: await categories(env), videos, thoughts };
+    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips ORDER BY created_at ASC LIMIT 5000`).all()).results;
+    const file = { format: 'relembra-v1.7', exported_at: now(), categories: await categories(env), videos, thoughts, tips };
     return json(file, 200, { 'content-disposition': `attachment; filename="relembra-backup-${new Date().toISOString().slice(0, 10)}.json"` });
   }
   if (path === '/api/import' && method === 'POST') {
     const body = await getBody(request, 4000000);
-    if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts)) return error('Backup inválido: faltam vídeos e registros.');
-    if ((body.videos || []).length > 250 || (body.thoughts || []).length > 250) return error('Importe até 250 vídeos e 250 registros por lote.');
+    if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts) && !Array.isArray(body.tips)) return error('Backup inválido: faltam vídeos, registros e dicas.');
+    if ((body.videos || []).length > 250 || (body.thoughts || []).length > 250 || (body.tips || []).length > 250) return error('Importe até 250 itens de cada tipo por lote.');
     const existingCategories = await categories(env);
     const categoryMap = new Set(existingCategories.map(c => c.id));
     const catStatements = [];
@@ -644,7 +703,23 @@ async function handle(request, env) {
         thoughtsImported++;
       } catch { thoughtsSkipped++; }
     }
-    return json({ imported, skipped, thoughtsImported, thoughtsSkipped });
+    let tipsImported = 0, tipsSkipped = 0;
+    for (const raw of body.tips || []) {
+      try {
+        const input = validateTip(raw);
+        const rawId = typeof raw.id === 'string' && /^[a-f0-9-]{36}$/i.test(raw.id) ? raw.id : '';
+        const exists = rawId ? await env.DB.prepare('SELECT id FROM situational_tips WHERE id=?').bind(rawId).first() : null;
+        const same = await env.DB.prepare('SELECT id FROM situational_tips WHERE title=? AND content=? AND situation=? AND kind=? LIMIT 1')
+          .bind(input.title, input.content, input.situation, input.kind).first();
+        if (exists || same) { tipsSkipped++; continue; }
+        const stamp = now();
+        const created = /^\\d{4}-\\d{2}-\\d{2}T/.test(raw.created_at || '') ? clean(raw.created_at, 40) : stamp;
+        await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .bind(rawId || crypto.randomUUID(), ...tipValues(input), created, stamp).run();
+        tipsImported++;
+      } catch { tipsSkipped++; }
+    }
+    return json({ imported, skipped, thoughtsImported, thoughtsSkipped, tipsImported, tipsSkipped });
   }
   return error('Rota não encontrada.', 404);
 }
