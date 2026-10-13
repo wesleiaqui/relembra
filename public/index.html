@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1424">
+  <meta name="description" content="Sua biblioteca pessoal de vídeos. Salve, organize e converse com as suas descobertas.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Relembra — sua biblioteca inteligente</title>
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar" id="sidebar" aria-label="Navegação">
+      <div class="brand"><span class="brand-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M6 3h12a2 2 0 0 1 2 2v15l-8-5-8 5V5a2 2 0 0 1 2-2z"/><path d="m10 8 5 3-5 3z" fill="currentColor" stroke="none"/></svg></span><span>relembra<span class="brand-dot">.</span><small>sua segunda memória</small></span></div>
+      <div class="nav-caption">ESPAÇO PESSOAL</div>
+      <nav class="nav-main" id="mainNav">
+        <button class="nav-item active" data-view="home"><span class="nav-icon">◫</span> Visão geral</button>
+        <button class="nav-item" data-view="library"><span class="nav-icon">▦</span> Minha biblioteca</button>
+        <button class="nav-item" data-view="favorites"><span class="nav-icon">♡</span> Favoritos</button>
+        <button class="nav-item" data-view="unwatched"><span class="nav-icon">◷</span> Para assistir</button>
+        <button class="nav-item" data-view="chat"><span class="nav-icon">✧</span> Chat inteligente <span class="nav-new">IA</span></button>
+        <button class="nav-item" data-view="thoughts"><span class="nav-icon">☼</span> Diário de pensamentos <span class="nav-new">NOVO</span></button>
+      </nav>
+      <div class="side-separator"></div>
+      <div class="category-heading"><span class="nav-caption">COLEÇÕES</span><button title="Adicionar coleção" aria-label="Adicionar categoria" id="addCategoryBtn" class="tiny-btn">+</button></div>
+      <div id="categoryNav" class="category-nav"></div>
+      <div class="side-spacer"></div>
+      <div class="side-bottom">
+        <button class="nav-item muted" data-view="backup"><span class="nav-icon">⇄</span> Backup e dados</button>
+        <button class="nav-item muted" id="logoutBtn"><span class="nav-icon">↪</span> Sair da conta</button>
+        <div class="privacy-note"><span class="status-dot"></span> Biblioteca privada <small>Seus vídeos ficam na sua conta Cloudflare.</small></div>
+      </div>
+    </aside>
+    <div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+    <div class="workspace">
+      <header class="topbar">
+        <div class="top-left"><button class="mobile-menu icon-button" id="menuBtn" aria-label="Abrir menu">☰</button><span class="breadcrumb">Meu espaço</span><span class="slash">/</span><strong id="breadcrumbActive">Visão geral</strong></div>
+        <div class="top-actions"><span class="header-date" id="todayText"></span><button class="button button-primary" id="addVideoBtn"><span class="plus">+</span> <span>Adicionar vídeo</span></button></div>
+      </header>
+      <main class="page" id="page">
+        <section id="homeView" class="view">
+          <div class="welcome-head"><div><div class="eyebrow"><span class="eyebrow-mark">✧</span> SUA BIBLIOTECA PESSOAL</div><h1>Ideias que valem <em>guardar.</em></h1><p>Tudo que inspira você, organizado para encontrar quando precisar.</p></div><span class="welcome-deco" aria-hidden="true">✳</span></div>
+          <section class="hero"><div class="hero-glow"></div><div class="hero-content"><span class="hero-tag">✦ COM AJUDA DA INTELIGÊNCIA ARTIFICIAL</span><h2>Salvou um vídeo e<br>não lembra onde está?</h2><p>Descreva o que você procura. O Relembra encontra o vídeo e pode responder sobre o conteúdo salvo.</p><button class="button hero-button" data-go="chat">✧ &nbsp; Perguntar à biblioteca <span>↗</span></button></div><div class="hero-art" aria-hidden="true"><div class="floating-card card-back">🍝 <span>Receitas favoritas</span></div><div class="floating-card card-front">✧ <span>Encontrei 3 vídeos para você</span><i>✦</i></div><div class="floating-icon">✦</div></div></section>
+          <div class="section-title minor"><h2>Sua biblioteca em números</h2><span>Uma coleção de boas ideias</span></div>
+          <div class="stats-grid"><div class="stat-card"><div class="stat-icon blue">▦</div><div><strong id="statTotal">—</strong><span>Vídeos salvos</span></div></div><div class="stat-card"><div class="stat-icon rose">♡</div><div><strong id="statFavorites">—</strong><span>Favoritos</span></div></div><div class="stat-card"><div class="stat-icon mint">◷</div><div><strong id="statUnwatched">—</strong><span>Para assistir</span></div></div><div class="stat-card"><div class="stat-icon orange">⊞</div><div><strong id="statCategories">—</strong><span>Categorias em uso</span></div></div></div>
+          <div class="section-title"><div><h2>Salvos recentemente</h2><p>Continue de onde parou</p></div><button class="text-link" data-go="library">Ver biblioteca <span>→</span></button></div>
+          <div id="homeGrid" class="video-grid"></div>
+        </section>
+        <section id="libraryView" class="view" hidden>
+          <div class="page-head"><div><div class="eyebrow">SUAS DESCOBERTAS</div><h1 id="libraryTitle">Minha biblioteca</h1><p id="librarySubtitle">Suas inspirações, sempre por perto.</p></div><button class="button button-ghost" id="newFromLibrary">+ Novo vídeo</button></div>
+          <div class="filter-bar"><label class="search-field"><span>⌕</span><input id="searchInput" type="search" placeholder="Pesquise título, conteúdo, imagem ou transcrição..." autocomplete="off"></label><select id="categoryFilter" class="select-field" aria-label="Filtrar categoria"><option value="all">Todas as categorias</option></select><select id="sortFilter" class="select-field" aria-label="Ordenar"><option value="recent">Mais recentes</option><option value="oldest">Mais antigos</option><option value="title">Título A–Z</option></select></div>
+          <div class="result-heading"><span id="resultsCount">0 vídeos</span><button class="clear-btn" id="clearFilters" hidden>Limpar filtros ×</button></div>
+          <div id="libraryGrid" class="video-grid"></div><div class="load-more-wrap"><button class="button button-outline" id="loadMore" hidden>Carregar mais vídeos</button></div>
+        </section>
+        <section id="chatView" class="view" hidden>
+          <div class="page-head"><div><div class="eyebrow">BUSCA COM CONTEXTO</div><h1>Chat com sua memória <span class="gradient-star">✧</span></h1><p>Faça perguntas sobre os vídeos que você salvou.</p></div><span class="ai-pill">✦ Inteligência artificial</span></div>
+          <div class="chat-shell"><div class="chat-top"><div class="chat-avatar">✧</div><div><strong>Assistente Relembra</strong><small>Pesquisa transcrições, anotações e imagens analisadas</small></div><span class="online-pill"><span class="status-dot"></span> Sua biblioteca</span></div>
+            <div class="chat-messages" id="chatMessages"><div class="chat-welcome"><div class="big-spark">✧</div><h2>O que você quer relembrar?</h2><p>Eu procuro nas informações dos seus vídeos e mostro de onde tirei cada resposta.</p><div class="prompt-grid"><button class="prompt-chip" data-prompt="Qual receita de macarrão eu salvei?">🍝 Qual receita de macarrão eu salvei? <span>↗</span></button><button class="prompt-chip" data-prompt="Me mostre ideias de decoração para apartamento">🏡 Ideias para meu apartamento <span>↗</span></button><button class="prompt-chip" data-prompt="Quais lugares para viajar eu salvei?">✈️ Lugares para viajar <span>↗</span></button><button class="prompt-chip" data-prompt="Quais dicas de CS2 eu tenho salvas?">🎮 Minhas dicas de CS2 <span>↗</span></button></div></div></div>
+            <form class="chat-compose" id="chatForm"><input id="chatInput" placeholder="Ex.: aquele vídeo de molho branco com queijo..." required minlength="3" maxlength="500" autocomplete="off"><button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Enviar pergunta">➤</button></form><div class="chat-footnote">Respostas baseadas apenas nos vídeos salvos. Confira as fontes.</div>
+          </div>
+        </section>
+        <section id="thoughtsView" class="view" hidden>
+          <div class="page-head"><div><div class="eyebrow">UM ESPAÇO PARA SE OBSERVAR</div><h1>Diário de pensamentos <span class="gradient-star">✧</span></h1><p>Registre um pensamento automático, examine-o com calma e escolha uma perspectiva mais equilibrada.</p></div></div>
+          <div class="thought-intro"><strong>Um exercício em cinco movimentos</strong><p>1. Observe a situação · 2. Nomeie sentimento e pensamento · 3. Separe fatos de suposições · 4. Encontre uma âncora realista · 5. Escolha um pequeno próximo passo.</p><small>Este espaço é para reflexão pessoal, não para diagnósticos. Você não precisa se sentir melhor imediatamente.</small></div>
+          <div class="thought-layout">
+            <article class="thought-panel"><div class="thought-panel-head"><div><span class="eyebrow">REGISTRO GUIADO</span><h2 id="thoughtFormTitle">Registrar um pensamento</h2></div><button type="button" class="button button-outline" id="thoughtNewBtn">+ Novo</button></div>
+              <form id="thoughtForm" class="thought-form">
+                <label>1. O que aconteceu? <span class="required">*</span><textarea name="situation" rows="3" maxlength="1500" required placeholder="Ex.: Durante uma conversa, fiquei preocupado com a reação da outra pessoa."></textarea></label>
+                <div class="thought-two"><label>2. O que senti?<input name="emotion" maxlength="300" placeholder="Ex.: insegurança, vergonha, medo"></label><label>Intensidade antes (0–10)<input name="intensity_before" type="number" min="0" max="10" step="1" value="5" required></label></div>
+                <label>3. Qual pensamento automático apareceu? <span class="required">*</span><textarea name="automatic_thought" rows="3" maxlength="2000" required placeholder="Ex.: Vão me achar estranho e não vão querer conversar comigo."></textarea></label>
+                <div class="thought-two"><label>O que parece apoiar essa ideia?<textarea name="evidence_for" rows="3" maxlength="2000" placeholder="O que observei, sem interpretar?"></textarea></label><label>Que fatos apontam para outra possibilidade?<textarea name="evidence_against" rows="3" maxlength="2000" placeholder="Que outras explicações podem existir?"></textarea></label></div>
+                <label>4. Uma âncora mais realista<textarea name="balanced_thought" rows="3" maxlength="2500" placeholder="Ex.: Não sei como a pessoa me percebeu. Posso me expressar sem precisar acertar tudo."></textarea></label>
+                <div class="thought-ai"><button type="button" class="button button-outline" id="suggestThoughtBtn">✧ Sugerir âncora com IA</button><small>A situação e o pensamento serão enviados ao Workers AI somente se você clicar. Revise a sugestão antes de usá-la.</small><div id="thoughtSuggestion" class="thought-suggestion" hidden><p id="thoughtSuggestionText"></p><button id="useThoughtSuggestion" type="button" class="button button-outline">Usar essa sugestão</button></div></div>
+                <div class="thought-two"><label>5. Um pequeno próximo passo<textarea name="next_step" rows="2" maxlength="1200" placeholder="Ex.: Tentar ouvir e compartilhar uma opinião sem me cobrar perfeição."></textarea></label><label>Intensidade depois (0–10, opcional)<input name="intensity_after" type="number" min="0" max="10" step="1" placeholder="Opcional"></label></div>
+                <label>Vídeo de origem (opcional)<input name="source_url" type="url" maxlength="2048" placeholder="https://www.instagram.com/..."></label>
+                <div class="thought-controls"><button type="submit" class="button button-primary" id="thoughtSaveBtn">Salvar reflexão</button><button type="button" class="button button-outline" id="thoughtCancelBtn" hidden>Cancelar edição</button></div>
+              </form>
+            </article>
+            <article class="thought-panel thought-history"><div class="thought-panel-head"><div><span class="eyebrow">PARA RELEMBRAR</span><h2>Meus registros</h2></div><span class="thought-count" id="thoughtCount">0</span></div><div id="thoughtList"><div class="thought-empty">Seu diário ainda está em branco. Comece pelo que está sentindo agora.</div></div><p class="thought-privacy">🔒 As reflexões ficam no D1, protegidas pelo login do aplicativo. O backup JSON também incluirá esses registros: guarde-o com cuidado.</p></article>
+          </div>
+        </section>
+        <section id="backupView" class="view" hidden>
+          <div class="page-head"><div><div class="eyebrow">CONTROLE DOS SEUS DADOS</div><h1>Backup e restauração</h1><p>Leve sua biblioteca com você. Seus dados são seus.</p></div></div>
+          <div class="settings-grid"><article class="setting-card"><div class="settings-icon blue">↓</div><h2>Exportar biblioteca</h2><p>Faça download de um arquivo JSON com links, transcrições, descrições visuais, anotações, categorias, favoritos e registros do diário de pensamentos.</p><button class="button button-primary" id="exportBtn">↓ &nbsp; Baixar backup</button><small>O backup JSON inclui as descrições visuais, mas não os arquivos de imagem. Guarde seus screenshots originais separadamente.</small></article>
+          <article class="setting-card"><div class="settings-icon mint">↑</div><h2>Restaurar backup</h2><p>Importe um backup do Relembra. O aplicativo mantém as fichas existentes, evita duplicar registros com o mesmo ID e também importa reflexões.</p><label class="button button-outline file-label" for="importFile">↑ &nbsp; Escolher arquivo JSON</label><input id="importFile" type="file" accept="application/json,.json" hidden><small>Restaura lotes automaticamente; arquivos de até 25 MB.</small></article></div>
+          <div class="tip-panel"><span>🔒</span><div><strong>Seus dados são privados</strong><p>O aplicativo tem login por senha e salva sua biblioteca no banco de dados D1 da sua conta Cloudflare. Não compartilhe sua senha nem arquivos de backup.</p></div></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="videoModal" hidden><div class="editor-modal" role="dialog" aria-modal="true" aria-labelledby="editorTitle"><div class="modal-head"><div><span class="eyebrow">ORGANIZE SUA MEMÓRIA</span><h2 id="editorTitle">Adicionar novo vídeo</h2></div><button class="close-btn" id="closeVideoBtn" aria-label="Fechar">×</button></div>
+    <form id="videoForm"><div class="form-scroll"><div class="form-info">Cole o link do Instagram, TikTok, YouTube ou de outro site. O mesmo link pode ter várias fichas com informações, prints e títulos diferentes.</div>
+      <label class="field"><span>Link do vídeo <b>*</b></span><input name="url" type="url" placeholder="https://www.instagram.com/reel/..." required maxlength="2048"></label>
+      <div class="extra-info-actions"><button class="button button-outline" type="button" id="newInfoBtn" hidden>＋ Criar outra informação deste vídeo</button></div>
+      <label class="field"><span>Título <b>*</b></span><input name="title" placeholder="Ex.: Macarrão cremoso com molho branco" required maxlength="170"></label>
+      <div class="field-row"><label class="field"><span>Categoria</span><select name="category" id="videoCategory"></select></label><label class="field"><span>Tags <small>(separe por vírgula)</small></span><input name="tags" placeholder="receita, jantar, fácil" maxlength="800"></label></div>
+      <label class="field"><span>Resumo</span><textarea name="summary" placeholder="Do que fala esse vídeo? Qual a principal ideia?" rows="3" maxlength="2200"></textarea></label>
+      <label class="field"><span>Transcrição do conteúdo</span><textarea name="transcript" placeholder="Cole aqui o que é dito no vídeo. Quanto mais completo, melhores as respostas do chat." rows="6" maxlength="70000"></textarea><small>A busca e a IA conseguem encontrar informações dentro desse texto.</small></label>
+      <label class="field"><span>Suas anotações</span><textarea name="notes" placeholder="O que você quer lembrar ou experimentar depois?" rows="3" maxlength="9000"></textarea></label>
+      <section class="visual-panel" aria-label="Anexar imagem para análise">
+        <div class="visual-heading"><span class="eyebrow">✧ MEMÓRIA VISUAL</span><strong>Imagem ou screenshot</strong><small>Anexe uma captura para que a IA consiga enxergar o conteúdo. Até 450 KB após compactação.</small></div>
+        <div class="visual-inputs">
+          <label class="field"><span>Enviar screenshot (JPG, PNG, WebP)</span><input id="visualFile" type="file" accept="image/jpeg,image/png,image/webp"></label>
+          <label class="field"><span>Ou cole o link de uma imagem pública</span><input id="visualUrl" type="url" placeholder="https://prnt.sc/... ou https://i.imgur.com/..."></label>
+        </div>
+        <div class="visual-preview" id="visualPreview" hidden><img id="visualPreviewImg" alt="Captura anexada"><span id="visualStatus">Imagem disponível para análise</span><button type="button" class="button button-outline" id="visualRemoveBtn">Remover imagem</button></div>
+        <div class="visual-toolbar"><button type="button" class="button button-primary" id="visualAnalyzeBtn" hidden>✧ Analisar imagem com IA</button><span class="visual-note">Depois de salvar o vídeo e a imagem, clique em Analisar. O resultado será pesquisável no chat.</span></div>
+        <label class="field"><span>Descrição visual gerada pela IA <small>(você pode editar)</small></span><textarea name="visual_description" rows="4" maxlength="6000" placeholder="A IA preencherá esta descrição quando você analisar a imagem."></textarea></label>
+      </section>
+      <label class="field"><span>URL da imagem de capa <small>(opcional, alternativa externa)</small></span><input name="cover_url" type="url" placeholder="https://...imagem.jpg" maxlength="2048"></label>
+      <section id="relatedInfoPanel" class="related-info-panel" hidden></section>
+      <div class="toggle-row"><label class="toggle-label"><input name="favorite" type="checkbox"><span>♡</span> Marcar como favorito</label><label class="toggle-label"><input name="watched" type="checkbox"><span>✓</span> Já assisti</label></div>
+    </div><div class="modal-footer"><button class="button button-danger" type="button" id="deleteVideoBtn" hidden>Excluir</button><div class="modal-footer-right"><button class="button button-outline" type="button" id="cancelVideoBtn">Cancelar</button><button class="button button-primary" type="submit" id="saveVideoBtn">Salvar vídeo →</button></div></div></form></div></div>
+
+  <div class="modal-backdrop" id="categoryModal" hidden><div class="small-modal" role="dialog" aria-modal="true" aria-labelledby="categoryTitle"><div class="modal-head"><div><span class="eyebrow">PERSONALIZE A BIBLIOTECA</span><h2 id="categoryTitle">Nova categoria</h2></div><button class="close-btn" id="closeCategoryBtn" aria-label="Fechar">×</button></div><form id="categoryForm"><label class="field"><span>Nome da categoria</span><input name="name" required maxlength="40" placeholder="Ex.: Exercícios"></label><div class="field-row"><label class="field"><span>Emoji</span><input name="emoji" maxlength="8" placeholder="🏋️" value="📁"></label><label class="field"><span>Cor</span><input name="color" type="color" value="#64748b"></label></div><div class="modal-footer"><button class="button button-outline" type="button" id="cancelCategoryBtn">Cancelar</button><button class="button button-primary" type="submit">Criar categoria</button></div></form></div></div>
+
+  <div class="login-overlay" id="loginOverlay"><div class="login-card"><div class="login-logo"><span class="brand-icon">▶</span><strong>relembra<span class="brand-dot">.</span></strong></div><div class="login-decoration">✧</div><div class="eyebrow">SEU ESPAÇO PRIVADO</div><h1>Bem-vindo de volta.</h1><p>Suas ideias, vídeos e descobertas estão esperando por você.</p><form id="loginForm"><label class="field"><span>Senha de acesso</span><input type="password" name="password" id="passwordInput" placeholder="Digite sua senha" required autocomplete="current-password"></label><button class="button button-primary login-submit" type="submit">Entrar na minha biblioteca →</button></form><p class="login-error" id="loginError" role="alert"></p><small>🔒 Apenas você pode acessar esta biblioteca.</small></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

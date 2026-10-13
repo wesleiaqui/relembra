@@ -1,0 +1,25 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "relembra-videos",
+	"main": "src/worker.js",
+	"compatibility_date": "2026-10-12",
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
+			"/api/*"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "relembra-db",
+			"database_id": "c2b674ef-4a08-4b87-a161-6c2a4613af3e",
+			"migrations_dir": "migrations"
+		}
+	],
+	"ai": {
+		"binding": "AI"
+	}
+}
