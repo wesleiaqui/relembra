@@ -97,6 +97,7 @@ const viewNames = { home: 'Visão geral', library: 'Minha biblioteca', favorites
 async function navigate(view, category = 'all') {
   const known = viewNames[view] ? view : 'home';
   state.view = known;
+  document.body.classList.toggle('finance-mode', known === 'finance');
   if (known === 'library') state.category = category;
   else state.category = 'all';
   state.search = ''; state.sort = 'recent'; state.videos = [];
@@ -995,6 +996,7 @@ function showAccountMode(mode) {
   $('loginError').textContent='';
 }
 function wipePreviousAccount() {
+  document.body.classList.remove('finance-mode');
   closeMotivation();
   resetFinance();
   state.videos=[];state.homeVideos=[];state.categories=[];
