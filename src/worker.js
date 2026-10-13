@@ -750,7 +750,7 @@ async function handle(request, env) {
     }
     if (method === 'DELETE') {
       await env.DB.prepare('DELETE FROM video_images WHERE video_id = ?').bind(id).run();
-      await env.DB.prepare('DELETE FROM videos WHERE id = ? AND owner_id=?').bind(id).run();
+      await env.DB.prepare('DELETE FROM videos WHERE id = ? AND owner_id=?').bind(id,user.id).run();
       return json({ ok: true });
     }
     if (method === 'PUT') {
