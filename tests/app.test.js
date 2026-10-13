@@ -16,6 +16,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0006_private_accounts.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0007_focus_productivity_tips.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0008_motivation_tips.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0009_finances.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -824,4 +825,43 @@ test('interface motivação oferece contexto, dica editável e limpa dados no lo
   assert.match(app,/function renderMotivation\(\)/);
   assert.match(app,/function wipePreviousAccount\(\) \{\s*closeMotivation\(\)/);
   assert.match(css,/#motivationModal\[hidden\]\{display:none!important;\}/);
+});
+
+
+test('finanças: renda prevista, pagamento, validação e privacidade entre usuários', async () => {
+  const { req } = setup();
+  assert.equal((await req('/api/finance')).status,401);
+  assert.equal((await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'})).status,200);
+  const planned = await req('/api/finance/entries','POST',{type:'income',description:'Receita prevista',amount_cents:30000,entry_date:'2026-10-13',status:'planned'});
+  assert.equal(planned.status,201);
+  assert.equal((await req('/api/finance')).data.balance_cents,0,'previsão não deve contar como dinheiro');
+  const confirmed = await req('/api/finance/entries/'+planned.data.id,'PUT',{type:'income',description:'Receita recebida',amount_cents:30000,entry_date:'2026-10-13',status:'confirmed'});
+  assert.equal(confirmed.status,200);
+  const bad = await req('/api/finance/bills','POST',{name:'Conta inválida',amount_cents:5000,due_date:'2026-02-30',priority:1,essential:true,paid_at:null});
+  assert.equal(bad.status,400);
+  const created = await req('/api/finance/bills','POST',{name:'Internet',amount_cents:12000,due_date:'2026-10-16',priority:1,essential:true,paid_at:null});
+  assert.equal(created.status,201);
+  let panel = (await req('/api/finance')).data;
+  assert.equal(panel.balance_cents,30000);
+  assert.equal(panel.bills.length,1);
+  assert.equal(panel.bills[0].paid_at,null);
+  assert.equal((await req('/api/finance/bills/'+created.data.id,'PUT',{name:'Internet',amount_cents:12000,due_date:'2026-10-16',priority:1,essential:true,paid_at:'2026-10-15'})).status,200);
+  panel = (await req('/api/finance')).data;
+  assert.equal(panel.balance_cents,18000,'conta paga abate o saldo');
+  const goal = await req('/api/finance/goals','POST',{name:'Reserva de emergência',target_cents:80000,saved_cents:5000});
+  assert.equal(goal.status,201);
+  const backup = (await req('/api/export')).data;
+  assert.equal(backup.finances.goals.length,1);
+  assert.equal(backup.finances.entries.length,1);
+  assert.equal((await req('/api/import','POST',backup)).data.financeSkipped,3);
+  const invite = await req('/api/invites','POST',{});
+  assert.equal(invite.status,201);
+  const register = await req('/api/register','POST',{username:'finance_member',password:'uma-senha-diferente-123',invitation:invite.data.invitation});
+  assert.equal(register.status,201);
+  const isolated = (await req('/api/finance')).data;
+  assert.equal(isolated.entries.length,0);
+  assert.equal(isolated.bills.length,0);
+  assert.equal(isolated.balance_cents,0);
+  assert.equal((await req('/api/finance/bills/'+created.data.id,'DELETE')).status,404);
+  assert.equal((await req('/api/finance/bills/'+created.data.id,'PUT',{name:'X',amount_cents:100,due_date:'2026-10-13',priority:1,essential:false,paid_at:null})).status,404);
 });
