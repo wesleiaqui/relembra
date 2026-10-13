@@ -680,33 +680,34 @@ async function handle(request, env) {
     }
   }
   if (path === '/api/stats' && method === 'GET') {
-    const stats = await env.DB.prepare('SELECT COUNT(*) AS total, COALESCE(SUM(favorite),0) AS favorites, COALESCE(SUM(CASE WHEN watched=0 THEN 1 ELSE 0 END),0) AS unwatched, COUNT(DISTINCT category) AS categories FROM videos').first();
+    const stats = await env.DB.prepare('SELECT COUNT(*) AS total, COALESCE(SUM(favorite),0) AS favorites, COALESCE(SUM(CASE WHEN watched=0 THEN 1 ELSE 0 END),0) AS unwatched, COUNT(DISTINCT category) AS categories FROM videos WHERE owner_id=?').bind(user.id).first();
     return json({ stats });
   }
   if (path === '/api/videos' && method === 'GET') {
     return json(await fetchVideos(env, {
       q: url.searchParams.get('q'), category: url.searchParams.get('category'), favorite: url.searchParams.get('favorite') === '1',
       unwatched: url.searchParams.get('unwatched') === '1', sort: url.searchParams.get('sort'), limit: url.searchParams.get('limit'), offset: url.searchParams.get('offset')
-    }));
+    },user.id));
   }
   if (path === '/api/videos' && method === 'POST') {
     const input = validateVideo(await getBody(request));
-    const cat = await env.DB.prepare('SELECT id FROM categories WHERE id = ?').bind(input.category).first();
+    const cat = await env.DB.prepare('SELECT id FROM categories WHERE id = ? AND owner_id=?').bind(input.category,user.id).first();
     if (!cat) return error('Categoria não encontrada.');
     const id = crypto.randomUUID();
     const time = now();
-    await env.DB.prepare(`INSERT INTO videos (${FULL_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+    await env.DB.prepare(`INSERT INTO videos (${FULL_COLUMNS},owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
       id, input.url, input.title, input.category, input.summary, input.transcript, input.notes, input.tags, input.cover_url,
-      input.favorite, input.watched, time, time, input.visual_description
+      input.favorite, input.watched, time, time, input.visual_description,user.id
     ).run();
-    const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ?`).bind(id).first();
+    const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ? AND owner_id=?`).bind(id,user.id).first();
     return json({ video }, 201);
   }
   const imageMatch = path.match(/^\/api\/videos\/([a-f0-9-]{36})\/image$/i);
   if (imageMatch) {
     const id = imageMatch[1];
+    if (!await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(id,user.id).first()) return error('Vídeo não encontrado.',404);
     if (method === 'GET') {
-      const img = await env.DB.prepare('SELECT data_base64, media_type FROM video_images WHERE video_id=?').bind(id).first();
+      const img = await env.DB.prepare('SELECT data_base64, media_type FROM video_images WHERE video_id=?').bind(id,user.id).first();
       if (!img) return error('Imagem não encontrada.', 404);
       return new Response(imageBytes(img.data_base64), { headers: {
         'content-type': img.media_type, 'content-security-policy': "default-src 'none'; sandbox",
@@ -715,50 +716,50 @@ async function handle(request, env) {
     }
     if (method === 'DELETE') {
       await env.DB.prepare('DELETE FROM video_images WHERE video_id=?').bind(id).run();
-      await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=?').bind('', now(), id).run();
+      await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=? AND owner_id=?').bind('', now(), id,user.id).run();
       return json({ ok: true });
     }
     if (method === 'POST') {
       const type = String(request.headers.get('content-type') || '').split(';')[0].toLowerCase();
       if (Number(request.headers.get('content-length') || 0) > IMAGE_LIMIT) return error('Imagem acima de 450 KB.', 413);
       const bytes = new Uint8Array(await request.arrayBuffer());
-      return storeImage(env, id, bytes, type);
+      return storeImage(env, id, bytes, type,user.id);
     }
   }
   const imageImportMatch = path.match(/^\/api\/videos\/([a-f0-9-]{36})\/import-image$/i);
   if (imageImportMatch && method === 'POST') {
-    if (!await env.DB.prepare('SELECT id FROM videos WHERE id=?').bind(imageImportMatch[1]).first()) return error('Vídeo não encontrado.', 404);
+    if (!await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(imageImportMatch[1],user.id).first()) return error('Vídeo não encontrado.', 404);
     const { url: remoteUrl } = await getBody(request, 3500);
     try {
       const { bytes, type } = await downloadImage(remoteUrl);
-      return storeImage(env, imageImportMatch[1], bytes, type);
+      return storeImage(env, imageImportMatch[1], bytes, type,user.id);
     } catch (e) { return error(e?.message || 'Erro ao importar imagem.', 400); }
   }
   const imageAnalyzeMatch = path.match(/^\/api\/videos\/([a-f0-9-]{36})\/analyze-image$/i);
-  if (imageAnalyzeMatch && method === 'POST') return analyzeImage(env, imageAnalyzeMatch[1]);
+  if (imageAnalyzeMatch && method === 'POST') return analyzeImage(env, imageAnalyzeMatch[1],user.id);
   const videoMatch = path.match(/^\/api\/videos\/([a-f0-9-]{36})$/i);
   if (videoMatch) {
     const id = videoMatch[1];
     if (method === 'GET') {
-      const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ?`).bind(id).first();
+      const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ? AND owner_id=?`).bind(id,user.id).first();
       if (!video) return error('Vídeo não encontrado.', 404);
-      const related = (await env.DB.prepare('SELECT id,title FROM videos WHERE url=? AND id<>? ORDER BY created_at DESC LIMIT 40').bind(video.url, id).all()).results;
+      const related = (await env.DB.prepare('SELECT id,title FROM videos WHERE url=? AND id<>? AND owner_id=? ORDER BY created_at DESC LIMIT 40').bind(video.url, id,user.id).all()).results;
       return json({ video, related });
     }
     if (method === 'DELETE') {
       await env.DB.prepare('DELETE FROM video_images WHERE video_id = ?').bind(id).run();
-      await env.DB.prepare('DELETE FROM videos WHERE id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM videos WHERE id = ? AND owner_id=?').bind(id).run();
       return json({ ok: true });
     }
     if (method === 'PUT') {
-      const old = await env.DB.prepare('SELECT id FROM videos WHERE id = ?').bind(id).first();
+      const old = await env.DB.prepare('SELECT id FROM videos WHERE id = ? AND owner_id=?').bind(id,user.id).first();
       if (!old) return error('Vídeo não encontrado.', 404);
       const input = validateVideo(await getBody(request));
-      const cat = await env.DB.prepare('SELECT id FROM categories WHERE id = ?').bind(input.category).first();
+      const cat = await env.DB.prepare('SELECT id FROM categories WHERE id = ? AND owner_id=?').bind(input.category,user.id).first();
       if (!cat) return error('Categoria não encontrada.');
-      await env.DB.prepare('UPDATE videos SET url=?, title=?, category=?, summary=?, transcript=?, notes=?, tags=?, cover_url=?, favorite=?, watched=?, updated_at=?, visual_description=? WHERE id=?')
-        .bind(input.url, input.title, input.category, input.summary, input.transcript, input.notes, input.tags, input.cover_url, input.favorite, input.watched, now(), input.visual_description, id).run();
-      const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ?`).bind(id).first();
+      await env.DB.prepare('UPDATE videos SET url=?, title=?, category=?, summary=?, transcript=?, notes=?, tags=?, cover_url=?, favorite=?, watched=?, updated_at=?, visual_description=? WHERE id=? AND owner_id=?')
+        .bind(input.url, input.title, input.category, input.summary, input.transcript, input.notes, input.tags, input.cover_url, input.favorite, input.watched, now(), input.visual_description, id,user.id).run();
+      const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ? AND owner_id=?`).bind(id,user.id).first();
       return json({ video });
     }
   }
@@ -766,7 +767,7 @@ async function handle(request, env) {
     const body = await getBody(request, 5000);
     const message = clean(body.message, 500);
     if (message.length < 3) return error('Escreva uma pergunta mais específica.');
-    return json(await answerQuestion(env, message));
+    return json(await answerQuestion(env, message,user.id));
   }
   if (path === '/api/export' && method === 'GET') {
     const videos = (await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos ORDER BY created_at DESC LIMIT 5000`).all()).results;
