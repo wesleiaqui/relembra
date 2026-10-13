@@ -6,7 +6,7 @@ const fail = (message, status = 400) => json({ error: message }, status);
 const stamp = () => new Date().toISOString();
 const str = (value, max) => String(value ?? '').trim().slice(0, max);
 const validDate = (value, optional = false) => {
-  if (optional && (value === null || value === '')) return null;
+  if (optional && (value === undefined || value === null || value === '')) return null;
   const text = String(value ?? '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || Number.isNaN(Date.parse(text + 'T00:00:00Z'))
     || new Date(text + 'T00:00:00Z').toISOString().slice(0, 10) !== text)
@@ -98,4 +98,41 @@ export async function handleFinance(request, env, user) {
     return result.meta.changes ? json({ id,ok:true }) : fail('Registro não encontrado.', 404);
   }
   return fail('Método não permitido.', 405);
+}
+
+export async function exportFinances(env,ownerId) {
+  const output = {};
+  for (const kind of Object.keys(tables)) {
+    const result = await env.DB.prepare('SELECT * FROM ' + tables[kind] + ' WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000')
+      .bind(ownerId).all();
+    output[kind] = result.results || [];
+  }
+  return output;
+}
+export async function importFinances(env,ownerId,finance) {
+  if (!finance || typeof finance !== 'object' || Array.isArray(finance)) return { imported:0,skipped:0 };
+  let imported = 0, skipped = 0;
+  for (const kind of Object.keys(tables)) {
+    const rows = finance[kind] || [];
+    if (!Array.isArray(rows) || rows.length > 250) throw Error('Importe até 250 registros financeiros por tipo em cada lote.');
+    for (const row of rows) {
+      try {
+        const valid = validate(kind,row);
+        const rawId = typeof row.id === 'string' && /^[a-f0-9-]{36}$/i.test(row.id) ? row.id : '';
+        const collision = rawId
+          ? await env.DB.prepare('SELECT owner_id FROM ' + tables[kind] + ' WHERE id=?').bind(rawId).first()
+          : null;
+        if (collision?.owner_id === ownerId) { skipped++; continue; }
+        const id = collision ? crypto.randomUUID() : rawId || crypto.randomUUID();
+        const cols = fields[kind];
+        const date = stamp();
+        await env.DB.prepare('INSERT INTO ' + tables[kind] +
+          ' (id,owner_id,' + cols.join(',') + ',created_at,updated_at) VALUES (' +
+          Array(cols.length + 4).fill('?').join(',') + ')')
+          .bind(id,ownerId,...cols.map(c => valid[c]),date,date).run();
+        imported++;
+      } catch { skipped++; }
+    }
+  }
+  return { imported, skipped };
 }
