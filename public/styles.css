@@ -337,3 +337,23 @@
 }
 
 #mediaPlayerModal[hidden],#imageViewerModal[hidden]{display:none!important;}
+
+
+/* Contas privadas v1.9 */
+.account-label {font-size:11px;color:#bdcdec;padding:10px 15px;overflow-wrap:anywhere;font-weight:700;}
+.account-login-card {max-height:94dvh;overflow-y:auto;scrollbar-width:thin;}
+.account-login-card form[hidden],.account-login-card .account-login-links[hidden] {display:none!important;}
+.account-login-links {display:flex;align-items:center;flex-wrap:wrap;gap:9px 13px;margin:15px 0 6px;}
+.account-login-links button {border:0;background:transparent;color:#a8baff;font-size:11px;padding:6px 0;cursor:pointer;font-weight:700;text-decoration:underline;text-underline-offset:3px;}
+.account-login-links button:hover {color:#edf2ff;}
+.account-login-card form .form-info {font-size:11px;margin-bottom:17px;}
+.invite-dialog {padding-bottom:0;width:min(530px,100%);}
+.invite-content {padding:20px 25px 25px;}
+.invite-content p {font-size:12px;line-height:1.8;color:#a0b5d2;margin:0 0 18px;}
+.invite-content #inviteResult {margin-top:17px;}
+.invite-content #inviteResult[hidden] {display:none!important;}
+.invite-content #inviteCode {font-size:11px;font-family:monospace;}
+@media(max-width:640px) {
+  .account-login-card {max-height:93dvh;padding:29px 23px;}
+  .invite-dialog {max-height:80dvh;overflow-y:auto;border-radius:16px 16px 0 0;}
+}

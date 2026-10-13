@@ -12,6 +12,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0003_multiple_records.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0004_thought_journal.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0005_situational_tips.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0006_private_accounts.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -29,14 +30,26 @@ function makeDB() {
 function setup(ai = null) {
   const env = { DB: makeDB(), APP_PASSWORD: 'um-passphrase-longo-de-verdade', ...(ai ? { AI: ai } : {}), ASSETS: { fetch: () => new Response('OK') } };
   let cookie = '';
+  let testOwnerCreated = false;
   async function req(path, method = 'GET', body = null, useCookie = true) {
+    let legacyBootstrap = false;
+    // Os testes antigos verificam o CRUD, não a migração do login.
+    // Criamos a conta principal explicitamente antes de usá-los.
+    if (path === '/api/login' && body && !body.username) {
+      if (body.password === env.APP_PASSWORD && !testOwnerCreated) {
+        legacyBootstrap = true;
+        path = '/api/setup-owner';
+        body = {username:'principal',password:env.APP_PASSWORD,setup_key:env.APP_PASSWORD};
+      } else body = {username:'principal',password:body.password};
+    }
     const headers = { origin: 'https://relembra.example' };
     if (body !== null) headers['content-type'] = 'application/json';
     if (cookie && useCookie) headers.cookie = cookie;
     const r = await worker.fetch(new Request('https://relembra.example' + path, { method, headers, ...(body !== null ? { body: JSON.stringify(body) } : {}) }), env);
     const result = await r.json();
     if (r.headers.get('set-cookie')) cookie = r.headers.get('set-cookie').split(';')[0];
-    return { status: r.status, data: result };
+    if (path === '/api/setup-owner' && r.status === 201) testOwnerCreated = true;
+    return { status: legacyBootstrap && r.status === 201 ? 200 : r.status, data: result };
   }
   return { req, env };
 }
@@ -136,7 +149,7 @@ test('migração mantém vídeos antigos, captura e análise visual entram na bu
   const png = Uint8Array.from([137,80,78,71,13,10,26,10,0,0,0,0,0]);
   const headers = { origin:'https://relembra.example', 'content-type':'image/png' };
   // login separado para reproduzir a sessão obtida pelo req
-  const logged = await worker.fetch(new Request('https://relembra.example/api/login',{method:'POST',headers:{origin:'https://relembra.example','content-type':'application/json'},body:JSON.stringify({password:'um-passphrase-longo-de-verdade'})}),env);
+  const logged = await worker.fetch(new Request('https://relembra.example/api/login',{method:'POST',headers:{origin:'https://relembra.example','content-type':'application/json'},body:JSON.stringify({username:'principal',password:'um-passphrase-longo-de-verdade'})}),env);
   const c = logged.headers.get('set-cookie').split(';')[0];
   headers.cookie = c;
   const upload = await worker.fetch(new Request(`https://relembra.example/api/videos/${id}/image`, {method:'POST',headers,body:png}),env);
@@ -177,7 +190,7 @@ test('upload de imagem exige login, formatos válidos e tamanho limitado', async
   }
   const wrongType = await img('POST',Uint8Array.from([60,115,118,103,62]),'image/svg+xml');
   assert.equal(wrongType.status,401); // sem sessão sequer há acesso
-  const login = await worker.fetch(new Request('https://relembra.example/api/login',{method:'POST',headers:{origin:'https://relembra.example','content-type':'application/json'},body:JSON.stringify({password:'um-passphrase-longo-de-verdade'})}),env);
+  const login = await worker.fetch(new Request('https://relembra.example/api/login',{method:'POST',headers:{origin:'https://relembra.example','content-type':'application/json'},body:JSON.stringify({username:'principal',password:'um-passphrase-longo-de-verdade'})}),env);
   const cookie = login.headers.get('set-cookie').split(';')[0];
   assert.equal((await img('POST',Uint8Array.from([60,115,118,103,62]),'image/svg+xml',cookie)).status,413);
   assert.equal((await img('POST',new Uint8Array(450001),'image/png',cookie)).status,413);
@@ -282,7 +295,7 @@ test('registros entram no backup, não vazam ao chat de vídeos e importação n
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   await req('/api/thoughts','POST',reflection);
   const backup = (await req('/api/export')).data;
-  assert.equal(backup.format,'relembra-v1.7');
+  assert.equal(backup.format,'relembra-v1.9');
   assert.equal(backup.thoughts.length,1);
   assert.equal((await req('/api/chat','POST',{message:'conversa estranho reação'})).data.sources.length,0);
   const res = await req('/api/import','POST',backup);
@@ -462,7 +475,7 @@ test('backup de dicas restaura registros sem duplicação e não mistura com o c
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   const entry = await req('/api/tips','POST',{title:'Lembrete pessoal',content:'Meu texto reservado',situation:'Para mim',kind:'dica',favorite:true});
   const backup = (await req('/api/export')).data;
-  assert.equal(backup.format,'relembra-v1.7');
+  assert.equal(backup.format,'relembra-v1.9');
   assert.ok(backup.tips.some(x=>x.id===entry.data.tip.id));
   assert.equal((await req('/api/chat','POST',{message:'Meu texto reservado'})).data.sources.length,0);
   await req('/api/tips/'+entry.data.tip.id,'DELETE');
@@ -551,4 +564,88 @@ test('visualização possui três modos e viewers com controles válidos', () =>
   assert.match(app, /replaceChildren\(\); \/\/ desmonta iframe/);
   assert.match(css, /#libraryGrid\[data-mode="gallery"\] \.card-art img \{object-fit:contain;\}/);
   assert.match(css, /#libraryGrid\[data-mode="focus"\] \.card-art img \{object-fit:contain;\}/);
+});
+
+
+test('contas distintas não enxergam nem alteram vídeos, dicas, diário e imagens de outra pessoa',async()=>{
+  const {req}=setup();
+  const owner=await req('/api/setup-owner','POST',{setup_key:'um-passphrase-longo-de-verdade',username:'principal',password:'uma-senha-segura-123'});
+  assert.equal(owner.status,201);
+  const video=await req('/api/videos','POST',vid);
+  assert.equal(video.status,201);
+  const id=video.data.video.id;
+  const thought=await req('/api/thoughts','POST',{situation:'Privado',automatic_thought:'Pensamento pessoal',intensity_before:5});
+  const tip=await req('/api/tips','POST',{title:'Privado',content:'Minha dica particular',situation:'Para mim',kind:'dica'});
+  const invite=await req('/api/invites','POST',{});
+  assert.equal(invite.status,201);
+  assert.equal(invite.data.invitation.length>20,true);
+  const member=await req('/api/register','POST',{invitation:invite.data.invitation,username:'convidado',password:'senha-convidado-123'});
+  assert.equal(member.status,201);
+  assert.equal((await req('/api/invites','POST',{})).status,403);
+  assert.equal((await req('/api/videos')).data.total,0);
+  assert.equal((await req('/api/videos/'+id)).status,404);
+  assert.equal((await req('/api/videos/'+id,'DELETE')).status,404);
+  assert.equal((await req('/api/videos/'+id,'PUT',vid)).status,404);
+  assert.equal((await req('/api/videos/'+id+'/image')).status,404);
+  assert.equal((await req('/api/videos/'+id+'/import-image','POST',{url:'https://i.imgur.com/x.png'})).status,404);
+  assert.equal((await req('/api/thoughts/'+thought.data.thought.id)).status,404);
+  assert.equal((await req('/api/thoughts/'+thought.data.thought.id,'DELETE')).status,404);
+  assert.equal((await req('/api/tips/'+tip.data.tip.id)).status,404);
+  assert.equal((await req('/api/tips/'+tip.data.tip.id,'DELETE')).status,404);
+  assert.equal((await req('/api/thoughts')).data.thoughts.length,0);
+  assert.equal((await req('/api/tips')).data.tips.length,0);
+  assert.equal((await req('/api/export')).data.videos.length,0);
+  assert.equal((await req('/api/chat','POST',{message:'macarrão branco parmesão'})).data.sources.length,0);
+  const guestVideo=await req('/api/videos','POST',{...vid,category:(await req('/api/categories')).data.categories.find(c=>c.name==='Culinária').id});
+  assert.equal(guestVideo.status,201);
+  assert.equal((await req('/api/register','POST',{invitation:invite.data.invitation,username:'outro',password:'senha-convidado-456'})).status,401);
+  const back=await req('/api/login','POST',{username:'principal',password:'uma-senha-segura-123'});
+  assert.equal(back.status,200);
+  assert.equal((await req('/api/videos')).data.total,1);
+  assert.equal((await req('/api/thoughts')).data.thoughts.length,1);
+  assert.ok((await req('/api/tips')).data.tips.some(x=>x.id===tip.data.tip.id));
+  assert.equal((await req('/api/videos/'+guestVideo.data.video.id)).status,404);
+});
+
+test('recuperação da conta principal invalida a senha anterior sem apagar dados',async()=>{
+  const {req}=setup();
+  assert.equal((await req('/api/setup-owner','POST',{setup_key:'errada',username:'admin',password:'senha-admin-123456'})).status,401);
+  const created=await req('/api/setup-owner','POST',{setup_key:'um-passphrase-longo-de-verdade',username:'admin',password:'senha-admin-123456'});
+  assert.equal(created.status,201);
+  await req('/api/videos','POST',vid);
+  assert.equal((await req('/api/recover-owner','POST',{setup_key:'errada',password:'nova-senha-123456'})).status,401);
+  assert.equal((await req('/api/recover-owner','POST',{setup_key:'um-passphrase-longo-de-verdade',password:'nova-senha-123456'})).status,200);
+  await req('/api/logout','POST');
+  assert.equal((await req('/api/login','POST',{username:'admin',password:'senha-admin-123456'})).status,401);
+  assert.equal((await req('/api/login','POST',{username:'admin',password:'nova-senha-123456'})).status,200);
+  assert.equal((await req('/api/videos')).data.total,1);
+});
+
+test('primeiro cadastro preserva os conteúdos anteriores da instância',async()=>{
+  const {req,env}=setup();
+  const time=new Date().toISOString();
+  await env.DB.prepare('INSERT INTO videos(id,url,title,category,created_at,updated_at) VALUES (?,?,?,?,?,?)')
+    .bind('legacy-asset','https://example.com/legacy','Vídeo legado','cs2',time,time).run();
+  await env.DB.prepare('INSERT INTO situational_tips(id,title,content,situation,kind,created_at,updated_at) VALUES (?,?,?,?,?,?,?)')
+    .bind('legacy-tip','Dica antiga','Reservada','Conversar','dica',time,time).run();
+  assert.equal((await req('/api/session')).data.setupRequired,true);
+  const res=await req('/api/setup-owner','POST',{setup_key:'um-passphrase-longo-de-verdade',username:'principal',password:'senha-dono-123456'});
+  assert.equal(res.status,201);
+  assert.equal((await req('/api/videos')).data.total,1);
+  assert.ok((await req('/api/tips')).data.tips.some(x=>x.id==='legacy-tip'));
+  assert.equal((await req('/api/session')).data.setupRequired,false);
+  assert.equal((await req('/api/setup-owner','POST',{setup_key:'um-passphrase-longo-de-verdade',username:'outro',password:'senha-dono-123456'})).status,409);
+});
+
+
+test('tela de contas oferece cadastro por convite e recuperação sem expor dados antigos',()=>{
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const js=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  for(const id of ['loginForm','ownerSetupForm','inviteRegisterForm','ownerRecoverForm','loginModeTitle','loginModeDescription','inviteBtn','inviteModal','inviteCode','generateInviteBtn','accountLabel']) {
+    assert.equal((html.match(new RegExp('id="'+id+'"','g')) || []).length,1,id);
+  }
+  for(const endpoint of ['/api/setup-owner','/api/login','/api/register','/api/recover-owner','/api/invites'])
+    assert.ok(js.includes(endpoint),'Endpoint '+endpoint);
+  for(const target of ['closeEditor()','resetThoughtForm()','closeImageViewer()','closeMediaPlayer()','chatMessages'])
+    assert.ok(js.includes(target),'Limpeza '+target);
 });

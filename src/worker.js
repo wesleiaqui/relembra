@@ -19,23 +19,75 @@ const base64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, 
 const unbase64url = (value) => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4)), c => c.charCodeAt(0));
 async function sha256(value) { return base64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))); }
 async function hmacKey(secret) { return crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']); }
-async function sessionSignature(password, payload) {
-  const key = await hmacKey('relembra-session-v1:' + password);
+const ITERATIONS = 160000;
+function validateAccount(body) {
+  const username = String(body?.username || '').trim().toLowerCase();
+  const password = String(body?.password || '');
+  if (!/^[a-z0-9][a-z0-9_.-]{2,31}$/.test(username)) throw new Error('Usuário precisa ter 3 a 32 caracteres: letras, números, ponto, hífen ou _.');
+  if (password.length < 12 || password.length > 128) throw new Error('Use uma senha de 12 a 128 caracteres.');
+  return { username, password };
+}
+async function passwordDigest(password, salt) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: unbase64url(salt), iterations: ITERATIONS, hash: 'SHA-256' }, key, 256);
+  return base64url(new Uint8Array(bits));
+}
+function newSalt() { const bytes = new Uint8Array(24); crypto.getRandomValues(bytes); return base64url(bytes); }
+function randomCode() { const bytes = new Uint8Array(32); crypto.getRandomValues(bytes); return base64url(bytes); }
+async function authSignature(env, payload) {
+  const key = await hmacKey('relembra-users-v2:' + env.APP_PASSWORD);
   return base64url(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))));
 }
-async function verifySession(request, env) {
-  if (!env.APP_PASSWORD) return false;
-  const raw = (request.headers.get('cookie') || '').split(';').map(s => s.trim()).find(s => s.startsWith(SESSION_NAME + '='));
-  if (!raw) return false;
-  const pair = raw.slice(SESSION_NAME.length + 1).split('.');
-  if (pair.length !== 2) return false;
-  const [expiry, signature] = pair;
-  if (!/^\d{10,13}$/.test(expiry) || Number(expiry) <= Date.now()) return false;
-  try {
-    const expectedKey = await hmacKey('relembra-session-v1:' + env.APP_PASSWORD);
-    return crypto.subtle.verify('HMAC', expectedKey, unbase64url(signature), new TextEncoder().encode(expiry));
-  } catch { return false; }
+async function newUserCookie(env, user, request) {
+  const payload = user.id + ':' + user.session_version + ':' + String(Date.now() + SESSION_SECONDS * 1000);
+  return cookie(base64url(new TextEncoder().encode(payload)) + '.' + await authSignature(env, payload), request);
 }
+async function verifySession(request, env) {
+  if (!env.APP_PASSWORD) return null;
+  const raw = (request.headers.get('cookie') || '').split(';').map(s => s.trim()).find(s => s.startsWith(SESSION_NAME + '='));
+  if (!raw) return null;
+  const token = raw.slice(SESSION_NAME.length + 1);
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  try {
+    const payload = new TextDecoder().decode(unbase64url(parts[0]));
+    const match = payload.match(/^([a-f0-9-]{36}):(\d+):(\d{13})$/i);
+    if (!match || Number(match[3]) <= Date.now()) return null;
+    const key = await hmacKey('relembra-users-v2:' + env.APP_PASSWORD);
+    if (!await crypto.subtle.verify('HMAC', key, unbase64url(parts[1]), new TextEncoder().encode(payload))) return null;
+    const user = await env.DB.prepare('SELECT id,username,role,session_version FROM app_users WHERE id=?').bind(match[1]).first();
+    return user && user.session_version === Number(match[2]) ? user : null;
+  } catch { return null; }
+}
+async function isRateLimited(request, env) {
+  const key = await sha256('login:' + (request.headers.get('CF-Connecting-IP') || 'local') + env.APP_PASSWORD);
+  const stamp = Date.now();
+  const prior = await env.DB.prepare('SELECT attempts,window_start FROM login_attempts WHERE ip_hash=?').bind(key).first();
+  return { key, stamp, limited: Boolean(prior && prior.window_start > stamp - 15 * 60 * 1000 && prior.attempts >= 8) };
+}
+async function countFailedLogin(env, rate) {
+  await env.DB.prepare('INSERT INTO login_attempts(ip_hash,attempts,window_start) VALUES (?,1,?) ON CONFLICT(ip_hash) DO UPDATE SET attempts=CASE WHEN window_start<? THEN 1 ELSE attempts+1 END,window_start=CASE WHEN window_start<? THEN excluded.window_start ELSE window_start END')
+    .bind(rate.key,rate.stamp,rate.stamp-15*60*1000,rate.stamp-15*60*1000).run();
+}
+async function clearFailedLogin(env, rate) {
+  await env.DB.prepare('DELETE FROM login_attempts WHERE ip_hash=?').bind(rate.key).run();
+}
+function ownerCategoryId(ownerId, categorySlug) {
+  return ownerId.replaceAll('-', '').slice(0, 16) + '-' + slug(categorySlug).slice(0, 20);
+}
+const BASE_CATEGORIES = [
+  ['apartamento','Apartamento','🏠','#8a85ef'],
+  ['culinaria','Culinária','🍝','#f19a65'],
+  ['turismo','Turismo','✈️','#54b7a7'],
+  ['cs2','CS2','🎮','#73a5f5'],
+  ['outros','Outros','📚','#929aad']
+];
+async function registerMemberCategories(env, id) {
+  await env.DB.batch(BASE_CATEGORIES.map(([slugId,name,emoji,color]) =>
+    env.DB.prepare('INSERT INTO categories(id,name,emoji,color,owner_id) VALUES (?,?,?,?,?)')
+      .bind(ownerCategoryId(id,slugId),name,emoji,color,id)));
+}
+
 function cookie(value, request, expire = false) {
   const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : '';
   return `${SESSION_NAME}=${value}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=${expire ? 0 : SESSION_SECONDS}${secure}`;
@@ -75,7 +127,7 @@ function validateVideo(input) {
     favorite: input.favorite ? 1 : 0, watched: input.watched ? 1 : 0
   };
 }
-const LIST_COLUMNS = 'v.id, v.url, v.title, v.category, v.summary, v.tags, v.cover_url, v.favorite, v.watched, v.created_at, v.updated_at, v.visual_description, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=v.id) AS has_image, (SELECT COUNT(*) FROM videos related WHERE related.url=v.url) AS related_count';
+const LIST_COLUMNS = 'v.id, v.url, v.title, v.category, v.summary, v.tags, v.cover_url, v.favorite, v.watched, v.created_at, v.updated_at, v.visual_description, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=v.id) AS has_image, (SELECT COUNT(*) FROM videos related WHERE related.url=v.url AND related.owner_id=v.owner_id) AS related_count';
 const FULL_COLUMNS = 'id, url, title, category, summary, transcript, notes, tags, cover_url, favorite, watched, created_at, updated_at, visual_description';
 const THOUGHT_COLUMNS = 'id, situation, emotion, intensity_before, automatic_thought, evidence_for, evidence_against, balanced_thought, next_step, intensity_after, source_url, created_at, updated_at';
 const TIP_COLUMNS = 'id, title, content, situation, kind, favorite, source_url, created_at, updated_at';
@@ -157,10 +209,10 @@ function listingIntent(message) {
     && !/^(?:como|explique|ensine|ensina|passo a passo|por que|porque)\b/.test(normalized);
 }
 
-async function categories(env) { return (await env.DB.prepare('SELECT id, name, emoji, color FROM categories ORDER BY CASE id WHEN \'outros\' THEN 1 ELSE 0 END, name COLLATE NOCASE').all()).results; }
-async function fetchVideos(env, filters) {
-  const where = [];
-  const args = [];
+async function categories(env,userId) { return (await env.DB.prepare('SELECT id, name, emoji, color FROM categories WHERE owner_id=? ORDER BY CASE WHEN name=\'Outros\' THEN 1 ELSE 0 END, name COLLATE NOCASE').bind(userId).all()).results; }
+async function fetchVideos(env, filters, userId) {
+  const where = ['v.owner_id=?'];
+  const args = [userId];
   const q = clean(filters.q, 350);
   const match = q && ftsTerms(q);
   if (match) { where.push('v.id IN (SELECT id FROM videos_fts WHERE videos_fts MATCH ?)'); args.push(match); }
@@ -175,7 +227,7 @@ async function fetchVideos(env, filters) {
   const countRow = await env.DB.prepare(`SELECT COUNT(*) AS count FROM videos v${clause}`).bind(...args).first();
   return { videos: rows, total: countRow?.count ?? 0 };
 }
-async function retrieveMatches(env, message) {
+async function retrieveMatches(env, message, userId) {
   const query = ftsTerms(message);
   if (!query) return [];
   const map = requestedMap(message);
@@ -184,8 +236,8 @@ async function retrieveMatches(env, message) {
     ', EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=v.id) AS has_image' +
     ', bm25(videos_fts, 0, 7, 4, 5, 2, 3, 6, 5) AS rank' +
     ' FROM videos_fts JOIN videos v ON v.id = videos_fts.id' +
-    ' WHERE videos_fts MATCH ? ORDER BY rank LIMIT 150';
-  const candidates = (await env.DB.prepare(sql).bind(query).all()).results || [];
+    ' WHERE videos_fts MATCH ? AND v.owner_id=? ORDER BY rank LIMIT 150';
+  const candidates = (await env.DB.prepare(sql).bind(query,userId).all()).results || [];
   const words = terms(message);
   const weights = [16, 9, 6, 7, 5, 2, 7];
   const scored = [];
@@ -250,8 +302,8 @@ function screenshotLinkFromVideo(video) {
   }
   return '';
 }
-async function answerQuestion(env, message) {
-  const matches = await retrieveMatches(env, message);
+async function answerQuestion(env, message, userId) {
+  const matches = await retrieveMatches(env, message, userId);
   if (!matches.length) {
     const map = requestedMap(message);
     return {
@@ -320,17 +372,17 @@ function encodeImage(bytes) {
 function imageBytes(base64) {
   return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 }
-async function storeImage(env, id, bytes, mediaType) {
+async function storeImage(env, id, bytes, mediaType, userId) {
   if (!IMAGE_CONTENT_TYPES.has(mediaType) || !bytes.length || bytes.length > IMAGE_LIMIT || sniffImage(bytes) !== mediaType) {
     return error('Imagem inválida ou grande demais. Use JPG, PNG ou WebP até 450 KB (o app compacta uploads).', 413);
   }
-  const exists = await env.DB.prepare('SELECT id FROM videos WHERE id=?').bind(id).first();
+  const exists = await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(id,userId).first();
   if (!exists) return error('Vídeo não encontrado.', 404);
   const stamp = now();
   await env.DB.prepare('INSERT INTO video_images (video_id, media_type, data_base64, bytes, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(video_id) DO UPDATE SET media_type=excluded.media_type, data_base64=excluded.data_base64, bytes=excluded.bytes, updated_at=excluded.updated_at')
     .bind(id, mediaType, encodeImage(bytes), bytes.length, stamp).run();
   // Nunca preserve uma análise visual após a imagem ter sido substituída.
-  await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=?').bind('', stamp, id).run();
+  await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=? AND owner_id=?').bind('', stamp, id,userId).run();
   return json({ ok: true, bytes: bytes.length });
 }
 const TRUSTED_IMAGE_HOSTS = new Set([
@@ -388,9 +440,9 @@ async function downloadImage(inputUrl) {
   if (sniffImage(bytes) !== type) throw new Error('Formato de imagem inválido.');
   return { bytes, type };
 }
-async function analyzeImage(env, id) {
+async function analyzeImage(env, id, userId) {
   if (!env.AI) return error('Workers AI não está habilitado.', 503);
-  const video = await env.DB.prepare('SELECT title, category, notes, summary FROM videos WHERE id=?').bind(id).first();
+  const video = await env.DB.prepare('SELECT title, category, notes, summary FROM videos WHERE id=? AND owner_id=?').bind(id,userId).first();
   if (!video) return error('Vídeo não encontrado.', 404);
   const img = await env.DB.prepare('SELECT media_type, data_base64 FROM video_images WHERE video_id=?').bind(id).first();
   if (!img) return error('Anexe uma imagem antes de analisar.', 400);
@@ -410,7 +462,7 @@ async function analyzeImage(env, id) {
   }
   if (!output) return error('O modelo não retornou descrição. Tente novamente mais tarde.', 503);
   const stamp = now();
-  await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=?').bind(output, stamp, id).run();
+  await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=? AND owner_id=?').bind(output, stamp, id,userId).run();
   return json({ visual_description: output, model: VISION_MODEL });
 }
 
@@ -418,84 +470,156 @@ async function handle(request, env) {
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method;
+  if (!env.APP_PASSWORD || !env.DB) return error('Configure APP_PASSWORD e o banco D1.',503);
   if (path === '/api/session' && method === 'GET') {
-    const configured = Boolean(env.APP_PASSWORD && env.DB);
-    return json({ configured, authenticated: configured && await verifySession(request, env), aiAvailable: Boolean(env.AI) });
+    const total = await env.DB.prepare('SELECT COUNT(*) AS count FROM app_users').first();
+    const user = total.count ? await verifySession(request, env) : null;
+    return json({ configured:true, setupRequired:total.count===0, authenticated:Boolean(user),
+      user:user ? {username:user.username,role:user.role} : null, aiAvailable:Boolean(env.AI) });
+  }
+  if (path === '/api/setup-owner' && method === 'POST') {
+    const rate = await isRateLimited(request,env);
+    if (rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
+    const total = await env.DB.prepare('SELECT COUNT(*) AS count FROM app_users').first();
+    if (total.count) return error('A conta principal já foi criada.',409);
+    const body = await getBody(request,5000);
+    if (await sha256(String(body.setup_key || '')) !== await sha256(env.APP_PASSWORD)) {
+      await countFailedLogin(env,rate); return error('Chave administrativa incorreta.',401);
+    }
+    let account;
+    try { account = validateAccount(body); } catch(e) { return error(e.message); }
+    const id = crypto.randomUUID(),salt=newSalt(),digest=await passwordDigest(account.password,salt),stamp=now();
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO app_users (id,username,password_salt,password_hash,role,created_at) VALUES (?,?,?,?,'owner',?)")
+        .bind(id,account.username,salt,digest,stamp),
+      env.DB.prepare("UPDATE categories SET owner_id=? WHERE owner_id='legacy'").bind(id),
+      env.DB.prepare("UPDATE videos SET owner_id=? WHERE owner_id='legacy'").bind(id),
+      env.DB.prepare("UPDATE thought_entries SET owner_id=? WHERE owner_id='legacy'").bind(id),
+      env.DB.prepare("UPDATE situational_tips SET owner_id=? WHERE owner_id='legacy'").bind(id)
+    ]);
+    await clearFailedLogin(env,rate);
+    return json({ok:true,user:{username:account.username,role:'owner'}},201,{'set-cookie':await newUserCookie(env,{id,session_version:1},request)});
   }
   if (path === '/api/login' && method === 'POST') {
-    if (!env.APP_PASSWORD || !env.DB) return error('Configure APP_PASSWORD e o banco D1 no servidor.', 503);
-    const ip = clean(request.headers.get('CF-Connecting-IP') || 'local', 100);
-    const ipHash = await sha256('rate:' + ip + env.APP_PASSWORD);
-    const stamp = Date.now();
-    const prior = await env.DB.prepare('SELECT attempts, window_start FROM login_attempts WHERE ip_hash = ?').bind(ipHash).first();
-    if (prior && Number(prior.window_start) > stamp - 15 * 60 * 1000 && prior.attempts >= 8) return error('Muitas tentativas. Tente novamente em 15 minutos.', 429);
-    const { password } = await getBody(request, 4096);
-    const candidate = await sha256(String(password ?? ''));
-    const expected = await sha256(env.APP_PASSWORD);
-    if (candidate !== expected) {
-      await env.DB.prepare('INSERT INTO login_attempts(ip_hash, attempts, window_start) VALUES (?, 1, ?) ON CONFLICT(ip_hash) DO UPDATE SET attempts = CASE WHEN window_start < ? THEN 1 ELSE attempts + 1 END, window_start = CASE WHEN window_start < ? THEN excluded.window_start ELSE window_start END').bind(ipHash, stamp, stamp - 15 * 60 * 1000, stamp - 15 * 60 * 1000).run();
-      return error('Senha incorreta.', 401);
+    const rate=await isRateLimited(request,env);
+    if(rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
+    const body=await getBody(request,5000);
+    const username=String(body.username||'').trim().toLowerCase();
+    const user=await env.DB.prepare('SELECT id,username,password_salt,password_hash,role,session_version FROM app_users WHERE username=?').bind(username).first();
+    const salt=user?.password_salt || newSalt();
+    const digest=await passwordDigest(String(body.password||''),salt);
+    if(!user || digest!==user.password_hash) {
+      await countFailedLogin(env,rate); return error('Usuário ou senha incorretos.',401);
     }
-    await env.DB.prepare('DELETE FROM login_attempts WHERE ip_hash = ?').bind(ipHash).run();
-    const expiry = String(Date.now() + SESSION_SECONDS * 1000);
-    const token = expiry + '.' + await sessionSignature(env.APP_PASSWORD, expiry);
-    return json({ ok: true }, 200, { 'set-cookie': cookie(token, request) });
+    await clearFailedLogin(env,rate);
+    return json({ok:true,user:{username:user.username,role:user.role}},200,{'set-cookie':await newUserCookie(env,user,request)});
   }
-  if (path === '/api/logout' && method === 'POST') return json({ ok: true }, 200, { 'set-cookie': cookie('', request, true) });
-  if (!env.APP_PASSWORD || !env.DB) return error('Projeto ainda não configurado: defina APP_PASSWORD e D1.', 503);
-  if (!(await verifySession(request, env))) return error('Faça login para acessar sua biblioteca.', 401);
-
-  if (path === '/api/categories' && method === 'GET') return json({ categories: await categories(env) });
+  if (path === '/api/register' && method === 'POST') {
+    const rate=await isRateLimited(request,env);
+    if(rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
+    const body=await getBody(request,6000);
+    let account;
+    try {account=validateAccount(body);}catch(e){return error(e.message);}
+    const invitation=String(body.invitation||'');
+    const hash=await sha256(invitation);
+    const invite=await env.DB.prepare('SELECT token_hash FROM app_invites WHERE token_hash=? AND used_by IS NULL AND expires_at>?').bind(hash,Date.now()).first();
+    if(!invite || invitation.length<20){await countFailedLogin(env,rate);return error('Convite inválido ou expirado.',401);}
+    const id=crypto.randomUUID(),salt=newSalt(),digest=await passwordDigest(account.password,salt),stamp=now();
+    try{
+      await env.DB.batch([
+        env.DB.prepare("INSERT INTO app_users(id,username,password_salt,password_hash,role,invite_hash,created_at) VALUES (?,?,?,?,'member',?,?)")
+          .bind(id,account.username,salt,digest,hash,stamp),
+        env.DB.prepare('UPDATE app_invites SET used_by=? WHERE token_hash=? AND used_by IS NULL').bind(id,hash),
+        ...BASE_CATEGORIES.map(([slugId,name,emoji,color])=>env.DB.prepare('INSERT INTO categories(id,name,emoji,color,owner_id) VALUES (?,?,?,?,?)')
+          .bind(ownerCategoryId(id,slugId),name,emoji,color,id))
+      ]);
+    }catch{return error('Este nome de usuário ou convite já foi utilizado.',409);}
+    await clearFailedLogin(env,rate);
+    return json({ok:true,user:{username:account.username,role:'member'}},201,{'set-cookie':await newUserCookie(env,{id,session_version:1},request)});
+  }
+  if (path === '/api/recover-owner' && method === 'POST') {
+    const rate=await isRateLimited(request,env);
+    if(rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
+    const body=await getBody(request,5000);
+    if(await sha256(String(body.setup_key||''))!==await sha256(env.APP_PASSWORD)){
+      await countFailedLogin(env,rate);return error('Chave administrativa incorreta.',401);
+    }
+    const password=String(body.password||'');
+    if(password.length<12||password.length>128)return error('Use uma senha de 12 a 128 caracteres.');
+    const owner=await env.DB.prepare("SELECT id,username FROM app_users WHERE role='owner'").first();
+    if(!owner)return error('Conta principal ainda não criada.',404);
+    const salt=newSalt(),digest=await passwordDigest(password,salt);
+    await env.DB.prepare('UPDATE app_users SET password_salt=?,password_hash=?,session_version=session_version+1 WHERE id=?')
+      .bind(salt,digest,owner.id).run();
+    const updated=await env.DB.prepare('SELECT id,session_version FROM app_users WHERE id=?').bind(owner.id).first();
+    await clearFailedLogin(env,rate);
+    return json({ok:true,user:{username:owner.username,role:'owner'}},200,{'set-cookie':await newUserCookie(env,updated,request)});
+  }
+  if (path === '/api/logout' && method === 'POST') return json({ok:true},200,{'set-cookie':cookie('',request,true)});
+  const user=await verifySession(request,env);
+  if (!user) return error('Faça login para acessar sua biblioteca.',401);
+  if (path === '/api/me' && method === 'GET') return json({user:{username:user.username,role:user.role}});
+  if (path === '/api/invites' && method === 'POST') {
+    if (user.role!=='owner')return error('Somente a conta principal pode convidar.',403);
+    const code=randomCode(),hash=await sha256(code),stamp=now();
+    await env.DB.prepare('INSERT INTO app_invites(token_hash,created_by,expires_at,created_at) VALUES (?,?,?,?)')
+      .bind(hash,user.id,Date.now()+24*60*60*1000,stamp).run();
+    return json({invitation:code,expiresInHours:24},201);
+  }
+  if (path === '/api/categories' && method === 'GET') return json({ categories: await categories(env,user.id) });
   if (path === '/api/categories' && method === 'POST') {
-    const body = await getBody(request);
-    const name = clean(body.name, 40);
-    const id = slug(name);
-    if (!name || !id) return error('Informe um nome de categoria válido.');
-    const emoji = clean(body.emoji, 8) || '📁';
-    const color = /^#[0-9a-fA-F]{6}$/.test(body.color) ? body.color : '#64748b';
-    const exists = await env.DB.prepare('SELECT id FROM categories WHERE id=?').bind(id).first();
-    if (exists) return error('Já existe uma categoria com esse nome.', 409);
-    await env.DB.prepare('INSERT INTO categories(id, name, emoji, color) VALUES (?, ?, ?, ?)').bind(id, name, emoji, color).run();
-    return json({ categories: await categories(env) }, 201);
+    const body=await getBody(request),name=clean(body.name,40);
+    const slugId=slug(name);
+    if (!name || !slugId) return error('Informe um nome de categoria válido.');
+    const same=await env.DB.prepare('SELECT id FROM categories WHERE owner_id=? AND name=? COLLATE NOCASE').bind(user.id,name).first();
+    if(same) return error('Já existe uma categoria com esse nome.',409);
+    const id=ownerCategoryId(user.id,name),emoji=clean(body.emoji,8)||'📁',color=/^#[0-9a-fA-F]{6}$/.test(body.color)?body.color:'#64748b';
+    await env.DB.prepare('INSERT INTO categories(id,name,emoji,color,owner_id) VALUES (?,?,?,?,?)').bind(id,name,emoji,color,user.id).run();
+    return json({categories:await categories(env,user.id)},201);
   }
   if (path.startsWith('/api/categories/') && method === 'DELETE') {
-    const id = slug(decodeURIComponent(path.slice('/api/categories/'.length)));
-    if (id === 'outros') return error('A categoria Outros não pode ser excluída.');
+    const id=slug(decodeURIComponent(path.slice('/api/categories/'.length)));
+    const category=await env.DB.prepare('SELECT id,name FROM categories WHERE id=? AND owner_id=?').bind(id,user.id).first();
+    if(!category)return error('Categoria não encontrada.',404);
+    if(category.name.toLowerCase()==='outros')return error('A categoria Outros não pode ser excluída.');
+    const base=await env.DB.prepare("SELECT id FROM categories WHERE owner_id=? AND name='Outros' COLLATE NOCASE").bind(user.id).first();
+    if(!base)return error('Categoria padrão não encontrada.',404);
     await env.DB.batch([
-      env.DB.prepare('UPDATE videos SET category = ?, updated_at = ? WHERE category = ?').bind('outros', now(), id),
-      env.DB.prepare('DELETE FROM categories WHERE id = ?').bind(id)
+      env.DB.prepare('UPDATE videos SET category=?,updated_at=? WHERE category=? AND owner_id=?').bind(base.id,now(),id,user.id),
+      env.DB.prepare('DELETE FROM categories WHERE id=? AND owner_id=?').bind(id,user.id)
     ]);
-    return json({ ok: true });
+    return json({ok:true});
   }
   // Diário de pensamentos: separado dos vídeos para não contaminar a busca de conteúdos.
   if (path === '/api/thoughts' && method === 'GET') {
     const limit = Math.min(Math.max(safeNumber(url.searchParams.get('limit'), 100), 1), 250);
-    const rows = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries ORDER BY created_at DESC LIMIT ?`).bind(limit).all()).results;
+    const rows = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE owner_id=? ORDER BY created_at DESC LIMIT ?`).bind(user.id,limit).all()).results;
     return json({ thoughts: rows });
   }
   if (path === '/api/thoughts' && method === 'POST') {
     const entry = validateThought(await getBody(request, 24000));
     const id = crypto.randomUUID(), stamp = now();
-    await env.DB.prepare(`INSERT INTO thought_entries (${THOUGHT_COLUMNS}) VALUES (${Array(13).fill('?').join(', ')})`)
-      .bind(id, ...thoughtValues(entry), stamp, stamp).run();
-    return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=?`).bind(id).first() }, 201);
+    await env.DB.prepare(`INSERT INTO thought_entries (${THOUGHT_COLUMNS},owner_id) VALUES (${Array(14).fill('?').join(', ')})`)
+      .bind(id, ...thoughtValues(entry), stamp, stamp,user.id).run();
+    return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=? AND owner_id=?`).bind(id,user.id).first() }, 201);
   }
   const thoughtMatch = path.match(/^\/api\/thoughts\/([a-f0-9-]{36})$/i);
   if (thoughtMatch) {
     const id = thoughtMatch[1];
     if (method === 'GET') {
-      const thought = await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=?`).bind(id).first();
+      const thought = await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=? AND owner_id=?`).bind(id,user.id).first();
       return thought ? json({ thought }) : error('Registro não encontrado.', 404);
     }
     if (method === 'PUT') {
-      if (!await env.DB.prepare('SELECT id FROM thought_entries WHERE id=?').bind(id).first()) return error('Registro não encontrado.', 404);
+      if (!await env.DB.prepare('SELECT id FROM thought_entries WHERE id=? AND owner_id=?').bind(id,user.id).first()) return error('Registro não encontrado.', 404);
       const entry = validateThought(await getBody(request, 24000));
-      await env.DB.prepare(`UPDATE thought_entries SET situation=?, emotion=?, intensity_before=?, automatic_thought=?, evidence_for=?, evidence_against=?, balanced_thought=?, next_step=?, intensity_after=?, source_url=?, updated_at=? WHERE id=?`)
-        .bind(...thoughtValues(entry), now(), id).run();
-      return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=?`).bind(id).first() });
+      await env.DB.prepare(`UPDATE thought_entries SET situation=?, emotion=?, intensity_before=?, automatic_thought=?, evidence_for=?, evidence_against=?, balanced_thought=?, next_step=?, intensity_after=?, source_url=?, updated_at=? WHERE id=? AND owner_id=?`)
+        .bind(...thoughtValues(entry), now(), id,user.id).run();
+      return json({ thought: await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE id=? AND owner_id=?`).bind(id,user.id).first() });
     }
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM thought_entries WHERE id=?').bind(id).run();
+      if (!await env.DB.prepare('SELECT id FROM thought_entries WHERE id=? AND owner_id=?').bind(id,user.id).first()) return error('Registro não encontrado.',404);
+      await env.DB.prepare('DELETE FROM thought_entries WHERE id=? AND owner_id=?').bind(id,user.id).run();
       return json({ ok: true });
     }
   }
@@ -519,7 +643,7 @@ async function handle(request, env) {
 
   // Dicas privadas por situação: independentes dos pensamentos e do chat de vídeos.
   if (path === '/api/tips' && method === 'GET') {
-    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips ORDER BY favorite DESC, CASE kind WHEN 'dica' THEN 0 ELSE 1 END, created_at ASC LIMIT 750`).all()).results;
+    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE owner_id=? ORDER BY favorite DESC, CASE kind WHEN 'dica' THEN 0 ELSE 1 END, created_at ASC LIMIT 750`).bind(user.id).all()).results;
     return json({ tips });
   }
   if (path === '/api/tips' && method === 'POST') {
@@ -527,62 +651,63 @@ async function handle(request, env) {
     try { input = validateTip(await getBody(request, 10000)); }
     catch(e) { return error(e.message); }
     const id = crypto.randomUUID(), stamp = now();
-    await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(id, ...tipValues(input), stamp, stamp).run();
-    return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first() }, 201);
+    await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS},owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, ...tipValues(input), stamp, stamp,user.id).run();
+    return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=? AND owner_id=?`).bind(id,user.id).first() }, 201);
   }
   const tipMatch = path.match(/^\/api\/tips\/([a-f0-9-]{36})$/i);
   if (tipMatch) {
     const id = tipMatch[1];
-    const previous = await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first();
+    const previous = await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=? AND owner_id=?`).bind(id,user.id).first();
     if (!previous) return error('Dica não encontrada.', 404);
     if (method === 'GET') return json({ tip: previous });
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM situational_tips WHERE id=?').bind(id).run();
+      await env.DB.prepare('DELETE FROM situational_tips WHERE id=? AND owner_id=?').bind(id,user.id).run();
       return json({ ok: true });
     }
     if (method === 'PATCH') {
       const body = await getBody(request, 2000);
       if (typeof body.favorite !== 'boolean') return error('Informe true ou false para favorito.');
-      await env.DB.prepare('UPDATE situational_tips SET favorite=?, updated_at=? WHERE id=?')
-        .bind(body.favorite ? 1 : 0, now(), id).run();
-      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first() });
+      await env.DB.prepare('UPDATE situational_tips SET favorite=?, updated_at=? WHERE id=? AND owner_id=?')
+        .bind(body.favorite ? 1 : 0, now(), id,user.id).run();
+      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=? AND owner_id=?`).bind(id,user.id).first() });
     }
     if (method === 'PUT') {
       let input;
       try { input = validateTip(await getBody(request, 10000)); }
       catch(e) { return error(e.message); }
-      await env.DB.prepare('UPDATE situational_tips SET title=?, content=?, situation=?, kind=?, favorite=?, source_url=?, updated_at=? WHERE id=?')
-        .bind(...tipValues(input), now(), id).run();
-      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=?`).bind(id).first() });
+      await env.DB.prepare('UPDATE situational_tips SET title=?, content=?, situation=?, kind=?, favorite=?, source_url=?, updated_at=? WHERE id=? AND owner_id=?')
+        .bind(...tipValues(input), now(), id,user.id).run();
+      return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=? AND owner_id=?`).bind(id,user.id).first() });
     }
   }
   if (path === '/api/stats' && method === 'GET') {
-    const stats = await env.DB.prepare('SELECT COUNT(*) AS total, COALESCE(SUM(favorite),0) AS favorites, COALESCE(SUM(CASE WHEN watched=0 THEN 1 ELSE 0 END),0) AS unwatched, COUNT(DISTINCT category) AS categories FROM videos').first();
+    const stats = await env.DB.prepare('SELECT COUNT(*) AS total, COALESCE(SUM(favorite),0) AS favorites, COALESCE(SUM(CASE WHEN watched=0 THEN 1 ELSE 0 END),0) AS unwatched, COUNT(DISTINCT category) AS categories FROM videos WHERE owner_id=?').bind(user.id).first();
     return json({ stats });
   }
   if (path === '/api/videos' && method === 'GET') {
     return json(await fetchVideos(env, {
       q: url.searchParams.get('q'), category: url.searchParams.get('category'), favorite: url.searchParams.get('favorite') === '1',
       unwatched: url.searchParams.get('unwatched') === '1', sort: url.searchParams.get('sort'), limit: url.searchParams.get('limit'), offset: url.searchParams.get('offset')
-    }));
+    },user.id));
   }
   if (path === '/api/videos' && method === 'POST') {
     const input = validateVideo(await getBody(request));
-    const cat = await env.DB.prepare('SELECT id FROM categories WHERE id = ?').bind(input.category).first();
+    const cat = await env.DB.prepare('SELECT id FROM categories WHERE id = ? AND owner_id=?').bind(input.category,user.id).first();
     if (!cat) return error('Categoria não encontrada.');
     const id = crypto.randomUUID();
     const time = now();
-    await env.DB.prepare(`INSERT INTO videos (${FULL_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+    await env.DB.prepare(`INSERT INTO videos (${FULL_COLUMNS},owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
       id, input.url, input.title, input.category, input.summary, input.transcript, input.notes, input.tags, input.cover_url,
-      input.favorite, input.watched, time, time, input.visual_description
+      input.favorite, input.watched, time, time, input.visual_description,user.id
     ).run();
-    const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ?`).bind(id).first();
+    const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ? AND owner_id=?`).bind(id,user.id).first();
     return json({ video }, 201);
   }
   const imageMatch = path.match(/^\/api\/videos\/([a-f0-9-]{36})\/image$/i);
   if (imageMatch) {
     const id = imageMatch[1];
+    if (!await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(id,user.id).first()) return error('Vídeo não encontrado.',404);
     if (method === 'GET') {
       const img = await env.DB.prepare('SELECT data_base64, media_type FROM video_images WHERE video_id=?').bind(id).first();
       if (!img) return error('Imagem não encontrada.', 404);
@@ -593,50 +718,51 @@ async function handle(request, env) {
     }
     if (method === 'DELETE') {
       await env.DB.prepare('DELETE FROM video_images WHERE video_id=?').bind(id).run();
-      await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=?').bind('', now(), id).run();
+      await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=? AND owner_id=?').bind('', now(), id,user.id).run();
       return json({ ok: true });
     }
     if (method === 'POST') {
       const type = String(request.headers.get('content-type') || '').split(';')[0].toLowerCase();
       if (Number(request.headers.get('content-length') || 0) > IMAGE_LIMIT) return error('Imagem acima de 450 KB.', 413);
       const bytes = new Uint8Array(await request.arrayBuffer());
-      return storeImage(env, id, bytes, type);
+      return storeImage(env, id, bytes, type,user.id);
     }
   }
   const imageImportMatch = path.match(/^\/api\/videos\/([a-f0-9-]{36})\/import-image$/i);
   if (imageImportMatch && method === 'POST') {
-    if (!await env.DB.prepare('SELECT id FROM videos WHERE id=?').bind(imageImportMatch[1]).first()) return error('Vídeo não encontrado.', 404);
+    if (!await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(imageImportMatch[1],user.id).first()) return error('Vídeo não encontrado.', 404);
     const { url: remoteUrl } = await getBody(request, 3500);
     try {
       const { bytes, type } = await downloadImage(remoteUrl);
-      return storeImage(env, imageImportMatch[1], bytes, type);
+      return storeImage(env, imageImportMatch[1], bytes, type,user.id);
     } catch (e) { return error(e?.message || 'Erro ao importar imagem.', 400); }
   }
   const imageAnalyzeMatch = path.match(/^\/api\/videos\/([a-f0-9-]{36})\/analyze-image$/i);
-  if (imageAnalyzeMatch && method === 'POST') return analyzeImage(env, imageAnalyzeMatch[1]);
+  if (imageAnalyzeMatch && method === 'POST') return analyzeImage(env, imageAnalyzeMatch[1],user.id);
   const videoMatch = path.match(/^\/api\/videos\/([a-f0-9-]{36})$/i);
   if (videoMatch) {
     const id = videoMatch[1];
+    if (!await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(id,user.id).first()) return error('Vídeo não encontrado.',404);
     if (method === 'GET') {
-      const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ?`).bind(id).first();
+      const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ? AND owner_id=?`).bind(id,user.id).first();
       if (!video) return error('Vídeo não encontrado.', 404);
-      const related = (await env.DB.prepare('SELECT id,title FROM videos WHERE url=? AND id<>? ORDER BY created_at DESC LIMIT 40').bind(video.url, id).all()).results;
+      const related = (await env.DB.prepare('SELECT id,title FROM videos WHERE url=? AND id<>? AND owner_id=? ORDER BY created_at DESC LIMIT 40').bind(video.url, id,user.id).all()).results;
       return json({ video, related });
     }
     if (method === 'DELETE') {
       await env.DB.prepare('DELETE FROM video_images WHERE video_id = ?').bind(id).run();
-      await env.DB.prepare('DELETE FROM videos WHERE id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM videos WHERE id = ? AND owner_id=?').bind(id,user.id).run();
       return json({ ok: true });
     }
     if (method === 'PUT') {
-      const old = await env.DB.prepare('SELECT id FROM videos WHERE id = ?').bind(id).first();
+      const old = await env.DB.prepare('SELECT id FROM videos WHERE id = ? AND owner_id=?').bind(id,user.id).first();
       if (!old) return error('Vídeo não encontrado.', 404);
       const input = validateVideo(await getBody(request));
-      const cat = await env.DB.prepare('SELECT id FROM categories WHERE id = ?').bind(input.category).first();
+      const cat = await env.DB.prepare('SELECT id FROM categories WHERE id = ? AND owner_id=?').bind(input.category,user.id).first();
       if (!cat) return error('Categoria não encontrada.');
-      await env.DB.prepare('UPDATE videos SET url=?, title=?, category=?, summary=?, transcript=?, notes=?, tags=?, cover_url=?, favorite=?, watched=?, updated_at=?, visual_description=? WHERE id=?')
-        .bind(input.url, input.title, input.category, input.summary, input.transcript, input.notes, input.tags, input.cover_url, input.favorite, input.watched, now(), input.visual_description, id).run();
-      const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ?`).bind(id).first();
+      await env.DB.prepare('UPDATE videos SET url=?, title=?, category=?, summary=?, transcript=?, notes=?, tags=?, cover_url=?, favorite=?, watched=?, updated_at=?, visual_description=? WHERE id=? AND owner_id=?')
+        .bind(input.url, input.title, input.category, input.summary, input.transcript, input.notes, input.tags, input.cover_url, input.favorite, input.watched, now(), input.visual_description, id,user.id).run();
+      const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ? AND owner_id=?`).bind(id,user.id).first();
       return json({ video });
     }
   }
@@ -644,27 +770,31 @@ async function handle(request, env) {
     const body = await getBody(request, 5000);
     const message = clean(body.message, 500);
     if (message.length < 3) return error('Escreva uma pergunta mais específica.');
-    return json(await answerQuestion(env, message));
+    return json(await answerQuestion(env, message,user.id));
   }
   if (path === '/api/export' && method === 'GET') {
-    const videos = (await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos ORDER BY created_at DESC LIMIT 5000`).all()).results;
-    const thoughts = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries ORDER BY created_at DESC LIMIT 5000`).all()).results;
-    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips ORDER BY created_at ASC LIMIT 5000`).all()).results;
-    const file = { format: 'relembra-v1.7', exported_at: now(), categories: await categories(env), videos, thoughts, tips };
+    const videos = (await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
+    const thoughts = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
+    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE owner_id=? ORDER BY created_at ASC LIMIT 5000`).bind(user.id).all()).results;
+    const file = { format: 'relembra-v1.9', exported_at: now(), categories: await categories(env,user.id), videos, thoughts, tips };
     return json(file, 200, { 'content-disposition': `attachment; filename="relembra-backup-${new Date().toISOString().slice(0, 10)}.json"` });
   }
   if (path === '/api/import' && method === 'POST') {
     const body = await getBody(request, 4000000);
     if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts) && !Array.isArray(body.tips)) return error('Backup inválido: faltam vídeos, registros e dicas.');
     if ((body.videos || []).length > 250 || (body.thoughts || []).length > 250 || (body.tips || []).length > 250) return error('Importe até 250 itens de cada tipo por lote.');
-    const existingCategories = await categories(env);
+    const existingCategories = await categories(env,user.id);
     const categoryMap = new Set(existingCategories.map(c => c.id));
+    const categoryAliases = new Map(existingCategories.map(c=>[c.id,c.id]));
+    const defaultCat=existingCategories.find(c=>c.name.toLowerCase()==='outros')?.id;
+    if(!defaultCat)return error('Categoria padrão não encontrada.',400);
     const catStatements = [];
     for (const c of Array.isArray(body.categories) ? body.categories.slice(0, 100) : []) {
-      const id = slug(c.id || c.name); if (!id || categoryMap.has(id)) continue;
+      const raw=slug(c.id||c.name); const match=existingCategories.find(e=>e.name.toLowerCase()===clean(c.name,40).toLowerCase());
+      const id=match?.id||ownerCategoryId(user.id,c.name||raw); if(raw)categoryAliases.set(raw,id); if (!id || categoryMap.has(id)) continue;
       categoryMap.add(id);
-      catStatements.push(env.DB.prepare('INSERT OR IGNORE INTO categories(id, name, emoji, color) VALUES (?, ?, ?, ?)').bind(
-        id, clean(c.name, 40) || id, clean(c.emoji, 8) || '📁', /^#[0-9a-fA-F]{6}$/.test(c.color) ? c.color : '#64748b'
+      catStatements.push(env.DB.prepare('INSERT OR IGNORE INTO categories(id, name, emoji, color,owner_id) VALUES (?, ?, ?, ?, ?)').bind(
+        id, clean(c.name, 40) || id, clean(c.emoji, 8) || '📁', /^#[0-9a-fA-F]{6}$/.test(c.color) ? c.color : '#64748b',user.id
       ));
     }
     if (catStatements.length) await env.DB.batch(catStatements);
@@ -672,19 +802,19 @@ async function handle(request, env) {
     for (const raw of body.videos || []) {
       try {
         const v = validateVideo(raw);
-        if (!categoryMap.has(v.category)) v.category = 'outros';
+        v.category = categoryAliases.get(v.category) || (categoryMap.has(v.category) ? v.category : defaultCat);
         const stamp = now();
         // Importação repetida não deve duplicar fichas. O mesmo link pode aparecer
         // em várias fichas, desde que representem informações diferentes.
         const previous = await env.DB.prepare(
-          'SELECT id FROM videos WHERE url=? AND title=? AND summary=? AND transcript=? AND notes=? AND visual_description=? LIMIT 1'
-        ).bind(v.url, v.title, v.summary, v.transcript, v.notes, v.visual_description).first();
+          'SELECT id FROM videos WHERE url=? AND title=? AND summary=? AND transcript=? AND notes=? AND visual_description=? AND owner_id=? LIMIT 1'
+        ).bind(v.url, v.title, v.summary, v.transcript, v.notes, v.visual_description,user.id).first();
         const originalId = typeof raw.id === 'string' && /^[a-f0-9-]{36}$/i.test(raw.id) ? raw.id : '';
-        const sameId = originalId ? await env.DB.prepare('SELECT id FROM videos WHERE id=?').bind(originalId).first() : null;
-        if (previous || sameId) { skipped++; continue; }
-        await env.DB.prepare(`INSERT INTO videos (${FULL_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
-          originalId || crypto.randomUUID(), v.url, v.title, v.category, v.summary, v.transcript, v.notes, v.tags,
-          v.cover_url, v.favorite, v.watched, stamp, stamp, v.visual_description
+        const sameId = originalId ? await env.DB.prepare('SELECT id,owner_id FROM videos WHERE id=?').bind(originalId).first() : null;
+        if (previous || (sameId && sameId.owner_id===user.id)) { skipped++; continue; }
+        await env.DB.prepare(`INSERT INTO videos (${FULL_COLUMNS},owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          (sameId?crypto.randomUUID():originalId||crypto.randomUUID()), v.url, v.title, v.category, v.summary, v.transcript, v.notes, v.tags,
+          v.cover_url, v.favorite, v.watched, stamp, stamp, v.visual_description,user.id
         ).run();
         imported++;
       } catch { skipped++; }
@@ -694,12 +824,12 @@ async function handle(request, env) {
       try {
         const v = validateThought(raw);
         const originalId = typeof raw.id === 'string' && /^[a-f0-9-]{36}$/i.test(raw.id) ? raw.id : '';
-        const duplicate = originalId ? await env.DB.prepare('SELECT id FROM thought_entries WHERE id=?').bind(originalId).first() : null;
-        if (duplicate) { thoughtsSkipped++; continue; }
+        const duplicate = originalId ? await env.DB.prepare('SELECT id,owner_id FROM thought_entries WHERE id=?').bind(originalId).first() : null;
+        if (duplicate?.owner_id===user.id) { thoughtsSkipped++; continue; }
         const stamp = now();
         const createdAt = /^\d{4}-\d\d-\d\dT/.test(raw.created_at || '') ? clean(raw.created_at, 40) : stamp;
-        await env.DB.prepare(`INSERT INTO thought_entries (${THOUGHT_COLUMNS}) VALUES (${Array(13).fill('?').join(', ')})`)
-          .bind(originalId || crypto.randomUUID(), ...thoughtValues(v), createdAt, stamp).run();
+        await env.DB.prepare(`INSERT INTO thought_entries (${THOUGHT_COLUMNS},owner_id) VALUES (${Array(14).fill('?').join(', ')})`)
+          .bind(duplicate?crypto.randomUUID():originalId||crypto.randomUUID(), ...thoughtValues(v), createdAt, stamp,user.id).run();
         thoughtsImported++;
       } catch { thoughtsSkipped++; }
     }
@@ -708,14 +838,14 @@ async function handle(request, env) {
       try {
         const input = validateTip(raw);
         const rawId = typeof raw.id === 'string' && /^[a-f0-9-]{36}$/i.test(raw.id) ? raw.id : '';
-        const exists = rawId ? await env.DB.prepare('SELECT id FROM situational_tips WHERE id=?').bind(rawId).first() : null;
-        const same = await env.DB.prepare('SELECT id FROM situational_tips WHERE title=? AND content=? AND situation=? AND kind=? LIMIT 1')
-          .bind(input.title, input.content, input.situation, input.kind).first();
-        if (exists || same) { tipsSkipped++; continue; }
+        const exists = rawId ? await env.DB.prepare('SELECT id,owner_id FROM situational_tips WHERE id=?').bind(rawId).first() : null;
+        const same = await env.DB.prepare('SELECT id FROM situational_tips WHERE title=? AND content=? AND situation=? AND kind=? AND owner_id=? LIMIT 1')
+          .bind(input.title, input.content, input.situation, input.kind,user.id).first();
+        if (exists?.owner_id===user.id || same) { tipsSkipped++; continue; }
         const stamp = now();
         const created = /^\d{4}-\d{2}-\d{2}T/.test(raw.created_at || '') ? clean(raw.created_at, 40) : stamp;
-        await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .bind(rawId || crypto.randomUUID(), ...tipValues(input), created, stamp).run();
+        await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS},owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .bind(exists?crypto.randomUUID():rawId||crypto.randomUUID(), ...tipValues(input), created, stamp,user.id).run();
         tipsImported++;
       } catch { tipsSkipped++; }
     }

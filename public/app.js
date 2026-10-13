@@ -817,7 +817,7 @@ function bindEvents() {
   $('cancelCategoryBtn').addEventListener('click', () => $('categoryModal').hidden = true);
   $('categoryModal').addEventListener('click', e => { if (e.target === $('categoryModal')) $('categoryModal').hidden = true; });
   $('categoryForm').addEventListener('submit', createCategory);
-  $('logoutBtn').addEventListener('click', async () => { try { await api('/api/logout', { method: 'POST' }); $('loginOverlay').hidden = false; $('passwordInput').value = ''; toast('Você saiu da biblioteca.'); } catch (e) { toast(e.message, true); } });
+  $('logoutBtn').addEventListener('click', async () => { try { await api('/api/logout', { method: 'POST' }); wipePreviousAccount(); $('loginOverlay').hidden = false; showAccountMode('login'); toast('Você saiu da biblioteca.'); } catch (e) { toast(e.message, true); } });
   $('menuBtn').addEventListener('click', () => { $('sidebar').classList.add('open'); $('sidebarBackdrop').hidden = false; });
   $('sidebarBackdrop').addEventListener('click', () => { $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMediaPlayer(); closeImageViewer(); closeTipEditor(); closeEditor(); $('categoryModal').hidden = true; $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; } });
@@ -870,18 +870,86 @@ function bindEvents() {
     toast('Sugestão inserida. Revise o texto antes de salvar.');
   });
   $('exportBtn').addEventListener('click', exportData); $('importFile').addEventListener('change', e => importData(e.target.files[0]));
-  $('loginForm').addEventListener('submit', async e => {
-    e.preventDefault(); const btn = e.currentTarget.querySelector('button[type=submit]'); btn.disabled = true;
-    try { await api('/api/login', { method: 'POST', body: JSON.stringify({ password: $('passwordInput').value }) }); $('loginOverlay').hidden = true; $('passwordInput').value = ''; $('loginError').textContent = ''; await syncCategories(); await navigate('home'); }
-    catch (err) { $('loginError').textContent = err.message; } finally { btn.disabled = false; }
+  $('loginForm').addEventListener('submit',e=>submitAccountForm(e,'/api/login'));
+  $('ownerSetupForm').addEventListener('submit',e=>submitAccountForm(e,'/api/setup-owner'));
+  $('inviteRegisterForm').addEventListener('submit',e=>submitAccountForm(e,'/api/register'));
+  $('ownerRecoverForm').addEventListener('submit',e=>submitAccountForm(e,'/api/recover-owner'));
+  $('showLoginBtn').addEventListener('click',()=>showAccountMode('login'));
+  $('showRegisterBtn').addEventListener('click',()=>showAccountMode('register'));
+  $('showRecoverBtn').addEventListener('click',()=>showAccountMode('recover'));
+  $('inviteBtn').addEventListener('click',()=>{$('inviteResult').hidden=true;$('inviteModal').hidden=false;});
+  $('inviteCloseBtn').addEventListener('click',()=>{$('inviteModal').hidden=true;$('inviteCode').value='';});
+  $('inviteModal').addEventListener('click',e=>{if(e.target===$('inviteModal'))$('inviteCloseBtn').click();});
+  $('generateInviteBtn').addEventListener('click',async()=>{
+    const button=$('generateInviteBtn');button.disabled=true;
+    try{
+      const result=await api('/api/invites',{method:'POST',body:'{}'});
+      $('inviteCode').value=result.invitation;$('inviteResult').hidden=false;
+    }catch(e){toast(e.message,true);}finally{button.disabled=false;}
+  });
+  $('copyInviteBtn').addEventListener('click',async()=>{
+    const code=$('inviteCode').value;if(!code)return;
+    try{
+      await navigator.clipboard.writeText('Abra https://relembra-videos.wesleybrsales2018.workers.dev/ e clique em "Tenho um convite". Código: '+code);
+      toast('Instruções copiadas. Envie somente para quem você convidar.');
+    }catch(e){toast('Copie o código manualmente.');}
   });
 }
+function showAccountMode(mode) {
+  const forms = { login:'loginForm', setup:'ownerSetupForm', register:'inviteRegisterForm', recover:'ownerRecoverForm' };
+  for(const [name,id] of Object.entries(forms)) $(id).hidden=name!==mode;
+  const labels={
+    login:['Bem-vindo de volta.','Use seu usuário e senha para entrar na sua biblioteca.'],
+    setup:['Criar a conta principal.','Ative a nova proteção sem perder seus vídeos, dicas e pensamentos anteriores.'],
+    register:['Sua própria biblioteca.','Insira o convite recebido. Seus dados ficarão separados das outras contas.'],
+    recover:['Recuperar conta principal.','A chave administrativa da Cloudflare permite redefinir a senha do proprietário.']
+  };
+  $('loginModeTitle').textContent=labels[mode][0];
+  $('loginModeDescription').textContent=labels[mode][1];
+  $('loginLinks').hidden=mode==='setup';
+  $('loginError').textContent='';
+}
+function wipePreviousAccount() {
+  state.videos=[];state.homeVideos=[];state.categories=[];
+  state.thoughts=[];state.tips=[];state.total=0;state.offset=0;
+  state.editId=null;state.tipEditId=null;state.thoughtEditId=null;
+  for(const id of ['homeGrid','libraryGrid','categoryNav','chatMessages','thoughtList','tipsGrid']) $(id).replaceChildren();
+  $('accountLabel').textContent='Sua conta';
+  $('inviteBtn').hidden=true;
+  closeMediaPlayer();closeImageViewer();closeTipEditor();closeEditor();
+  resetThoughtForm();
+  $('tipForm').reset();
+  $('inviteModal').hidden=true;
+  $('inviteCode').value='';
+  $('thoughtSuggestion').hidden=true;
+}
+async function finishAccountLogin(result) {
+  wipePreviousAccount();
+  $('loginOverlay').hidden=true;
+  $('accountLabel').textContent='👤 '+result.user.username+(result.user.role==='owner'?' · Administrador':'');
+  $('inviteBtn').hidden=result.user.role!=='owner';
+  for(const id of ['loginForm','ownerSetupForm','inviteRegisterForm','ownerRecoverForm']) $(id).reset();
+  await syncCategories();
+  await navigate('home');
+}
+async function submitAccountForm(event,endpoint) {
+  event.preventDefault();
+  const form=event.currentTarget,button=form.querySelector('button[type=submit]');
+  button.disabled=true;
+  try {
+    const result=await api(endpoint,{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(form).entries()))});
+    await finishAccountLogin(result);
+  }catch(e){$('loginError').textContent=e.message;}finally{button.disabled=false;}
+}
+
 async function start() {
   bindEvents();
   try {
-    const session = await api('/api/session');
-    if (!session.configured) { $('loginError').textContent = 'Configure o banco D1 e a senha APP_PASSWORD conforme o arquivo LEIA-ME.md.'; return; }
-    if (session.authenticated) { $('loginOverlay').hidden = true; await syncCategories(); await navigate('home'); }
-  } catch(e) { $('loginError').textContent = 'Servidor indisponível: ' + e.message; }
+    const session=await api('/api/session');
+    if(!session.configured){$('loginError').textContent='Configure a senha administrativa e o D1 na Cloudflare.';return;}
+    if(session.setupRequired){showAccountMode('setup');return;}
+    if(session.authenticated){await finishAccountLogin({user:session.user});return;}
+    showAccountMode('login');
+  }catch(e){$('loginError').textContent='Servidor indisponível: '+e.message;}
 }
 start();

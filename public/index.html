@@ -29,6 +29,8 @@
       <div id="categoryNav" class="category-nav"></div>
       <div class="side-spacer"></div>
       <div class="side-bottom">
+        <div class="account-label" id="accountLabel" aria-live="polite">Sua conta</div>
+        <button class="nav-item muted" id="inviteBtn" hidden><span class="nav-icon">✉</span> Convidar outra pessoa</button>
         <button class="nav-item muted" data-view="backup"><span class="nav-icon">⇄</span> Backup e dados</button>
         <button class="nav-item muted" id="logoutBtn"><span class="nav-icon">↪</span> Sair da conta</button>
         <div class="privacy-note"><span class="status-dot"></span> Biblioteca privada <small>Seus vídeos ficam na sua conta Cloudflare.</small></div>
@@ -260,7 +262,58 @@
   </div>
   <div class="modal-backdrop" id="categoryModal" hidden><div class="small-modal" role="dialog" aria-modal="true" aria-labelledby="categoryTitle"><div class="modal-head"><div><span class="eyebrow">PERSONALIZE A BIBLIOTECA</span><h2 id="categoryTitle">Nova categoria</h2></div><button class="close-btn" id="closeCategoryBtn" aria-label="Fechar">×</button></div><form id="categoryForm"><label class="field"><span>Nome da categoria</span><input name="name" required maxlength="40" placeholder="Ex.: Exercícios"></label><div class="field-row"><label class="field"><span>Emoji</span><input name="emoji" maxlength="8" placeholder="🏋️" value="📁"></label><label class="field"><span>Cor</span><input name="color" type="color" value="#64748b"></label></div><div class="modal-footer"><button class="button button-outline" type="button" id="cancelCategoryBtn">Cancelar</button><button class="button button-primary" type="submit">Criar categoria</button></div></form></div></div>
 
-  <div class="login-overlay" id="loginOverlay"><div class="login-card"><div class="login-logo"><span class="brand-icon">▶</span><strong>relembra<span class="brand-dot">.</span></strong></div><div class="login-decoration">✧</div><div class="eyebrow">SEU ESPAÇO PRIVADO</div><h1>Bem-vindo de volta.</h1><p>Suas ideias, vídeos e descobertas estão esperando por você.</p><form id="loginForm"><label class="field"><span>Senha de acesso</span><input type="password" name="password" id="passwordInput" placeholder="Digite sua senha" required autocomplete="current-password"></label><button class="button button-primary login-submit" type="submit">Entrar na minha biblioteca →</button></form><p class="login-error" id="loginError" role="alert"></p><small>🔒 Apenas você pode acessar esta biblioteca.</small></div></div>
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card account-login-card">
+      <div class="login-logo"><span class="brand-icon">▶</span><strong>relembra<span class="brand-dot">.</span></strong></div>
+      <div class="eyebrow">SUA BIBLIOTECA PRIVADA</div>
+      <h1 id="loginModeTitle">Bem-vindo de volta.</h1>
+      <p id="loginModeDescription">Entre com seu usuário e sua senha. Cada pessoa tem sua biblioteca privada.</p>
+      <form id="loginForm">
+        <label class="field"><span>Usuário</span><input type="text" name="username" autocomplete="username" required minlength="3" maxlength="32" placeholder="Seu nome de usuário"></label>
+        <label class="field"><span>Senha</span><input type="password" name="password" id="passwordInput" required autocomplete="current-password" placeholder="Sua senha pessoal"></label>
+        <button class="button button-primary login-submit" type="submit">Entrar no Relembra →</button>
+      </form>
+      <form id="ownerSetupForm" hidden>
+        <div class="form-info">Primeiro acesso ao sistema de contas. Seus vídeos e anotações antigos serão vinculados à conta principal.</div>
+        <label class="field"><span>Chave administrativa atual</span><input type="password" name="setup_key" required autocomplete="off" placeholder="APP_PASSWORD configurado na Cloudflare"></label>
+        <label class="field"><span>Crie seu usuário</span><input type="text" name="username" required minlength="3" maxlength="32" autocomplete="username" placeholder="Ex.: meuusuario"></label>
+        <label class="field"><span>Nova senha pessoal (mínimo 12 caracteres)</span><input type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password" placeholder="Senha exclusiva da sua conta"></label>
+        <button class="button button-primary login-submit" type="submit">Criar minha conta principal →</button>
+      </form>
+      <form id="inviteRegisterForm" hidden>
+        <label class="field"><span>Código de convite</span><input type="text" name="invitation" required autocomplete="off" placeholder="Código enviado pelo administrador"></label>
+        <label class="field"><span>Seu usuário</span><input type="text" name="username" required minlength="3" maxlength="32" autocomplete="username"></label>
+        <label class="field"><span>Senha pessoal (mínimo 12 caracteres)</span><input type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password"></label>
+        <button class="button button-primary login-submit" type="submit">Criar minha biblioteca →</button>
+      </form>
+      <form id="ownerRecoverForm" hidden>
+        <div class="form-info">A recuperação da conta principal exige a chave administrativa <strong>APP_PASSWORD</strong>. Se você não a lembra, poderá redefini-la usando o Wrangler no Cloudflare.</div>
+        <label class="field"><span>Chave administrativa</span><input type="password" name="setup_key" required autocomplete="off"></label>
+        <label class="field"><span>Nova senha pessoal</span><input type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password"></label>
+        <button class="button button-primary login-submit" type="submit">Redefinir senha da conta principal</button>
+      </form>
+      <div class="account-login-links" id="loginLinks">
+        <button type="button" id="showLoginBtn">Entrar</button>
+        <button type="button" id="showRegisterBtn">Tenho um convite</button>
+        <button type="button" id="showRecoverBtn">Esqueci minha senha</button>
+      </div>
+      <p class="login-error" id="loginError" role="alert"></p>
+      <small>🔒 Seus dados não são compartilhados com outras contas.</small>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="inviteModal" hidden>
+    <div class="small-modal invite-dialog" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">
+      <div class="modal-head"><div><span class="eyebrow">CONVITE PRIVADO</span><h2 id="inviteTitle">Convidar pessoa</h2></div><button type="button" class="close-btn" id="inviteCloseBtn" aria-label="Fechar convite">×</button></div>
+      <div class="invite-content">
+        <p>O convite vale por 24 horas e só pode ser usado uma vez. A outra pessoa terá uma biblioteca separada da sua.</p>
+        <button type="button" class="button button-primary" id="generateInviteBtn">Gerar código de convite</button>
+        <div id="inviteResult" hidden>
+          <label class="field"><span>Código de uso único</span><input id="inviteCode" type="text" readonly></label>
+          <button type="button" class="button button-outline" id="copyInviteBtn">Copiar instruções e código</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="/app.js"></script>
 </body>
