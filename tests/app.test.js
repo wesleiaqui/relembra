@@ -487,3 +487,19 @@ test('migração de dicas é aditiva e não afeta os dados de vídeos e diário'
   assert.equal(db.prepare('SELECT COUNT(*) AS total FROM thought_entries').get().total,1);
   assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
 });
+
+
+test('interface de dicas possui navegação, filtros, edição e campos esperados', () => {
+  const html = readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const app = readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  for (const id of ['tipsView','tipsAddBtn','tipsPresets','tipsCustomContexts','tipsSearch','tipsKind','tipsFavoritesOnly','tipsGrid','tipsCurrentHeading','tipsResultCount','tipModal','tipModalTitle','tipForm','tipCloseBtn','tipCancelBtn','tipSaveBtn','tipDeleteBtn']) {
+    assert.equal((html.match(new RegExp('id="' + id + '"','g')) || []).length,1,id);
+  }
+  for(const name of ['title','content','situation','kind','source_url','favorite'])
+    assert.equal((html.match(new RegExp('name="' + name + '"','g'))||[]).length>=1,true,name);
+  assert.match(html,/data-view="tips"/);
+  assert.match(app,/async function loadTips\(\)/);
+  assert.match(app,/async function saveTip\(event\)/);
+  assert.match(app,/async function toggleTipFavorite\(id\)/);
+  assert.match(app,/tipGroups\[index\]/);
+});
