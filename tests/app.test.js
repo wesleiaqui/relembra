@@ -349,3 +349,17 @@ test('chat de viagens mostra titulos mesmo sem transcricao', async () => {
   assert.match(result.answer,/WET N WILD/);
   assert.equal(result.aiUsed,false);
 });
+
+test('chat diferencia busca nominal de instrucao que nao foi anotada', async () => {
+  let aiCalls = 0;
+  const { req } = setup({ async run() { aiCalls++; return { response:'nao ha detalhes' }; } });
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const base = { url:'https://instagram.com/p/cs2/', category:'cs2', transcript:'', notes:'' };
+  await req('/api/videos','POST',{...base,title:'SMOKE JANELA MIRAGE',summary:'SMOKE JANELA MIRAGE'});
+  const result = (await req('/api/chat','POST',{message:'Como faco a smoke da janela da Mirage?'})).data;
+  assert.equal(result.sources.length,1);
+  assert.match(result.answer,/detalhes suficientes/);
+  assert.equal(aiCalls,0);
+  const inferno = (await req('/api/chat','POST',{message:'posicoes de inferno cs2'})).data;
+  assert.equal(inferno.sources.length,0);
+});
