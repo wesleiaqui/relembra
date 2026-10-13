@@ -6,9 +6,11 @@ CREATE TABLE IF NOT EXISTS app_users (
   password_salt TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('owner','member')),
+  invite_hash TEXT UNIQUE,
   session_version INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_app_one_owner ON app_users(role) WHERE role='owner';
 CREATE TABLE IF NOT EXISTS app_invites (
   token_hash TEXT PRIMARY KEY,
   created_by TEXT NOT NULL REFERENCES app_users(id),
