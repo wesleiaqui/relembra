@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import worker from '../src/worker.js';
+import { embeddedMediaLink } from '../public/media-links.js';
 
 function makeDB() {
   const db = new DatabaseSync(':memory:');
@@ -503,4 +504,51 @@ test('interface de dicas possui navegação, filtros, edição e campos esperado
   assert.match(app,/async function saveTip\(event\)/);
   assert.match(app,/async function toggleTipFavorite\(id\)/);
   assert.match(app,/tipGroups\[index\]/);
+});
+
+
+test('links de Instagram e YouTube usam iframes restritos a domínios oficiais', () => {
+  const reels = embeddedMediaLink('https://www.instagram.com/reel/Dexample1234/?igsh=123&utm_source=share');
+  assert.equal(reels.provider, 'Instagram');
+  assert.equal(reels.embedUrl, 'https://www.instagram.com/reel/Dexample1234/embed/');
+  assert.equal(reels.format, 'vertical');
+  assert.equal(embeddedMediaLink('https://instagram.com/p/Ab_cd1234/').provider, 'Instagram');
+  assert.equal(embeddedMediaLink('https://instagram.com/tv/ABCde1234/').format, 'instagram');
+  const youtube = embeddedMediaLink('https://youtu.be/dQw4w9WgXcQ?t=42');
+  assert.equal(youtube.embedUrl, 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0');
+  assert.equal(embeddedMediaLink('https://www.youtube.com/watch?v=dQw4w9WgXcQ').provider, 'YouTube');
+  assert.equal(embeddedMediaLink('https://www.youtube.com/shorts/dQw4w9WgXcQ').provider, 'YouTube');
+  for (const input of [
+    'javascript:alert(1)','http://www.instagram.com/reel/Abcde12345/',
+    'https://instagram.com.evil.test/reel/Abcde12345/',
+    'https://www.instagram.com@evil.test/reel/Abcde12345/',
+    'https://www.instagram.com/story/Abcde12345/',
+    'https://www.instagram.com/reel/x/../../evil',
+    'https://www.instagram.com:8443/reel/Abcde12345/',
+    'https://www.youtube.com/watch?v=invalid',
+    'https://www.tiktok.com/@user/video/123'
+  ]) assert.equal(embeddedMediaLink(input), null, input);
+});
+
+test('visualização possui três modos e viewers com controles válidos', () => {
+  const html = readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const app = readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  const css = readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
+  for (const mode of ['standard','gallery','focus'])
+    assert.equal((html.match(new RegExp('data-view-mode="'+mode+'"','g')) || []).length,1);
+  for (const id of [
+    'libraryGrid','mediaPlayerModal','mediaPlayerFrame','mediaPlayerClose','mediaPlayerOriginal','mediaPlayerEdit',
+    'imageViewerModal','imageViewerImage','imageViewerTitle','imageViewerCount',
+    'imageViewerPrevious','imageViewerNext','imageViewerClose','imageViewerEdit'
+  ]) assert.equal((html.match(new RegExp('id="'+id+'"','g')) || []).length,1,id);
+  assert.match(app, /import \{ embeddedMediaLink \}/);
+  assert.match(app, /function setViewMode\(/);
+  assert.match(app, /function openMediaPlayer\(/);
+  assert.match(app, /function closeMediaPlayer\(/);
+  assert.match(app, /function openImageViewer\(/);
+  assert.match(app, /data-preview/);
+  assert.match(app, /data-watch/);
+  assert.match(app, /replaceChildren\(\); \/\/ desmonta iframe/);
+  assert.match(css, /#libraryGrid\[data-mode="gallery"\] \.card-art img \{object-fit:contain;\}/);
+  assert.match(css, /#libraryGrid\[data-mode="focus"\] \.card-art img \{object-fit:contain;\}/);
 });
