@@ -10,6 +10,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0002_visual.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0003_multiple_records.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0004_thought_journal.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0005_situational_tips.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -418,4 +419,71 @@ test('diário redesenhado mantém todos os campos e controles essenciais', () =>
   assert.match(css,/@media\(max-width:680px\)/);
   assert.match(js,/function updateThoughtProgress\(\)/);
   assert.match(js,/thoughtForm'\)\.addEventListener\('input', updateThoughtProgress\)/);
+});
+
+
+test('dicas iniciais de conversas e frases ficam disponíveis somente com login', async () => {
+  const { req } = setup();
+  assert.equal((await req('/api/tips')).status, 401);
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const data = (await req('/api/tips')).data;
+  assert.equal(data.tips.length, 13);
+  assert.equal(data.tips.filter(t => t.situation === 'Conversar').length, 11);
+  assert.equal(data.tips.filter(t => t.kind === 'frase').length, 6);
+  assert.ok(data.tips.some(t => t.content.includes('Escute antes')));
+  assert.ok(data.tips.some(t => t.content.includes('Como você chegou')));
+  assert.ok(data.tips.some(t => t.situation === 'Sair de casa'));
+});
+
+test('dicas pessoais: criar, editar, favoritar, pesquisar, excluir, validar', async () => {
+  const { req } = setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const item = {title:'Checar o trajeto',content:'Verificar caminho e horário antes de ir',situation:'Na rua',kind:'dica',favorite:false,source_url:''};
+  assert.equal((await req('/api/tips','POST',{...item,title:''})).status,400);
+  assert.equal((await req('/api/tips','POST',{...item,source_url:'javascript:alert(1)'})).status,400);
+  const created = await req('/api/tips','POST',item);
+  assert.equal(created.status,201);
+  const id = created.data.tip.id;
+  assert.equal((await req('/api/tips/'+id)).data.tip.title,item.title);
+  const changed = await req('/api/tips/'+id,'PUT',{...item,kind:'frase',situation:'Para mim',content:'Falar com calma'});
+  assert.equal(changed.status,200);
+  assert.equal(changed.data.tip.kind,'frase');
+  assert.equal((await req('/api/tips/'+id,'PATCH',{favorite:true})).data.tip.favorite,1);
+  assert.equal((await req('/api/tips/'+id,'PATCH',{favorite:'sim'})).status,400);
+  assert.equal((await req('/api/tips')).data.tips[0].id,id);
+  assert.equal((await req('/api/tips/'+id,'DELETE')).status,200);
+  assert.equal((await req('/api/tips/'+id)).status,404);
+});
+
+test('backup de dicas restaura registros sem duplicação e não mistura com o chat de vídeos', async () => {
+  const { req } = setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const entry = await req('/api/tips','POST',{title:'Lembrete pessoal',content:'Meu texto reservado',situation:'Para mim',kind:'dica',favorite:true});
+  const backup = (await req('/api/export')).data;
+  assert.equal(backup.format,'relembra-v1.7');
+  assert.ok(backup.tips.some(x=>x.id===entry.data.tip.id));
+  assert.equal((await req('/api/chat','POST',{message:'Meu texto reservado'})).data.sources.length,0);
+  await req('/api/tips/'+entry.data.tip.id,'DELETE');
+  const restore = (await req('/api/import','POST',backup)).data;
+  assert.equal(restore.tipsImported,1);
+  assert.equal((await req('/api/tips/'+entry.data.tip.id)).status,200);
+  const again = (await req('/api/import','POST',backup)).data;
+  assert.equal(again.tipsImported,0);
+  assert.ok(again.tipsSkipped>=13);
+});
+
+test('migração de dicas é aditiva e não afeta os dados de vídeos e diário', () => {
+  const db = new DatabaseSync(':memory:');
+  for(const name of ['0001_initial.sql','0002_visual.sql','0003_multiple_records.sql','0004_thought_journal.sql'])
+    db.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
+  const stamp = new Date().toISOString();
+  db.prepare('INSERT INTO videos (id,url,title,category,created_at,updated_at) VALUES (?,?,?,?,?,?)')
+    .run('video-antigo','https://example.com/','Video antigo','cs2',stamp,stamp);
+  db.prepare('INSERT INTO thought_entries (id,situation,automatic_thought,intensity_before,created_at,updated_at) VALUES (?,?,?,?,?,?)')
+    .run('thought-antigo','Teste','Pensamento de teste',5,stamp,stamp);
+  db.exec(readFileSync(new URL('../migrations/0005_situational_tips.sql',import.meta.url),'utf8'));
+  assert.equal(db.prepare('SELECT COUNT(*) AS total FROM situational_tips').get().total,13);
+  assert.equal(db.prepare('SELECT COUNT(*) AS total FROM videos').get().total,1);
+  assert.equal(db.prepare('SELECT COUNT(*) AS total FROM thought_entries').get().total,1);
+  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
 });
