@@ -245,19 +245,152 @@ async function toggleFavorite(id) {
   } catch (e) { toast(e.message, true); }
 }
 async function refreshCurrent() { if (state.view === 'home') await loadHome(); else if (['library', 'favorites', 'unwatched'].includes(state.view)) await loadList(); }
+function savedChatImageUrl(source) {
+  if (source.has_image && /^[0-9a-f-]{36}$/i.test(String(source.id || ''))) {
+    return '/api/videos/' + encodeURIComponent(source.id) + '/image';
+  }
+  // URLs de páginas HTML (como prnt.sc/abc) NÃO são imagens diretas.
+  try {
+    const url = new URL(source.cover_url || '');
+    if (url.protocol !== 'https:' || url.username || url.password) return '';
+    const trusted = ['i.imgur.com', 'image.prntscr.com', 'images.prntscr.com',
+      'cdn.discordapp.com', 'media.discordapp.net', 'pbs.twimg.com',
+      'raw.githubusercontent.com'];
+    if (trusted.includes(url.hostname.toLowerCase()) || /\.(png|jpe?g|webp)$/i.test(url.pathname)) return url.toString();
+  } catch {}
+  return '';
+}
+function chatSourceCard(source, index) {
+  const card = document.createElement('article');
+  card.className = 'chat-source-card';
+  const preview = document.createElement('div');
+  preview.className = 'chat-source-preview';
+  const body = document.createElement('div');
+  body.className = 'chat-source-body';
+  const heading = document.createElement('strong');
+  heading.textContent = '[' + (index + 1) + '] ' + source.title;
+  body.append(heading);
+  const summary = String(source.summary || '').trim();
+  if (summary && summary !== source.title && !/^https?:\/\/\S+$/.test(summary)) {
+    const description = document.createElement('p');
+    description.textContent = summary.slice(0, 210);
+    body.append(description);
+  }
+  const actions = document.createElement('div');
+  actions.className = 'chat-source-actions';
+  const edit = document.createElement('button');
+  edit.type = 'button';
+  edit.className = 'source-button';
+  edit.textContent = 'Abrir ficha';
+  edit.addEventListener('click', () => editVideo(source.id));
+  actions.append(edit);
+
+  function drawPreview() {
+    preview.replaceChildren();
+    const imageSrc = savedChatImageUrl(source);
+    if (!imageSrc) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'chat-source-placeholder';
+      placeholder.textContent = source.screenshot_link ? 'Imagem ainda não importada' : 'Sem imagem anexada';
+      preview.append(placeholder);
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = imageSrc;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.title = 'Abrir imagem em tamanho original';
+    link.setAttribute('aria-label', 'Ampliar imagem da ficha ' + source.title);
+    const img = document.createElement('img');
+    img.src = imageSrc;
+    img.alt = 'Captura salva: ' + source.title;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', () => {
+      preview.replaceChildren();
+      const placeholder = document.createElement('div');
+      placeholder.className = 'chat-source-placeholder';
+      placeholder.textContent = 'Prévia indisponível — abra a ficha';
+      preview.append(placeholder);
+    }, { once: true });
+    link.append(img);
+    preview.append(link);
+  }
+  drawPreview();
+  try {
+    const capture = new URL(source.screenshot_link || '');
+    if (capture.protocol === 'https:' && capture.hostname === 'prnt.sc') {
+      const open = document.createElement('a');
+      open.className = 'source-button';
+      open.textContent = 'Ver no Lightshot ↗';
+      open.href = capture.toString();
+      open.target = '_blank';
+      open.rel = 'noopener noreferrer';
+      actions.append(open);
+      if (!source.has_image) {
+        const importButton = document.createElement('button');
+        importButton.type = 'button';
+        importButton.className = 'source-button';
+        importButton.textContent = 'Importar captura';
+        importButton.addEventListener('click', async () => {
+          importButton.disabled = true;
+          importButton.textContent = 'Importando...';
+          try {
+            await api('/api/videos/' + encodeURIComponent(source.id) + '/import-image', {
+              method: 'POST', body: JSON.stringify({ url: capture.toString() })
+            });
+            source.has_image = true;
+            drawPreview();
+            importButton.remove();
+            toast('Imagem salva! Agora aparece no chat e na ficha.');
+          } catch (e) {
+            toast(e.message + ' Se necessário, envie a imagem pela edição da ficha.', true);
+            importButton.disabled = false;
+            importButton.textContent = 'Importar captura';
+          }
+        });
+        actions.append(importButton);
+      }
+    }
+  } catch {}
+  body.append(actions);
+  card.append(preview, body);
+  return card;
+}
 function appendMessage(kind, content, sources = [], aiUnavailable = false) {
   $('chatMessages').querySelector('.chat-welcome')?.remove();
-  const block = document.createElement('div'); block.className = 'message ' + kind;
-  if (kind === 'bot') { const ico = document.createElement('span'); ico.className = 'bot-avatar'; ico.textContent = '✧'; block.append(ico); }
-  const bubble = document.createElement('div'); bubble.className = 'bubble';
-  const answer = document.createElement('div'); answer.textContent = content; bubble.append(answer);
-  if (sources.length) { const links = document.createElement('div'); links.className = 'chat-sources';
-    sources.forEach((s, i) => { const b = document.createElement('button'); b.className = 'source-button'; b.type = 'button'; b.textContent = `[${i + 1}] ${s.title}`; b.addEventListener('click', () => editVideo(s.id)); links.append(b); }); bubble.append(links); }
-  if (aiUnavailable) { const n = document.createElement('small'); n.style.display = 'block'; n.style.marginTop = '10px'; n.style.color = '#9bb0d5'; n.textContent = 'A busca textual continua ativa mesmo quando a IA está indisponível.'; bubble.append(n); }
-  block.append(bubble); $('chatMessages').append(block);
+  const block = document.createElement('div');
+  block.className = 'message ' + kind;
+  if (kind === 'bot') {
+    const ico = document.createElement('span');
+    ico.className = 'bot-avatar';
+    ico.textContent = '✧';
+    block.append(ico);
+  }
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  const answer = document.createElement('div');
+  answer.textContent = content;
+  bubble.append(answer);
+  if (sources.length) {
+    const cards = document.createElement('div');
+    cards.className = 'chat-sources';
+    sources.forEach((source, index) => cards.append(chatSourceCard(source, index)));
+    bubble.append(cards);
+  }
+  if (aiUnavailable) {
+    const note = document.createElement('small');
+    note.className = 'chat-ai-unavailable';
+    note.textContent = 'A busca textual continua ativa mesmo quando a IA está indisponível.';
+    bubble.append(note);
+  }
+  block.append(bubble);
+  $('chatMessages').append(block);
   $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
   return block;
 }
+
 async function submitChat(message) {
   if (!message || message.trim().length < 3) return;
   $('chatInput').value = ''; appendMessage('user', message);
