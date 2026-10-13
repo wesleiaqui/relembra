@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS situational_tips (
   situation TEXT NOT NULL DEFAULT 'Geral' CHECK(length(situation) BETWEEN 1 AND 60),
   kind TEXT NOT NULL DEFAULT 'dica' CHECK(kind IN ('dica', 'frase')),
   favorite INTEGER NOT NULL DEFAULT 0 CHECK(favorite IN (0,1)),
+  source_url TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
