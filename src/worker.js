@@ -770,24 +770,28 @@ async function handle(request, env) {
     return json(await answerQuestion(env, message,user.id));
   }
   if (path === '/api/export' && method === 'GET') {
-    const videos = (await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos ORDER BY created_at DESC LIMIT 5000`).all()).results;
-    const thoughts = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries ORDER BY created_at DESC LIMIT 5000`).all()).results;
-    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips ORDER BY created_at ASC LIMIT 5000`).all()).results;
-    const file = { format: 'relembra-v1.7', exported_at: now(), categories: await categories(env), videos, thoughts, tips };
+    const videos = (await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
+    const thoughts = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
+    const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE owner_id=? ORDER BY created_at ASC LIMIT 5000`).bind(user.id).all()).results;
+    const file = { format: 'relembra-v1.9', exported_at: now(), categories: await categories(env,user.id), videos, thoughts, tips };
     return json(file, 200, { 'content-disposition': `attachment; filename="relembra-backup-${new Date().toISOString().slice(0, 10)}.json"` });
   }
   if (path === '/api/import' && method === 'POST') {
     const body = await getBody(request, 4000000);
     if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts) && !Array.isArray(body.tips)) return error('Backup inválido: faltam vídeos, registros e dicas.');
     if ((body.videos || []).length > 250 || (body.thoughts || []).length > 250 || (body.tips || []).length > 250) return error('Importe até 250 itens de cada tipo por lote.');
-    const existingCategories = await categories(env);
+    const existingCategories = await categories(env,user.id);
     const categoryMap = new Set(existingCategories.map(c => c.id));
+    const categoryAliases = new Map(existingCategories.map(c=>[c.id,c.id]));
+    const defaultCat=existingCategories.find(c=>c.name.toLowerCase()==='outros')?.id;
+    if(!defaultCat)return error('Categoria padrão não encontrada.',400);
     const catStatements = [];
     for (const c of Array.isArray(body.categories) ? body.categories.slice(0, 100) : []) {
-      const id = slug(c.id || c.name); if (!id || categoryMap.has(id)) continue;
+      const raw=slug(c.id||c.name); const match=existingCategories.find(e=>e.name.toLowerCase()===clean(c.name,40).toLowerCase());
+      const id=match?.id||ownerCategoryId(user.id,c.name||raw); if(raw)categoryAliases.set(raw,id); if (!id || categoryMap.has(id)) continue;
       categoryMap.add(id);
-      catStatements.push(env.DB.prepare('INSERT OR IGNORE INTO categories(id, name, emoji, color) VALUES (?, ?, ?, ?)').bind(
-        id, clean(c.name, 40) || id, clean(c.emoji, 8) || '📁', /^#[0-9a-fA-F]{6}$/.test(c.color) ? c.color : '#64748b'
+      catStatements.push(env.DB.prepare('INSERT OR IGNORE INTO categories(id, name, emoji, color,owner_id) VALUES (?, ?, ?, ?, ?)').bind(
+        id, clean(c.name, 40) || id, clean(c.emoji, 8) || '📁', /^#[0-9a-fA-F]{6}$/.test(c.color) ? c.color : '#64748b',user.id
       ));
     }
     if (catStatements.length) await env.DB.batch(catStatements);
@@ -795,19 +799,19 @@ async function handle(request, env) {
     for (const raw of body.videos || []) {
       try {
         const v = validateVideo(raw);
-        if (!categoryMap.has(v.category)) v.category = 'outros';
+        v.category = categoryAliases.get(v.category) || (categoryMap.has(v.category) ? v.category : defaultCat);
         const stamp = now();
         // Importação repetida não deve duplicar fichas. O mesmo link pode aparecer
         // em várias fichas, desde que representem informações diferentes.
         const previous = await env.DB.prepare(
-          'SELECT id FROM videos WHERE url=? AND title=? AND summary=? AND transcript=? AND notes=? AND visual_description=? LIMIT 1'
-        ).bind(v.url, v.title, v.summary, v.transcript, v.notes, v.visual_description).first();
+          'SELECT id FROM videos WHERE url=? AND title=? AND summary=? AND transcript=? AND notes=? AND visual_description=? AND owner_id=? LIMIT 1'
+        ).bind(v.url, v.title, v.summary, v.transcript, v.notes, v.visual_description,user.id).first();
         const originalId = typeof raw.id === 'string' && /^[a-f0-9-]{36}$/i.test(raw.id) ? raw.id : '';
-        const sameId = originalId ? await env.DB.prepare('SELECT id FROM videos WHERE id=?').bind(originalId).first() : null;
-        if (previous || sameId) { skipped++; continue; }
-        await env.DB.prepare(`INSERT INTO videos (${FULL_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
-          originalId || crypto.randomUUID(), v.url, v.title, v.category, v.summary, v.transcript, v.notes, v.tags,
-          v.cover_url, v.favorite, v.watched, stamp, stamp, v.visual_description
+        const sameId = originalId ? await env.DB.prepare('SELECT id,owner_id FROM videos WHERE id=?').bind(originalId).first() : null;
+        if (previous || (sameId && sameId.owner_id===user.id)) { skipped++; continue; }
+        await env.DB.prepare(`INSERT INTO videos (${FULL_COLUMNS},owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          (sameId?crypto.randomUUID():originalId||crypto.randomUUID()), v.url, v.title, v.category, v.summary, v.transcript, v.notes, v.tags,
+          v.cover_url, v.favorite, v.watched, stamp, stamp, v.visual_description,user.id
         ).run();
         imported++;
       } catch { skipped++; }
@@ -817,12 +821,12 @@ async function handle(request, env) {
       try {
         const v = validateThought(raw);
         const originalId = typeof raw.id === 'string' && /^[a-f0-9-]{36}$/i.test(raw.id) ? raw.id : '';
-        const duplicate = originalId ? await env.DB.prepare('SELECT id FROM thought_entries WHERE id=?').bind(originalId).first() : null;
-        if (duplicate) { thoughtsSkipped++; continue; }
+        const duplicate = originalId ? await env.DB.prepare('SELECT id,owner_id FROM thought_entries WHERE id=?').bind(originalId).first() : null;
+        if (duplicate?.owner_id===user.id) { thoughtsSkipped++; continue; }
         const stamp = now();
         const createdAt = /^\d{4}-\d\d-\d\dT/.test(raw.created_at || '') ? clean(raw.created_at, 40) : stamp;
-        await env.DB.prepare(`INSERT INTO thought_entries (${THOUGHT_COLUMNS}) VALUES (${Array(13).fill('?').join(', ')})`)
-          .bind(originalId || crypto.randomUUID(), ...thoughtValues(v), createdAt, stamp).run();
+        await env.DB.prepare(`INSERT INTO thought_entries (${THOUGHT_COLUMNS},owner_id) VALUES (${Array(14).fill('?').join(', ')})`)
+          .bind(duplicate?crypto.randomUUID():originalId||crypto.randomUUID(), ...thoughtValues(v), createdAt, stamp,user.id).run();
         thoughtsImported++;
       } catch { thoughtsSkipped++; }
     }
@@ -831,14 +835,14 @@ async function handle(request, env) {
       try {
         const input = validateTip(raw);
         const rawId = typeof raw.id === 'string' && /^[a-f0-9-]{36}$/i.test(raw.id) ? raw.id : '';
-        const exists = rawId ? await env.DB.prepare('SELECT id FROM situational_tips WHERE id=?').bind(rawId).first() : null;
-        const same = await env.DB.prepare('SELECT id FROM situational_tips WHERE title=? AND content=? AND situation=? AND kind=? LIMIT 1')
-          .bind(input.title, input.content, input.situation, input.kind).first();
-        if (exists || same) { tipsSkipped++; continue; }
+        const exists = rawId ? await env.DB.prepare('SELECT id,owner_id FROM situational_tips WHERE id=?').bind(rawId).first() : null;
+        const same = await env.DB.prepare('SELECT id FROM situational_tips WHERE title=? AND content=? AND situation=? AND kind=? AND owner_id=? LIMIT 1')
+          .bind(input.title, input.content, input.situation, input.kind,user.id).first();
+        if (exists?.owner_id===user.id || same) { tipsSkipped++; continue; }
         const stamp = now();
         const created = /^\d{4}-\d{2}-\d{2}T/.test(raw.created_at || '') ? clean(raw.created_at, 40) : stamp;
-        await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .bind(rawId || crypto.randomUUID(), ...tipValues(input), created, stamp).run();
+        await env.DB.prepare(`INSERT INTO situational_tips (${TIP_COLUMNS},owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .bind(exists?crypto.randomUUID():rawId||crypto.randomUUID(), ...tipValues(input), created, stamp,user.id).run();
         tipsImported++;
       } catch { tipsSkipped++; }
     }
