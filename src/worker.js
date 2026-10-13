@@ -19,23 +19,75 @@ const base64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, 
 const unbase64url = (value) => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4)), c => c.charCodeAt(0));
 async function sha256(value) { return base64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))); }
 async function hmacKey(secret) { return crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']); }
-async function sessionSignature(password, payload) {
-  const key = await hmacKey('relembra-session-v1:' + password);
+const ITERATIONS = 160000;
+function validateAccount(body) {
+  const username = String(body?.username || '').trim().toLowerCase();
+  const password = String(body?.password || '');
+  if (!/^[a-z0-9][a-z0-9_.-]{2,31}$/.test(username)) throw new Error('Usuário precisa ter 3 a 32 caracteres: letras, números, ponto, hífen ou _.');
+  if (password.length < 12 || password.length > 128) throw new Error('Use uma senha de 12 a 128 caracteres.');
+  return { username, password };
+}
+async function passwordDigest(password, salt) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: unbase64url(salt), iterations: ITERATIONS, hash: 'SHA-256' }, key, 256);
+  return base64url(new Uint8Array(bits));
+}
+function newSalt() { const bytes = new Uint8Array(24); crypto.getRandomValues(bytes); return base64url(bytes); }
+function randomCode() { const bytes = new Uint8Array(32); crypto.getRandomValues(bytes); return base64url(bytes); }
+async function authSignature(env, payload) {
+  const key = await hmacKey('relembra-users-v2:' + env.APP_PASSWORD);
   return base64url(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))));
 }
-async function verifySession(request, env) {
-  if (!env.APP_PASSWORD) return false;
-  const raw = (request.headers.get('cookie') || '').split(';').map(s => s.trim()).find(s => s.startsWith(SESSION_NAME + '='));
-  if (!raw) return false;
-  const pair = raw.slice(SESSION_NAME.length + 1).split('.');
-  if (pair.length !== 2) return false;
-  const [expiry, signature] = pair;
-  if (!/^\d{10,13}$/.test(expiry) || Number(expiry) <= Date.now()) return false;
-  try {
-    const expectedKey = await hmacKey('relembra-session-v1:' + env.APP_PASSWORD);
-    return crypto.subtle.verify('HMAC', expectedKey, unbase64url(signature), new TextEncoder().encode(expiry));
-  } catch { return false; }
+async function newUserCookie(env, user, request) {
+  const payload = user.id + ':' + user.session_version + ':' + String(Date.now() + SESSION_SECONDS * 1000);
+  return cookie(base64url(new TextEncoder().encode(payload)) + '.' + await authSignature(env, payload), request);
 }
+async function verifySession(request, env) {
+  if (!env.APP_PASSWORD) return null;
+  const raw = (request.headers.get('cookie') || '').split(';').map(s => s.trim()).find(s => s.startsWith(SESSION_NAME + '='));
+  if (!raw) return null;
+  const token = raw.slice(SESSION_NAME.length + 1);
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  try {
+    const payload = new TextDecoder().decode(unbase64url(parts[0]));
+    const match = payload.match(/^([a-f0-9-]{36}):(\d+):(\d{13})$/i);
+    if (!match || Number(match[3]) <= Date.now()) return null;
+    const key = await hmacKey('relembra-users-v2:' + env.APP_PASSWORD);
+    if (!await crypto.subtle.verify('HMAC', key, unbase64url(parts[1]), new TextEncoder().encode(payload))) return null;
+    const user = await env.DB.prepare('SELECT id,username,role,session_version FROM app_users WHERE id=?').bind(match[1]).first();
+    return user && user.session_version === Number(match[2]) ? user : null;
+  } catch { return null; }
+}
+async function isRateLimited(request, env) {
+  const key = await sha256('login:' + (request.headers.get('CF-Connecting-IP') || 'local') + env.APP_PASSWORD);
+  const stamp = Date.now();
+  const prior = await env.DB.prepare('SELECT attempts,window_start FROM login_attempts WHERE ip_hash=?').bind(key).first();
+  return { key, stamp, limited: Boolean(prior && prior.window_start > stamp - 15 * 60 * 1000 && prior.attempts >= 8) };
+}
+async function countFailedLogin(env, rate) {
+  await env.DB.prepare('INSERT INTO login_attempts(ip_hash,attempts,window_start) VALUES (?,1,?) ON CONFLICT(ip_hash) DO UPDATE SET attempts=CASE WHEN window_start<? THEN 1 ELSE attempts+1 END,window_start=CASE WHEN window_start<? THEN excluded.window_start ELSE window_start END')
+    .bind(rate.key,rate.stamp,rate.stamp-15*60*1000,rate.stamp-15*60*1000).run();
+}
+async function clearFailedLogin(env, rate) {
+  await env.DB.prepare('DELETE FROM login_attempts WHERE ip_hash=?').bind(rate.key).run();
+}
+function ownerCategoryId(ownerId, categorySlug) {
+  return ownerId.replaceAll('-', '').slice(0, 16) + '-' + slug(categorySlug).slice(0, 20);
+}
+const BASE_CATEGORIES = [
+  ['apartamento','Apartamento','🏠','#8a85ef'],
+  ['culinaria','Culinária','🍝','#f19a65'],
+  ['turismo','Turismo','✈️','#54b7a7'],
+  ['cs2','CS2','🎮','#73a5f5'],
+  ['outros','Outros','📚','#929aad']
+];
+async function registerMemberCategories(env, id) {
+  await env.DB.batch(BASE_CATEGORIES.map(([slugId,name,emoji,color]) =>
+    env.DB.prepare('INSERT INTO categories(id,name,emoji,color,owner_id) VALUES (?,?,?,?,?)')
+      .bind(ownerCategoryId(id,slugId),name,emoji,color,id)));
+}
+
 function cookie(value, request, expire = false) {
   const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : '';
   return `${SESSION_NAME}=${value}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=${expire ? 0 : SESSION_SECONDS}${secure}`;
@@ -418,33 +470,101 @@ async function handle(request, env) {
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method;
+  if (!env.APP_PASSWORD || !env.DB) return error('Configure APP_PASSWORD e o banco D1.',503);
   if (path === '/api/session' && method === 'GET') {
-    const configured = Boolean(env.APP_PASSWORD && env.DB);
-    return json({ configured, authenticated: configured && await verifySession(request, env), aiAvailable: Boolean(env.AI) });
+    const total = await env.DB.prepare('SELECT COUNT(*) AS count FROM app_users').first();
+    const user = total.count ? await verifySession(request, env) : null;
+    return json({ configured:true, setupRequired:total.count===0, authenticated:Boolean(user),
+      user:user ? {username:user.username,role:user.role} : null, aiAvailable:Boolean(env.AI) });
+  }
+  if (path === '/api/setup-owner' && method === 'POST') {
+    const rate = await isRateLimited(request,env);
+    if (rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
+    const total = await env.DB.prepare('SELECT COUNT(*) AS count FROM app_users').first();
+    if (total.count) return error('A conta principal já foi criada.',409);
+    const body = await getBody(request,5000);
+    if (await sha256(String(body.setup_key || '')) !== await sha256(env.APP_PASSWORD)) {
+      await countFailedLogin(env,rate); return error('Chave administrativa incorreta.',401);
+    }
+    let account;
+    try { account = validateAccount(body); } catch(e) { return error(e.message); }
+    const id = crypto.randomUUID(),salt=newSalt(),digest=await passwordDigest(account.password,salt),stamp=now();
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO app_users (id,username,password_salt,password_hash,role,created_at) VALUES (?,?,?,?,'owner',?)")
+        .bind(id,account.username,salt,digest,stamp),
+      env.DB.prepare("UPDATE categories SET owner_id=? WHERE owner_id='legacy'").bind(id),
+      env.DB.prepare("UPDATE videos SET owner_id=? WHERE owner_id='legacy'").bind(id),
+      env.DB.prepare("UPDATE thought_entries SET owner_id=? WHERE owner_id='legacy'").bind(id),
+      env.DB.prepare("UPDATE situational_tips SET owner_id=? WHERE owner_id='legacy'").bind(id)
+    ]);
+    await clearFailedLogin(env,rate);
+    return json({ok:true,user:{username:account.username,role:'owner'}},201,{'set-cookie':await newUserCookie(env,{id,session_version:1},request)});
   }
   if (path === '/api/login' && method === 'POST') {
-    if (!env.APP_PASSWORD || !env.DB) return error('Configure APP_PASSWORD e o banco D1 no servidor.', 503);
-    const ip = clean(request.headers.get('CF-Connecting-IP') || 'local', 100);
-    const ipHash = await sha256('rate:' + ip + env.APP_PASSWORD);
-    const stamp = Date.now();
-    const prior = await env.DB.prepare('SELECT attempts, window_start FROM login_attempts WHERE ip_hash = ?').bind(ipHash).first();
-    if (prior && Number(prior.window_start) > stamp - 15 * 60 * 1000 && prior.attempts >= 8) return error('Muitas tentativas. Tente novamente em 15 minutos.', 429);
-    const { password } = await getBody(request, 4096);
-    const candidate = await sha256(String(password ?? ''));
-    const expected = await sha256(env.APP_PASSWORD);
-    if (candidate !== expected) {
-      await env.DB.prepare('INSERT INTO login_attempts(ip_hash, attempts, window_start) VALUES (?, 1, ?) ON CONFLICT(ip_hash) DO UPDATE SET attempts = CASE WHEN window_start < ? THEN 1 ELSE attempts + 1 END, window_start = CASE WHEN window_start < ? THEN excluded.window_start ELSE window_start END').bind(ipHash, stamp, stamp - 15 * 60 * 1000, stamp - 15 * 60 * 1000).run();
-      return error('Senha incorreta.', 401);
+    const rate=await isRateLimited(request,env);
+    if(rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
+    const body=await getBody(request,5000);
+    const username=String(body.username||'').trim().toLowerCase();
+    const user=await env.DB.prepare('SELECT id,username,password_salt,password_hash,role,session_version FROM app_users WHERE username=?').bind(username).first();
+    const salt=user?.password_salt || newSalt();
+    const digest=await passwordDigest(String(body.password||''),salt);
+    if(!user || digest!==user.password_hash) {
+      await countFailedLogin(env,rate); return error('Usuário ou senha incorretos.',401);
     }
-    await env.DB.prepare('DELETE FROM login_attempts WHERE ip_hash = ?').bind(ipHash).run();
-    const expiry = String(Date.now() + SESSION_SECONDS * 1000);
-    const token = expiry + '.' + await sessionSignature(env.APP_PASSWORD, expiry);
-    return json({ ok: true }, 200, { 'set-cookie': cookie(token, request) });
+    await clearFailedLogin(env,rate);
+    return json({ok:true,user:{username:user.username,role:user.role}},200,{'set-cookie':await newUserCookie(env,user,request)});
   }
-  if (path === '/api/logout' && method === 'POST') return json({ ok: true }, 200, { 'set-cookie': cookie('', request, true) });
-  if (!env.APP_PASSWORD || !env.DB) return error('Projeto ainda não configurado: defina APP_PASSWORD e D1.', 503);
-  if (!(await verifySession(request, env))) return error('Faça login para acessar sua biblioteca.', 401);
-
+  if (path === '/api/register' && method === 'POST') {
+    const rate=await isRateLimited(request,env);
+    if(rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
+    const body=await getBody(request,6000);
+    let account;
+    try {account=validateAccount(body);}catch(e){return error(e.message);}
+    const invitation=String(body.invitation||'');
+    const hash=await sha256(invitation);
+    const invite=await env.DB.prepare('SELECT token_hash FROM app_invites WHERE token_hash=? AND used_by IS NULL AND expires_at>?').bind(hash,Date.now()).first();
+    if(!invite || invitation.length<20){await countFailedLogin(env,rate);return error('Convite inválido ou expirado.',401);}
+    const id=crypto.randomUUID(),salt=newSalt(),digest=await passwordDigest(account.password,salt),stamp=now();
+    try{
+      await env.DB.batch([
+        env.DB.prepare("INSERT INTO app_users(id,username,password_salt,password_hash,role,invite_hash,created_at) VALUES (?,?,?,?,'member',?,?)")
+          .bind(id,account.username,salt,digest,hash,stamp),
+        env.DB.prepare('UPDATE app_invites SET used_by=? WHERE token_hash=? AND used_by IS NULL').bind(id,hash)
+      ]);
+      await registerMemberCategories(env,id);
+    }catch{return error('Este nome de usuário ou convite já foi utilizado.',409);}
+    await clearFailedLogin(env,rate);
+    return json({ok:true,user:{username:account.username,role:'member'}},201,{'set-cookie':await newUserCookie(env,{id,session_version:1},request)});
+  }
+  if (path === '/api/recover-owner' && method === 'POST') {
+    const rate=await isRateLimited(request,env);
+    if(rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
+    const body=await getBody(request,5000);
+    if(await sha256(String(body.setup_key||''))!==await sha256(env.APP_PASSWORD)){
+      await countFailedLogin(env,rate);return error('Chave administrativa incorreta.',401);
+    }
+    const password=String(body.password||'');
+    if(password.length<12||password.length>128)return error('Use uma senha de 12 a 128 caracteres.');
+    const owner=await env.DB.prepare("SELECT id,username FROM app_users WHERE role='owner'").first();
+    if(!owner)return error('Conta principal ainda não criada.',404);
+    const salt=newSalt(),digest=await passwordDigest(password,salt);
+    await env.DB.prepare('UPDATE app_users SET password_salt=?,password_hash=?,session_version=session_version+1 WHERE id=?')
+      .bind(salt,digest,owner.id).run();
+    const updated=await env.DB.prepare('SELECT id,session_version FROM app_users WHERE id=?').bind(owner.id).first();
+    await clearFailedLogin(env,rate);
+    return json({ok:true,user:{username:owner.username,role:'owner'}},200,{'set-cookie':await newUserCookie(env,updated,request)});
+  }
+  if (path === '/api/logout' && method === 'POST') return json({ok:true},200,{'set-cookie':cookie('',request,true)});
+  const user=await verifySession(request,env);
+  if (!user) return error('Faça login para acessar sua biblioteca.',401);
+  if (path === '/api/me' && method === 'GET') return json({user:{username:user.username,role:user.role}});
+  if (path === '/api/invites' && method === 'POST') {
+    if (user.role!=='owner')return error('Somente a conta principal pode convidar.',403);
+    const code=randomCode(),hash=await sha256(code),stamp=now();
+    await env.DB.prepare('INSERT INTO app_invites(token_hash,created_by,expires_at,created_at) VALUES (?,?,?,?)')
+      .bind(hash,user.id,Date.now()+24*60*60*1000,stamp).run();
+    return json({invitation:code,expiresInHours:24},201);
+  }
   if (path === '/api/categories' && method === 'GET') return json({ categories: await categories(env) });
   if (path === '/api/categories' && method === 'POST') {
     const body = await getBody(request);
