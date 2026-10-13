@@ -589,7 +589,7 @@ test('contas distintas não enxergam nem alteram vídeos, dicas, diário e image
   assert.equal((await req('/api/videos/'+id+'/image')).status,404);
   assert.equal((await req('/api/videos/'+id+'/import-image','POST',{url:'https://i.imgur.com/x.png'})).status,404);
   assert.equal((await req('/api/thoughts/'+thought.data.thought.id)).status,404);
-  assert.equal((await req('/api/thoughts/'+thought.data.thought.id,'DELETE')).status,200); // exclusão escopada não remove a do proprietário
+  assert.equal((await req('/api/thoughts/'+thought.data.thought.id,'DELETE')).status,404);
   assert.equal((await req('/api/tips/'+tip.data.tip.id)).status,404);
   assert.equal((await req('/api/tips/'+tip.data.tip.id,'DELETE')).status,404);
   assert.equal((await req('/api/thoughts')).data.thoughts.length,0);
