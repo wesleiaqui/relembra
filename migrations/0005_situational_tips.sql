@@ -1,0 +1,28 @@
+-- v1.7: notas práticas por situação, separadas do diário e da biblioteca.
+-- Apenas adiciona tabela própria; não altera vídeos, imagens ou reflexões.
+CREATE TABLE IF NOT EXISTS situational_tips (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL CHECK(length(title) BETWEEN 1 AND 180),
+  content TEXT NOT NULL CHECK(length(content) BETWEEN 1 AND 4000),
+  situation TEXT NOT NULL DEFAULT 'Geral' CHECK(length(situation) BETWEEN 1 AND 60),
+  kind TEXT NOT NULL DEFAULT 'dica' CHECK(kind IN ('dica', 'frase')),
+  favorite INTEGER NOT NULL DEFAULT 0 CHECK(favorite IN (0,1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_situational_tips_situation ON situational_tips(situation);
+CREATE INDEX IF NOT EXISTS idx_situational_tips_favorite ON situational_tips(favorite, updated_at DESC);
+-- Dicas iniciais editáveis baseadas no conteúdo fornecido pelo usuário.
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000001','Faça perguntas em vez de atacar a opinião','Perguntar como alguém chegou a uma conclusão abre espaço para compreender e examinar o argumento sem começar um confronto.','Conversar','dica',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000002','Escute antes de preparar sua resposta','Deixe a pessoa completar o raciocínio. Você pode descobrir inconsistências, mas também informações que ainda não conhecia.','Conversar','dica',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000003','Investigue a lógica por trás de uma afirmação','Peça para a pessoa explicar a ligação entre aquilo que sabe e a conclusão que está defendendo.','Conversar','dica',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000004','Mantenha o foco da conversa','Se o assunto mudar repetidamente, retome o argumento original antes de começar outro.','Conversar','dica',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000005','Não assuma a responsabilidade de defender os argumentos do outro','Peça que a pessoa apresente suas próprias razões e evidências, em vez de tentar adivinhar ou completar o que ela pretende dizer.','Conversar','dica',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000006','O que faz você acreditar nisso?','O que faz você acreditar nisso?','Conversar','frase',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000007','Como você chegou a essa conclusão?','Como você chegou a essa conclusão?','Conversar','frase',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000008','Você consegue me dar um exemplo concreto?','Você consegue me dar um exemplo concreto?','Conversar','frase',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000009','Qual é a evidência que sustenta essa afirmação?','Qual é a evidência que sustenta essa afirmação?','Conversar','frase',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000010','Podemos terminar o primeiro assunto?','Espera, esse é outro assunto. Podemos terminar o primeiro?','Conversar','frase',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000011','Podemos esclarecer nossas ideias?','Acho que estamos partindo de ideias diferentes. Podemos esclarecer isso?','Conversar','frase',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000012','Conferência rápida antes de sair','Confira chaves, celular, documentos necessários e o endereço do destino.','Sair de casa','dica',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT OR IGNORE INTO situational_tips (id,title,content,situation,kind,favorite,created_at,updated_at) VALUES ('00000000-0000-4000-8000-000000000013','Veja se precisa levar algo específico','Se vai resolver alguma tarefa, confira horários, comprovantes e o que precisa levar antes de sair.','Sair de casa','dica',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
