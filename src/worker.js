@@ -127,7 +127,7 @@ function validateVideo(input) {
     favorite: input.favorite ? 1 : 0, watched: input.watched ? 1 : 0
   };
 }
-const LIST_COLUMNS = 'v.id, v.url, v.title, v.category, v.summary, v.tags, v.cover_url, v.favorite, v.watched, v.created_at, v.updated_at, v.visual_description, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=v.id) AS has_image, (SELECT COUNT(*) FROM videos related WHERE related.url=v.url) AS related_count';
+const LIST_COLUMNS = 'v.id, v.url, v.title, v.category, v.summary, v.tags, v.cover_url, v.favorite, v.watched, v.created_at, v.updated_at, v.visual_description, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=v.id) AS has_image, (SELECT COUNT(*) FROM videos related WHERE related.url=v.url AND related.owner_id=v.owner_id) AS related_count';
 const FULL_COLUMNS = 'id, url, title, category, summary, transcript, notes, tags, cover_url, favorite, watched, created_at, updated_at, visual_description';
 const THOUGHT_COLUMNS = 'id, situation, emotion, intensity_before, automatic_thought, evidence_for, evidence_against, balanced_thought, next_step, intensity_after, source_url, created_at, updated_at';
 const TIP_COLUMNS = 'id, title, content, situation, kind, favorite, source_url, created_at, updated_at';
@@ -209,10 +209,10 @@ function listingIntent(message) {
     && !/^(?:como|explique|ensine|ensina|passo a passo|por que|porque)\b/.test(normalized);
 }
 
-async function categories(env) { return (await env.DB.prepare('SELECT id, name, emoji, color FROM categories ORDER BY CASE id WHEN \'outros\' THEN 1 ELSE 0 END, name COLLATE NOCASE').all()).results; }
-async function fetchVideos(env, filters) {
-  const where = [];
-  const args = [];
+async function categories(env,userId) { return (await env.DB.prepare('SELECT id, name, emoji, color FROM categories WHERE owner_id=? ORDER BY CASE WHEN name=\'Outros\' THEN 1 ELSE 0 END, name COLLATE NOCASE').bind(userId).all()).results; }
+async function fetchVideos(env, filters, userId) {
+  const where = ['v.owner_id=?'];
+  const args = [userId];
   const q = clean(filters.q, 350);
   const match = q && ftsTerms(q);
   if (match) { where.push('v.id IN (SELECT id FROM videos_fts WHERE videos_fts MATCH ?)'); args.push(match); }
@@ -227,7 +227,7 @@ async function fetchVideos(env, filters) {
   const countRow = await env.DB.prepare(`SELECT COUNT(*) AS count FROM videos v${clause}`).bind(...args).first();
   return { videos: rows, total: countRow?.count ?? 0 };
 }
-async function retrieveMatches(env, message) {
+async function retrieveMatches(env, message, userId) {
   const query = ftsTerms(message);
   if (!query) return [];
   const map = requestedMap(message);
@@ -236,8 +236,8 @@ async function retrieveMatches(env, message) {
     ', EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=v.id) AS has_image' +
     ', bm25(videos_fts, 0, 7, 4, 5, 2, 3, 6, 5) AS rank' +
     ' FROM videos_fts JOIN videos v ON v.id = videos_fts.id' +
-    ' WHERE videos_fts MATCH ? ORDER BY rank LIMIT 150';
-  const candidates = (await env.DB.prepare(sql).bind(query).all()).results || [];
+    ' WHERE videos_fts MATCH ? AND v.owner_id=? ORDER BY rank LIMIT 150';
+  const candidates = (await env.DB.prepare(sql).bind(query,userId).all()).results || [];
   const words = terms(message);
   const weights = [16, 9, 6, 7, 5, 2, 7];
   const scored = [];
@@ -302,8 +302,8 @@ function screenshotLinkFromVideo(video) {
   }
   return '';
 }
-async function answerQuestion(env, message) {
-  const matches = await retrieveMatches(env, message);
+async function answerQuestion(env, message, userId) {
+  const matches = await retrieveMatches(env, message, userId);
   if (!matches.length) {
     const map = requestedMap(message);
     return {
@@ -372,11 +372,11 @@ function encodeImage(bytes) {
 function imageBytes(base64) {
   return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 }
-async function storeImage(env, id, bytes, mediaType) {
+async function storeImage(env, id, bytes, mediaType, userId) {
   if (!IMAGE_CONTENT_TYPES.has(mediaType) || !bytes.length || bytes.length > IMAGE_LIMIT || sniffImage(bytes) !== mediaType) {
     return error('Imagem inválida ou grande demais. Use JPG, PNG ou WebP até 450 KB (o app compacta uploads).', 413);
   }
-  const exists = await env.DB.prepare('SELECT id FROM videos WHERE id=?').bind(id).first();
+  const exists = await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(id,userId).first();
   if (!exists) return error('Vídeo não encontrado.', 404);
   const stamp = now();
   await env.DB.prepare('INSERT INTO video_images (video_id, media_type, data_base64, bytes, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(video_id) DO UPDATE SET media_type=excluded.media_type, data_base64=excluded.data_base64, bytes=excluded.bytes, updated_at=excluded.updated_at')
@@ -440,9 +440,9 @@ async function downloadImage(inputUrl) {
   if (sniffImage(bytes) !== type) throw new Error('Formato de imagem inválido.');
   return { bytes, type };
 }
-async function analyzeImage(env, id) {
+async function analyzeImage(env, id, userId) {
   if (!env.AI) return error('Workers AI não está habilitado.', 503);
-  const video = await env.DB.prepare('SELECT title, category, notes, summary FROM videos WHERE id=?').bind(id).first();
+  const video = await env.DB.prepare('SELECT title, category, notes, summary FROM videos WHERE id=? AND owner_id=?').bind(id,userId).first();
   if (!video) return error('Vídeo não encontrado.', 404);
   const img = await env.DB.prepare('SELECT media_type, data_base64 FROM video_images WHERE video_id=?').bind(id).first();
   if (!img) return error('Anexe uma imagem antes de analisar.', 400);
@@ -462,7 +462,7 @@ async function analyzeImage(env, id) {
   }
   if (!output) return error('O modelo não retornou descrição. Tente novamente mais tarde.', 503);
   const stamp = now();
-  await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=?').bind(output, stamp, id).run();
+  await env.DB.prepare('UPDATE videos SET visual_description=?, updated_at=? WHERE id=? AND owner_id=?').bind(output, stamp, id,userId).run();
   return json({ visual_description: output, model: VISION_MODEL });
 }
 
