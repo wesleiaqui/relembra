@@ -324,3 +324,15 @@ test('migração 0004 é aditiva e mantém vídeos, imagens e busca FTS', () => 
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM thought_entries').get().n,0);
   db.close();
 });
+
+test('chat filtra Mirage e lista fichas salvas', async () => {
+  const { req } = setup();
+  await req('/api/login', 'POST', { password: 'um-passphrase-longo-de-verdade' });
+  const base = { url: 'https://instagram.com/p/CS2/', category: 'cs2', summary: '', transcript: '', notes: '' };
+  const mirage = await req('/api/videos', 'POST', { ...base, title: 'POSIÇÃO JANELA MIRAGE' });
+  await req('/api/videos', 'POST', { ...base, title: 'POSIÇÃO MID INFERNO' });
+  const result = (await req('/api/chat', 'POST', { message: 'Quais posições da Mirage eu salvei?' })).data;
+  assert.equal(result.sources.length, 1);
+  assert.equal(result.sources[0].id, mirage.data.video.id);
+  assert.match(result.answer, /JANELA MIRAGE/);
+});
