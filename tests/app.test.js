@@ -281,7 +281,7 @@ test('registros entram no backup, não vazam ao chat de vídeos e importação n
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   await req('/api/thoughts','POST',reflection);
   const backup = (await req('/api/export')).data;
-  assert.equal(backup.format,'relembra-v1.3');
+  assert.equal(backup.format,'relembra-v1.7');
   assert.equal(backup.thoughts.length,1);
   assert.equal((await req('/api/chat','POST',{message:'conversa estranho reação'})).data.sources.length,0);
   const res = await req('/api/import','POST',backup);
@@ -405,17 +405,18 @@ test('diário redesenhado mantém todos os campos e controles essenciais', () =>
   const html = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../public/styles.css', import.meta.url), 'utf8');
   const js = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  const thoughtHtml = html.split('<section id="thoughtsView"')[1].split('<section id="tipsView"')[0];
   for (const name of ['situation','emotion','intensity_before','automatic_thought','evidence_for','evidence_against','balanced_thought','next_step','intensity_after','source_url']) {
-    assert.equal((html.match(new RegExp('name="' + name + '"','g')) || []).length, 1, 'Campo '+name);
+    assert.equal((thoughtHtml.match(new RegExp('name="' + name + '"','g')) || []).length, 1, 'Campo '+name);
   }
   for (const id of ['thoughtForm','thoughtFormTitle','thoughtSaveBtn','thoughtCancelBtn','thoughtNewBtn','thoughtSuggestion','thoughtSuggestionText','suggestThoughtBtn','useThoughtSuggestion','thoughtList','thoughtCount','thoughtProgressBar','thoughtProgressFill','thoughtProgressText']) {
     // O track tem um ID próprio para a leitura de progresso por acessibilidade.
     const actual = id === 'thoughtProgressBar' ? 'thoughtProgressTrack' : id;
-    assert.equal((html.match(new RegExp('id="' + actual + '"','g')) || []).length, 1, 'Controle '+actual);
+    assert.equal((thoughtHtml.match(new RegExp('id="' + actual + '"','g')) || []).length, 1, 'Controle '+actual);
   }
-  assert.equal((html.match(/class="thought-step"/g)||[]).length, 5);
-  assert.match(html,/name="situation"[^>]*required/);
-  assert.match(html,/name="automatic_thought"[^>]*required/);
+  assert.equal((thoughtHtml.match(/class="thought-step"/g)||[]).length, 5);
+  assert.match(thoughtHtml,/name="situation"[^>]*required/);
+  assert.match(thoughtHtml,/name="automatic_thought"[^>]*required/);
   assert.match(css,/@media\(max-width:680px\)/);
   assert.match(js,/function updateThoughtProgress\(\)/);
   assert.match(js,/thoughtForm'\)\.addEventListener\('input', updateThoughtProgress\)/);
@@ -430,7 +431,7 @@ test('dicas iniciais de conversas e frases ficam disponíveis somente com login'
   assert.equal(data.tips.length, 13);
   assert.equal(data.tips.filter(t => t.situation === 'Conversar').length, 11);
   assert.equal(data.tips.filter(t => t.kind === 'frase').length, 6);
-  assert.ok(data.tips.some(t => t.content.includes('Escute antes')));
+  assert.ok(data.tips.some(t => t.title.includes('Escute antes')));
   assert.ok(data.tips.some(t => t.content.includes('Como você chegou')));
   assert.ok(data.tips.some(t => t.situation === 'Sair de casa'));
 });
