@@ -1,0 +1,11 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env
+.env.*
+.DS_Store
+*.log
+backups-locais/
+.backup-codigo-*/
+relembra-backup-*.sql
+relembra-backup-*.json
