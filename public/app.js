@@ -1,7 +1,23 @@
+import { embeddedMediaLink } from './media-links.js';
 const $ = id => document.getElementById(id);
 const state = { thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
 let toastTimer;
 let listRequest = 0;
+let playerVideoId = null;
+let imagePreviewItems = [];
+let imagePreviewIndex = 0;
+function savedViewMode() { try { const mode = localStorage.getItem('relembra-view-mode'); return ['standard','gallery','focus'].includes(mode) ? mode : 'standard'; } catch { return 'standard'; } }
+function setViewMode(mode) {
+  if (!['standard','gallery','focus'].includes(mode)) return;
+  $('libraryGrid').dataset.mode = mode;
+  document.querySelectorAll('[data-view-mode]').forEach(btn => {
+    const on = btn.dataset.viewMode === mode;
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
+  try { localStorage.setItem('relembra-view-mode', mode); } catch {}
+}
+
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const date = d => { try { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(d)); } catch { return ''; } };
 const catOf = id => state.categories.find(c => c.id === id) || { id: 'outros', name: 'Outros', emoji: '📚', color: '#63738d' };
@@ -31,19 +47,26 @@ function skeletonEmpty(title, description, icon = '📚', action = true) {
 function card(video) {
   const c = catOf(video.category);
   const accent = { apartamento: ['#404a8f', '#1b254e'], culinaria: ['#8c4f45', '#332339'], turismo: ['#287b81', '#16384c'], cs2: ['#475e83', '#1f283e'], outros: ['#465979', '#242b42'] }[video.category] || ['#455785', '#1f2e4b'];
-  const imageUrl = video.has_image ? `/api/videos/${encodeURIComponent(video.id)}/image` : video.cover_url;
-  const image = imageUrl ? `<img src="${esc(imageUrl)}" alt="Capa do vídeo" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
-  const watched = video.watched ? '<span class="badge-watched">✓ Assistido</span>' : `<span class="card-date">${esc(date(video.created_at))}</span>`;
-  return `<article class="video-card" data-video="${esc(video.id)}">
-    <div class="card-art" style="--cover1:${accent[0]};--cover2:${accent[1]}"><span class="card-emoji">${esc(c.emoji)}</span>${image}<span class="card-platform">▣ ${esc(platform(video.url))}</span><button class="card-favorite ${video.favorite ? 'favorited' : ''}" data-fav="${esc(video.id)}" aria-label="Favoritar" title="${video.favorite ? 'Remover favorito' : 'Favoritar'}">${video.favorite ? '♥' : '♡'}</button></div>
-    <div class="card-body"><div class="card-topline"><i></i>${esc(c.name)}${video.related_count > 1 ? `<span class="related-count">${Number(video.related_count)} fichas deste link</span>` : ''}</div><h3 class="card-title" data-edit="${esc(video.id)}" title="Abrir vídeo salvo">${esc(video.title)}</h3><p class="card-summary">${esc(video.summary || video.visual_description || video.tags || 'Adicione um resumo, uma transcrição ou análise visual.')}</p><div class="card-bottom">${watched}<div class="card-actions"><a href="${esc(video.url)}" class="card-action" target="_blank" rel="noopener noreferrer" title="Abrir original">↗ Abrir</a><button class="card-action" data-newinfo="${esc(video.id)}" title="Criar outra ficha para este vídeo">+ Info</button><button class="card-action" data-edit="${esc(video.id)}">Editar</button></div></div></div>
-  </article>`;
+  const imageUrl = video.has_image ? '/api/videos/' + encodeURIComponent(video.id) + '/image' : video.cover_url;
+  const image = imageUrl ? '<img src="' + esc(imageUrl) + '" alt="Imagem salva do vídeo" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.card-art\').classList.add(\'image-failed\');this.remove()">' : '';
+  const zoom = imageUrl ? '<button type="button" class="card-image-hit" data-preview="' + esc(video.id) + '" title="Ampliar imagem" aria-label="Ampliar imagem de ' + esc(video.title) + '"><span aria-hidden="true">⤢ Ampliar</span></button>' : '';
+  const watched = video.watched ? '<span class="badge-watched">✓ Assistido</span>' : '<span class="card-date">' + esc(date(video.created_at)) + '</span>';
+  const embed = embeddedMediaLink(video.url);
+  const play = embed ? '<button type="button" class="card-action card-watch" data-watch="' + esc(video.id) + '" title="Assistir ao vídeo dentro do Relembra">▶ Assistir</button>' : '';
+  const open = '<a href="' + esc(video.url) + '" class="card-action" target="_blank" rel="noopener noreferrer" title="Abrir no site original">↗ Original</a>';
+  return '<article class="video-card" data-video="' + esc(video.id) + '">' +
+    '<div class="card-art" style="--cover1:' + accent[0] + ';--cover2:' + accent[1] + '"><span class="card-emoji">' + esc(c.emoji) + '</span>' + image + zoom +
+    '<span class="card-platform">▣ ' + esc(platform(video.url)) + '</span><button class="card-favorite ' + (video.favorite ? 'favorited' : '') + '" data-fav="' + esc(video.id) + '" aria-label="Favoritar" title="' + (video.favorite ? 'Remover favorito' : 'Favoritar') + '">' + (video.favorite ? '♥' : '♡') + '</button></div>' +
+    '<div class="card-body"><div class="card-topline"><i></i>' + esc(c.name) + (video.related_count > 1 ? '<span class="related-count">' + Number(video.related_count) + ' fichas deste link</span>' : '') + '</div>' +
+    '<h3 class="card-title" data-edit="' + esc(video.id) + '" title="Abrir vídeo salvo">' + esc(video.title) + '</h3><p class="card-summary">' + esc(video.summary || video.visual_description || video.tags || 'Adicione um resumo, transcrição ou análise visual.') + '</p>' +
+    '<div class="card-bottom">' + watched + '<div class="card-actions">' + play + open + '<button class="card-action" data-newinfo="' + esc(video.id) + '" title="Criar outra ficha">+ Info</button><button class="card-action" data-edit="' + esc(video.id) + '">Editar</button></div></div></div></article>';
 }
+
 async function loadStats() {
   try { const { stats } = await api('/api/stats'); $('statTotal').textContent = Number(stats.total || 0).toLocaleString('pt-BR'); $('statFavorites').textContent = stats.favorites || 0; $('statUnwatched').textContent = stats.unwatched || 0; $('statCategories').textContent = stats.categories || 0; } catch (e) { toast(e.message, true); }
 }
 async function loadHome() {
-  try { const res = await api('/api/videos?limit=6'); $('homeGrid').innerHTML = res.videos.length ? res.videos.map(card).join('') : skeletonEmpty('Seu espaço começa aqui', 'Salve seu primeiro vídeo e crie uma biblioteca de ideias para consultar quando quiser.'); await loadStats(); }
+  try { const res = await api('/api/videos?limit=6'); state.homeVideos = res.videos; $('homeGrid').innerHTML = res.videos.length ? res.videos.map(card).join('') : skeletonEmpty('Seu espaço começa aqui', 'Salve seu primeiro vídeo e crie uma biblioteca de ideias para consultar quando quiser.'); await loadStats(); }
   catch (e) { $('homeGrid').innerHTML = skeletonEmpty('Não foi possível carregar', e.message, '⚠️', false); }
 }
 function listFilters() { return { q: state.search, category: state.category, favorite: state.view === 'favorites', unwatched: state.view === 'unwatched', sort: state.sort }; }
@@ -359,6 +382,73 @@ function chatSourceCard(source, index) {
   card.append(preview, body);
   return card;
 }
+function closeMediaPlayer() {
+  $('mediaPlayerFrame').replaceChildren(); // desmonta iframe e interrompe áudio
+  $('mediaPlayerModal').hidden = true;
+  playerVideoId = null;
+}
+function openMediaPlayer(id) {
+  const video = [...state.videos, ...(state.homeVideos || [])].find(v => v.id === id);
+  if (!video) { toast('Não encontrei a ficha. Atualize a biblioteca.', true); return; }
+  const embed = embeddedMediaLink(video.url);
+  if (!embed) { toast('Este site não oferece um player incorporado aqui. Use Abrir original.', true); return; }
+  closeImageViewer();
+  playerVideoId = id;
+  $('mediaPlayerTitle').textContent = video.title;
+  $('mediaPlayerProvider').textContent = embed.provider + ' · Reprodução incorporada, sem baixar';
+  $('mediaPlayerOriginal').href = embed.originalUrl;
+  const frame = document.createElement('iframe');
+  frame.src = embed.embedUrl;
+  frame.title = 'Vídeo do ' + embed.provider + ': ' + video.title;
+  frame.loading = 'eager';
+  frame.referrerPolicy = 'strict-origin-when-cross-origin';
+  frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+  frame.setAttribute('allowfullscreen','');
+  frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms');
+  $('mediaPlayerFrame').className = 'media-player-frame media-frame-' + embed.format;
+  $('mediaPlayerFrame').replaceChildren(frame);
+  $('mediaPlayerModal').hidden = false;
+  $('mediaPlayerClose').focus();
+}
+function collectPreviewItems(id) {
+  const selector = ['library','favorites','unwatched'].includes(state.view) ? '#libraryGrid' : '#homeGrid';
+  const items = [...document.querySelectorAll(selector + ' .video-card')]
+    .filter(card => !card.querySelector('.card-art.image-failed'))
+    .map(card => ({
+      id: card.dataset.video,
+      url: card.querySelector('.card-art img')?.getAttribute('src') || '',
+      title: card.querySelector('.card-title')?.textContent || 'Imagem salva'
+    })).filter(item => item.url);
+  const idx = items.findIndex(item => item.id === id);
+  return { items, index: idx };
+}
+function closeImageViewer() {
+  $('imageViewerModal').hidden = true;
+  $('imageViewerImage').removeAttribute('src');
+  imagePreviewItems = [];
+  imagePreviewIndex = 0;
+}
+function showImagePreview(index) {
+  if (!imagePreviewItems.length) return;
+  imagePreviewIndex = (index + imagePreviewItems.length) % imagePreviewItems.length;
+  const item = imagePreviewItems[imagePreviewIndex];
+  $('imageViewerTitle').textContent = item.title;
+  $('imageViewerImage').alt = 'Imagem ampliada: ' + item.title;
+  $('imageViewerImage').src = item.url;
+  $('imageViewerCount').textContent = (imagePreviewIndex + 1) + ' de ' + imagePreviewItems.length;
+  $('imageViewerPrevious').disabled = imagePreviewItems.length < 2;
+  $('imageViewerNext').disabled = imagePreviewItems.length < 2;
+}
+function openImageViewer(id) {
+  const {items, index} = collectPreviewItems(id);
+  if (index < 0) { toast('Imagem indisponível. Abra a ficha para conferir o anexo.', true); return; }
+  closeMediaPlayer();
+  imagePreviewItems = items;
+  $('imageViewerModal').hidden = false;
+  showImagePreview(index);
+  $('imageViewerClose').focus();
+}
+
 function appendMessage(kind, content, sources = [], aiUnavailable = false) {
   $('chatMessages').querySelector('.chat-welcome')?.remove();
   const block = document.createElement('div');
@@ -690,6 +780,17 @@ async function createCategory(e) {
   finally { button.disabled = false; }
 }
 function bindEvents() {
+  setViewMode(savedViewMode());
+  document.querySelectorAll('[data-view-mode]').forEach(btn => btn.addEventListener('click', () => setViewMode(btn.dataset.viewMode)));
+  $('mediaPlayerClose').addEventListener('click', closeMediaPlayer);
+  $('mediaPlayerModal').addEventListener('click', e => { if (e.target === $('mediaPlayerModal')) closeMediaPlayer(); });
+  $('mediaPlayerEdit').addEventListener('click', () => { const id = playerVideoId; closeMediaPlayer(); if(id) editVideo(id); });
+  $('imageViewerClose').addEventListener('click', closeImageViewer);
+  $('imageViewerModal').addEventListener('click', e => { if (e.target === $('imageViewerModal')) closeImageViewer(); });
+  $('imageViewerPrevious').addEventListener('click', () => showImagePreview(imagePreviewIndex - 1));
+  $('imageViewerNext').addEventListener('click', () => showImagePreview(imagePreviewIndex + 1));
+  $('imageViewerEdit').addEventListener('click', () => { const item = imagePreviewItems[imagePreviewIndex]; closeImageViewer(); if(item) editVideo(item.id); });
+  $('imageViewerImage').addEventListener('error', () => { if (!$('imageViewerModal').hidden) toast('Não foi possível carregar a imagem. Confira o anexo no editor.', true); });
   $('todayText').textContent = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }).format(new Date());
   $('addVideoBtn').addEventListener('click', () => openEditor()); $('newFromLibrary').addEventListener('click', () => openEditor());
   $('newInfoBtn').addEventListener('click', () => { if (state.editId) newInformation(state.editId); });
@@ -719,12 +820,15 @@ function bindEvents() {
   $('logoutBtn').addEventListener('click', async () => { try { await api('/api/logout', { method: 'POST' }); $('loginOverlay').hidden = false; $('passwordInput').value = ''; toast('Você saiu da biblioteca.'); } catch (e) { toast(e.message, true); } });
   $('menuBtn').addEventListener('click', () => { $('sidebar').classList.add('open'); $('sidebarBackdrop').hidden = false; });
   $('sidebarBackdrop').addEventListener('click', () => { $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeTipEditor(); closeEditor(); $('categoryModal').hidden = true; $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMediaPlayer(); closeImageViewer(); closeTipEditor(); closeEditor(); $('categoryModal').hidden = true; $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; } });
+  document.addEventListener('keydown', e => { if (!$('imageViewerModal').hidden && e.key === 'ArrowLeft') showImagePreview(imagePreviewIndex - 1); if (!$('imageViewerModal').hidden && e.key === 'ArrowRight') showImagePreview(imagePreviewIndex + 1); });
   document.addEventListener('click', e => {
     const a = e.target.closest('[data-view]'); if (a) { navigate(a.dataset.view); return; }
     const cat = e.target.closest('[data-cat]'); if (cat) { navigate('library', cat.dataset.cat); return; }
     const go = e.target.closest('[data-go]'); if (go) { navigate(go.dataset.go); return; }
     if (e.target.closest('[data-add]')) { openEditor(); return; }
+    const view = e.target.closest('[data-preview]'); if (view) { openImageViewer(view.dataset.preview); return; }
+    const watch = e.target.closest('[data-watch]'); if (watch) { openMediaPlayer(watch.dataset.watch); return; }
     const favorite = e.target.closest('[data-fav]'); if (favorite) { toggleFavorite(favorite.dataset.fav); return; }
     const edit = e.target.closest('[data-edit]'); if (edit) { editVideo(edit.dataset.edit); return; }
     const moreInfo = e.target.closest('[data-newinfo]'); if (moreInfo) { newInformation(moreInfo.dataset.newinfo); return; }
