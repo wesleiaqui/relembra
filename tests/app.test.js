@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import worker from '../src/worker.js';
 import { embeddedMediaLink } from '../public/media-links.js';
+import { MOTIVATION_MOMENTS, selectMotivationTips } from '../public/motivation.js';
 
 function makeDB() {
   const db = new DatabaseSync(':memory:');
@@ -14,6 +15,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0005_situational_tips.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0006_private_accounts.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0007_focus_productivity_tips.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0008_motivation_tips.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -443,7 +445,7 @@ test('dicas iniciais de conversas e frases ficam disponíveis somente com login'
   assert.equal((await req('/api/tips')).status, 401);
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   const data = (await req('/api/tips')).data;
-  assert.equal(data.tips.length, 20);
+  assert.equal(data.tips.length, 24);
   assert.equal(data.tips.filter(t => t.situation === 'Conversar').length, 11);
   assert.equal(data.tips.filter(t => t.kind === 'frase').length, 6);
   assert.ok(data.tips.some(t => t.title.includes('Escute antes')));
@@ -485,7 +487,7 @@ test('backup de dicas restaura registros sem duplicação e não mistura com o c
   assert.equal((await req('/api/tips/'+entry.data.tip.id)).status,200);
   const again = (await req('/api/import','POST',backup)).data;
   assert.equal(again.tipsImported,0);
-  assert.ok(again.tipsSkipped>=20);
+  assert.ok(again.tipsSkipped>=24);
 });
 
 test('migração de dicas é aditiva e não afeta os dados de vídeos e diário', () => {
@@ -733,4 +735,93 @@ test('atalho de foco aparece nas opções de consulta e de criação de dica', (
   assert.equal((html.match(/<option value="Foco e produtividade"/g)||[]).length,1);
   assert.match(app,/const standardTipContexts = .*'Foco e produtividade'/);
   assert.match(app,/'Foco e produtividade':'Foco e produtividade'/);
+});
+
+
+test('botão de motivação escolhe somente lembretes pessoais relacionados ao momento', () => {
+  const tips=[
+    {title:'Estou procrastinando',content:'Comece por 10 minutos.',situation:'Motivação e mentalidade'},
+    {title:'Estou desanimado',content:'Um dia difícil não define seu progresso.',situation:'Motivação e mentalidade'},
+    {title:'Estou inseguro',content:'Comece pelo que está ao alcance.',situation:'Motivação e mentalidade'},
+    {title:'Preciso me concentrar',content:'Afaste as distrações.',situation:'Motivação e mentalidade'},
+    {title:'Dica sobre imóvel',content:'Consultar financiamento para comprar imóvel.',situation:'Comprar imóvel'},
+    {title:'Termine uma tarefa',content:'Concluir algo pequeno ajuda a começar.',situation:'Foco e produtividade'}
+  ];
+  for(const [moment,title] of [
+    ['procrastinar','Estou procrastinando'],['desanimado','Estou desanimado'],
+    ['inseguro','Estou inseguro'],['foco','Preciso me concentrar']
+  ]) {
+    const found=selectMotivationTips(tips,moment,3);
+    assert.ok(found.length > 0);
+    assert.equal(found[0].title,title);
+    assert.ok(!found.some(t=>t.situation==='Comprar imóvel'));
+    assert.ok(found.every(t=>tips.includes(t)));
+  }
+  assert.deepEqual(selectMotivationTips(tips,'inexistente'),[]);
+  assert.deepEqual(selectMotivationTips([{title:'Outro',content:'x',situation:'Comprar imóvel'}],'foco'),[]);
+  assert.deepEqual(Object.keys(MOTIVATION_MOMENTS).sort(),['desanimado','foco','inseguro','procrastinar']);
+});
+
+test('quatro dicas de motivação entram somente na conta principal e são privadas para convidados', async () => {
+  const {req,env}=setup();
+  assert.equal((await env.DB.prepare("SELECT COUNT(*) AS n FROM situational_tips WHERE owner_id='legacy' AND situation='Motivação e mentalidade'").first()).n,4);
+  const owner=await req('/api/setup-owner','POST',{
+    setup_key:'um-passphrase-longo-de-verdade',username:'principal',password:'senha-owner-forte-123'
+  });
+  assert.equal(owner.status,201);
+  let tips=(await req('/api/tips')).data.tips;
+  assert.equal(tips.filter(t=>t.situation==='Motivação e mentalidade').length,4);
+  const invite=(await req('/api/invites','POST',{})).data.invitation;
+  const guest=await req('/api/register','POST',{invitation:invite,username:'convidado',password:'senha-convidado-123'});
+  assert.equal(guest.status,201);
+  tips=(await req('/api/tips')).data.tips;
+  assert.equal(tips.filter(t=>t.situation==='Motivação e mentalidade').length,0);
+  assert.deepEqual(selectMotivationTips(tips,'inseguro'),[]);
+  assert.equal((await req('/api/export')).data.tips.some(t=>t.situation==='Motivação e mentalidade'),false);
+  await req('/api/login','POST',{username:'principal',password:'senha-owner-forte-123'});
+  tips=(await req('/api/tips')).data.tips;
+  assert.equal(tips.filter(t=>t.situation==='Motivação e mentalidade').length,4);
+});
+
+test('migração motivacional protege registros preexistentes e pode ser reexecutada', () => {
+  const db=new DatabaseSync(':memory:');
+  for(const name of [
+    '0001_initial.sql','0002_visual.sql','0003_multiple_records.sql',
+    '0004_thought_journal.sql','0005_situational_tips.sql','0006_private_accounts.sql','0007_focus_productivity_tips.sql'
+  ]) db.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
+  const now=new Date().toISOString();
+  const owner='11111111-1111-4111-8111-111111111111',guest='22222222-2222-4222-8222-222222222222';
+  const insert=db.prepare('INSERT INTO app_users(id,username,password_salt,password_hash,role,created_at) VALUES (?,?,?,?,?,?)');
+  insert.run(owner,'principal','s','h','owner',now);
+  insert.run(guest,'convidado','s','h','member',now);
+  db.prepare('INSERT INTO situational_tips (id,title,content,situation,kind,created_at,updated_at,owner_id) VALUES (?,?,?,?,?,?,?,?)')
+    .run('ja-salvo','Estou procrastinando','Meu texto personalizado','Motivação e mentalidade','dica',now,now,owner);
+  db.prepare('INSERT INTO situational_tips (id,title,content,situation,kind,created_at,updated_at,owner_id) VALUES (?,?,?,?,?,?,?,?)')
+    .run('convidado-salvo','Estou desanimado','Texto do convidado','Motivação e mentalidade','dica',now,now,guest);
+  const migration=readFileSync(new URL('../migrations/0008_motivation_tips.sql',import.meta.url),'utf8');
+  db.exec(migration);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM situational_tips WHERE owner_id=? AND situation='Motivação e mentalidade'").get(owner).n,4);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM situational_tips WHERE owner_id=? AND situation='Motivação e mentalidade'").get(guest).n,1);
+  assert.equal(db.prepare("SELECT content FROM situational_tips WHERE id='ja-salvo'").get().content,'Meu texto personalizado');
+  assert.equal(db.prepare("SELECT content FROM situational_tips WHERE id='convidado-salvo'").get().content,'Texto do convidado');
+  db.exec(migration);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM situational_tips WHERE owner_id=? AND situation='Motivação e mentalidade'").get(owner).n,4);
+  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
+});
+
+test('interface motivação oferece contexto, dica editável e limpa dados no logout', () => {
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  const css=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
+  assert.equal((html.match(/data-tip-context="Motivação e mentalidade"/g)||[]).length,1);
+  assert.equal((html.match(/<option value="Motivação e mentalidade"/g)||[]).length,1);
+  assert.equal((html.match(/data-open-motivation/g)||[]).length,2);
+  for(const id of ['motivationModal','motivationTitle','motivationCloseBtn','motivationResult','motivationSeeAll','motivationAddTip'])
+    assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
+  for(const context of Object.keys(MOTIVATION_MOMENTS))
+    assert.equal((html.match(new RegExp('data-motivation-moment="'+context+'"','g'))||[]).length,1);
+  assert.match(app,/async function openMotivation\(\)/);
+  assert.match(app,/function renderMotivation\(\)/);
+  assert.match(app,/function wipePreviousAccount\(\) \{\s*closeMotivation\(\)/);
+  assert.match(css,/#motivationModal\[hidden\]\{display:none!important;\}/);
 });
