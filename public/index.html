@@ -61,24 +61,85 @@
             <form class="chat-compose" id="chatForm"><input id="chatInput" placeholder="Ex.: aquele vídeo de molho branco com queijo..." required minlength="3" maxlength="500" autocomplete="off"><button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Enviar pergunta">➤</button></form><div class="chat-footnote">Respostas baseadas apenas nos vídeos salvos. Confira as fontes.</div>
           </div>
         </section>
-        <section id="thoughtsView" class="view" hidden>
-          <div class="page-head"><div><div class="eyebrow">UM ESPAÇO PARA SE OBSERVAR</div><h1>Diário de pensamentos <span class="gradient-star">✧</span></h1><p>Registre um pensamento automático, examine-o com calma e escolha uma perspectiva mais equilibrada.</p></div></div>
-          <div class="thought-intro"><strong>Um exercício em cinco movimentos</strong><p>1. Observe a situação · 2. Nomeie sentimento e pensamento · 3. Separe fatos de suposições · 4. Encontre uma âncora realista · 5. Escolha um pequeno próximo passo.</p><small>Este espaço é para reflexão pessoal, não para diagnósticos. Você não precisa se sentir melhor imediatamente.</small></div>
+
+        <section id="thoughtsView" class="view thoughts-view" hidden>
+          <div class="thoughts-heading">
+            <div class="thoughts-heading-copy">
+              <div class="eyebrow">✦ SEU ESPAÇO DE REFLEXÃO</div>
+              <h1>Diário de <span>pensamentos.</span></h1>
+              <p>Coloque no papel o que passou pela sua cabeça. Observe com curiosidade, sem se cobrar uma resposta perfeita.</p>
+            </div>
+            <div class="thoughts-heading-note" aria-label="Lembrete gentil"><span aria-hidden="true">✧</span>Você pode escrever no seu tempo.<small>Não é preciso completar tudo de uma vez.</small></div>
+          </div>
+          <div class="thought-intro" aria-label="Como funciona o exercício">
+            <div class="thought-intro-top"><div><span class="thought-intro-tag">UM CAMINHO POSSÍVEL</span><strong>5 passos para olhar uma situação de outro jeito</strong></div><span class="thought-intro-spark" aria-hidden="true">✳</span></div>
+            <div class="thought-path" aria-hidden="true">
+              <div><span>01</span><b>Observar</b></div><i></i>
+              <div><span>02</span><b>Nomear</b></div><i></i>
+              <div><span>03</span><b>Questionar</b></div><i></i>
+              <div><span>04</span><b>Reformular</b></div><i></i>
+              <div><span>05</span><b>Seguir</b></div>
+            </div>
+            <p>Não é uma avaliação ou diagnóstico. Preencha apenas o que fizer sentido agora.</p>
+          </div>
           <div class="thought-layout">
-            <article class="thought-panel"><div class="thought-panel-head"><div><span class="eyebrow">REGISTRO GUIADO</span><h2 id="thoughtFormTitle">Registrar um pensamento</h2></div><button type="button" class="button button-outline" id="thoughtNewBtn">+ Novo</button></div>
+            <article class="thought-panel thought-editor">
+              <div class="thought-panel-head">
+                <div><span class="eyebrow">✍ NOVA REFLEXÃO</span><h2 id="thoughtFormTitle">Registrar um pensamento</h2><p>Comece pela situação. Os outros campos ajudam a explorar outras perspectivas.</p></div>
+                <button type="button" class="button button-outline" id="thoughtNewBtn">＋ Novo</button>
+              </div>
+              <div class="thought-progress" aria-label="Progresso dos campos essenciais">
+                <div class="thought-progress-top"><span>Campos essenciais</span><strong id="thoughtProgressText">0 de 2 preenchidos</strong></div>
+                <div class="thought-progress-track" id="thoughtProgressTrack" role="progressbar" aria-label="Campos essenciais preenchidos" aria-valuemin="0" aria-valuemax="2" aria-valuenow="0"><span id="thoughtProgressFill"></span></div>
+              </div>
               <form id="thoughtForm" class="thought-form">
-                <label>1. O que aconteceu? <span class="required">*</span><textarea name="situation" rows="3" maxlength="1500" required placeholder="Ex.: Durante uma conversa, fiquei preocupado com a reação da outra pessoa."></textarea></label>
-                <div class="thought-two"><label>2. O que senti?<input name="emotion" maxlength="300" placeholder="Ex.: insegurança, vergonha, medo"></label><label>Intensidade antes (0–10)<input name="intensity_before" type="number" min="0" max="10" step="1" value="5" required></label></div>
-                <label>3. Qual pensamento automático apareceu? <span class="required">*</span><textarea name="automatic_thought" rows="3" maxlength="2000" required placeholder="Ex.: Vão me achar estranho e não vão querer conversar comigo."></textarea></label>
-                <div class="thought-two"><label>O que parece apoiar essa ideia?<textarea name="evidence_for" rows="3" maxlength="2000" placeholder="O que observei, sem interpretar?"></textarea></label><label>Que fatos apontam para outra possibilidade?<textarea name="evidence_against" rows="3" maxlength="2000" placeholder="Que outras explicações podem existir?"></textarea></label></div>
-                <label>4. Uma âncora mais realista<textarea name="balanced_thought" rows="3" maxlength="2500" placeholder="Ex.: Não sei como a pessoa me percebeu. Posso me expressar sem precisar acertar tudo."></textarea></label>
-                <div class="thought-ai"><button type="button" class="button button-outline" id="suggestThoughtBtn">✧ Sugerir âncora com IA</button><small>A situação e o pensamento serão enviados ao Workers AI somente se você clicar. Revise a sugestão antes de usá-la.</small><div id="thoughtSuggestion" class="thought-suggestion" hidden><p id="thoughtSuggestionText"></p><button id="useThoughtSuggestion" type="button" class="button button-outline">Usar essa sugestão</button></div></div>
-                <div class="thought-two"><label>5. Um pequeno próximo passo<textarea name="next_step" rows="2" maxlength="1200" placeholder="Ex.: Tentar ouvir e compartilhar uma opinião sem me cobrar perfeição."></textarea></label><label>Intensidade depois (0–10, opcional)<input name="intensity_after" type="number" min="0" max="10" step="1" placeholder="Opcional"></label></div>
-                <label>Vídeo de origem (opcional)<input name="source_url" type="url" maxlength="2048" placeholder="https://www.instagram.com/..."></label>
-                <div class="thought-controls"><button type="submit" class="button button-primary" id="thoughtSaveBtn">Salvar reflexão</button><button type="button" class="button button-outline" id="thoughtCancelBtn" hidden>Cancelar edição</button></div>
+                <section class="thought-step">
+                  <div class="thought-step-heading"><span class="thought-step-number">01</span><div><h3>O que aconteceu?</h3><p>Descreva a situação como se estivesse contando a alguém.</p></div></div>
+                  <label><span class="thought-field-label">A situação <span class="required" aria-label="obrigatório">*</span></span><textarea name="situation" rows="3" maxlength="1500" required placeholder="Ex.: Durante uma conversa, fiquei preocupado com a reação de alguém."></textarea></label>
+                </section>
+                <section class="thought-step">
+                  <div class="thought-step-heading"><span class="thought-step-number">02</span><div><h3>O que você sentiu e pensou?</h3><p>Nomeie a emoção e a ideia que surgiu automaticamente.</p></div></div>
+                  <div class="thought-two thought-emotion-row">
+                    <label><span class="thought-field-label">Emoção ou sentimento</span><input name="emotion" maxlength="300" placeholder="Ex.: insegurança, vergonha, medo"></label>
+                    <label><span class="thought-field-label">Intensidade antes <small>0–10</small></span><input name="intensity_before" type="number" min="0" max="10" step="1" value="5" required aria-label="Intensidade antes de zero a dez"></label>
+                  </div>
+                  <label><span class="thought-field-label">Qual pensamento automático apareceu? <span class="required" aria-label="obrigatório">*</span></span><textarea name="automatic_thought" rows="3" maxlength="2000" required placeholder="Ex.: Vão me achar estranho e não vão querer conversar comigo."></textarea></label>
+                </section>
+                <section class="thought-step">
+                  <div class="thought-step-heading"><span class="thought-step-number">03</span><div><h3>Separe fatos de interpretações</h3><p>Não se trata de provar que você está certo ou errado, só de ampliar a visão.</p></div></div>
+                  <div class="thought-two thought-evidence">
+                    <label><span class="thought-field-label">O que apoia essa ideia?</span><textarea name="evidence_for" rows="3" maxlength="2000" placeholder="O que realmente aconteceu ou foi dito?"></textarea></label>
+                    <label><span class="thought-field-label">O que aponta para outra possibilidade?</span><textarea name="evidence_against" rows="3" maxlength="2000" placeholder="Que outras explicações podem existir?"></textarea></label>
+                  </div>
+                </section>
+                <section class="thought-step">
+                  <div class="thought-step-heading"><span class="thought-step-number">04</span><div><h3>Encontre uma perspectiva mais realista</h3><p>Busque uma frase justa com você, sem positividade forçada.</p></div></div>
+                  <label><span class="thought-field-label">Uma âncora para lembrar</span><textarea name="balanced_thought" rows="3" maxlength="2500" placeholder="Ex.: Não sei como a pessoa me percebeu. Posso ser eu mesmo sem acertar tudo."></textarea></label>
+                  <div class="thought-ai">
+                    <div class="thought-ai-copy"><span class="thought-ai-mark" aria-hidden="true">✧</span><div><strong>Precisa de outro ponto de vista?</strong><small>A IA pode sugerir uma frase alternativa. Nada é enviado sem você pedir.</small></div></div>
+                    <button type="button" class="button button-outline" id="suggestThoughtBtn">✧ Sugerir uma âncora com IA</button>
+                    <div id="thoughtSuggestion" class="thought-suggestion" hidden><p id="thoughtSuggestionText"></p><button id="useThoughtSuggestion" type="button" class="button button-outline">Usar essa sugestão</button></div>
+                  </div>
+                </section>
+                <section class="thought-step">
+                  <div class="thought-step-heading"><span class="thought-step-number">05</span><div><h3>Escolha o próximo passo</h3><p>Pode ser uma ação pequena, ou apenas voltar a esta reflexão outro dia.</p></div></div>
+                  <div class="thought-two">
+                    <label><span class="thought-field-label">Uma ação possível</span><textarea name="next_step" rows="2" maxlength="1200" placeholder="Ex.: Conversar sem me cobrar perfeição."></textarea></label>
+                    <label><span class="thought-field-label">Intensidade depois <small>opcional · 0–10</small></span><input name="intensity_after" type="number" min="0" max="10" step="1" placeholder="Se quiser, avalie novamente"></label>
+                  </div>
+                  <label class="thought-source-label"><span class="thought-field-label">Vídeo que inspirou esta reflexão <small>opcional</small></span><input name="source_url" type="url" maxlength="2048" placeholder="https://www.instagram.com/..."></label>
+                </section>
+                <div class="thought-form-bottom">
+                  <div class="thought-save-explain"><span aria-hidden="true">⌁</span><small>Seu registro fica privado na sua biblioteca. Você pode voltar e editar depois.</small></div>
+                  <div class="thought-controls"><button type="submit" class="button button-primary" id="thoughtSaveBtn">Salvar reflexão →</button><button type="button" class="button button-outline" id="thoughtCancelBtn" hidden>Cancelar edição</button></div>
+                </div>
               </form>
             </article>
-            <article class="thought-panel thought-history"><div class="thought-panel-head"><div><span class="eyebrow">PARA RELEMBRAR</span><h2>Meus registros</h2></div><span class="thought-count" id="thoughtCount">0</span></div><div id="thoughtList"><div class="thought-empty">Seu diário ainda está em branco. Comece pelo que está sentindo agora.</div></div><p class="thought-privacy">🔒 As reflexões ficam no D1, protegidas pelo login do aplicativo. O backup JSON também incluirá esses registros: guarde-o com cuidado.</p></article>
+            <article class="thought-panel thought-history">
+              <div class="thought-panel-head"><div><span class="eyebrow">SEU CAMINHO</span><h2>Minhas reflexões</h2><p>Um lugar para revisitar o que você registrou.</p></div><span class="thought-count" id="thoughtCount">0</span></div>
+              <div id="thoughtList" aria-live="polite"><div class="thought-empty"><span class="thought-empty-icon" aria-hidden="true">✍</span><strong>Sua primeira página começa aqui.</strong><p>Quando você salvar uma reflexão, ela aparecerá neste espaço.</p></div></div>
+              <p class="thought-privacy"><span aria-hidden="true">♧</span> Seus registros são privados e protegidos pelo login do Relembra. Os backups JSON também incluem essas informações.</p>
+            </article>
           </div>
         </section>
         <section id="backupView" class="view" hidden>

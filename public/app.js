@@ -403,20 +403,38 @@ async function submitChat(message) {
   finally { $('sendChatBtn').disabled = false; $('chatInput').focus(); }
 }
 // Diário de pensamentos. Sem inferir emoções nem avaliar os registros automaticamente.
+function updateThoughtProgress() {
+  const form = $('thoughtForm');
+  const required = ['situation', 'automatic_thought'];
+  const completed = required.filter(name => form.elements.namedItem(name).value.trim().length > 0).length;
+  $('thoughtProgressText').textContent = completed + ' de 2 preenchidos';
+  $('thoughtProgressFill').style.width = (completed / required.length * 100) + '%';
+  $('thoughtProgressTrack').setAttribute('aria-valuenow', String(completed));
+}
 async function loadThoughts() {
   try {
     const { thoughts } = await api('/api/thoughts?limit=250');
     state.thoughts = thoughts;
     $('thoughtCount').textContent = String(thoughts.length);
-    $('thoughtList').innerHTML = thoughts.length ? thoughts.map(t => `
-      <div class="thought-entry">
-        <div class="thought-entry-date">${esc(date(t.created_at))}${t.emotion ? ' · ' + esc(t.emotion) : ''}</div>
-        <strong>${esc(t.situation)}</strong>
-        <p>"${esc(t.automatic_thought)}"</p>
-        ${t.balanced_thought ? `<div class="thought-anchor">✧ ${esc(t.balanced_thought)}</div>` : ''}
-        <div class="thought-entry-foot"><span>Antes: ${esc(t.intensity_before)}/10${t.intensity_after !== null ? ` · Depois: ${esc(t.intensity_after)}/10` : ''}</span>
-        <div><button type="button" data-thought-edit="${esc(t.id)}" aria-label="Editar reflexão">Editar</button><button type="button" data-thought-delete="${esc(t.id)}" aria-label="Excluir reflexão">Excluir</button></div></div>
-      </div>`).join('') : '<div class="thought-empty">Seu diário ainda está em branco. Comece pelo que está sentindo agora.</div>';
+    $('thoughtList').innerHTML = thoughts.length ? thoughts.map(t => {
+      const feeling = t.emotion ? '<span class="thought-entry-emotion">' + esc(t.emotion) + '</span>' : '';
+      const after = t.intensity_after === null || t.intensity_after === undefined ? '' :
+        '<span>Depois: ' + esc(t.intensity_after) + '/10</span>';
+      return `
+        <div class="thought-entry">
+          <div class="thought-entry-date">${esc(date(t.created_at))}${feeling}</div>
+          <strong>${esc(t.situation)}</strong>
+          <p>“${esc(t.automatic_thought)}”</p>
+          ${t.balanced_thought ? `<div class="thought-anchor">✧ ${esc(t.balanced_thought)}</div>` : ''}
+          <div class="thought-entry-foot">
+            <div class="thought-entry-intensity"><span>Antes: ${esc(t.intensity_before)}/10</span>${after}</div>
+            <div>
+              <button type="button" data-thought-edit="${esc(t.id)}" aria-label="Editar reflexão">Editar</button>
+              <button type="button" data-thought-delete="${esc(t.id)}" aria-label="Excluir reflexão">Excluir</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('') : '<div class="thought-empty"><span class="thought-empty-icon" aria-hidden="true">✍</span><strong>Sua primeira página começa aqui.</strong><p>Quando você salvar uma reflexão, ela aparecerá neste espaço.</p></div>';
   } catch(e) { toast('Não consegui carregar o diário: ' + e.message, true); }
 }
 function resetThoughtForm() {
@@ -426,7 +444,8 @@ function resetThoughtForm() {
   state.thoughtSuggestion = '';
   $('thoughtSuggestion').hidden = true;
   $('thoughtFormTitle').textContent = 'Registrar um pensamento';
-  $('thoughtSaveBtn').textContent = 'Salvar reflexão';
+  $('thoughtSaveBtn').textContent = 'Salvar reflexão →';
+  updateThoughtProgress();
   $('thoughtCancelBtn').hidden = true;
 }
 async function editThought(id) {
@@ -440,6 +459,7 @@ async function editThought(id) {
     $('thoughtFormTitle').textContent = 'Editar reflexão';
     $('thoughtSaveBtn').textContent = 'Salvar alterações';
     $('thoughtCancelBtn').hidden = false;
+    updateThoughtProgress();
     $('thoughtForm').scrollIntoView({behavior:'smooth',block:'start'});
   } catch (e) { toast(e.message, true); }
 }
@@ -585,6 +605,7 @@ function bindEvents() {
   $('loadMore').addEventListener('click', () => loadList(true));
   $('chatForm').addEventListener('submit', e => { e.preventDefault(); submitChat($('chatInput').value); });
   $('thoughtForm').addEventListener('submit', saveThought);
+  $('thoughtForm').addEventListener('input', updateThoughtProgress);
   $('thoughtNewBtn').addEventListener('click', resetThoughtForm);
   $('thoughtCancelBtn').addEventListener('click', resetThoughtForm);
   $('suggestThoughtBtn').addEventListener('click', suggestThought);
