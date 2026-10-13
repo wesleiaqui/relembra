@@ -1,3 +1,4 @@
+import { handleFinance } from './finance.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
@@ -561,6 +562,7 @@ async function handle(request, env) {
   const user=await verifySession(request,env);
   if (!user) return error('Faça login para acessar sua biblioteca.',401);
   if (path === '/api/me' && method === 'GET') return json({user:{username:user.username,role:user.role}});
+  if (path === '/api/finance' || path.startsWith('/api/finance/')) return handleFinance(request,env,user);
   if (path === '/api/invites' && method === 'POST') {
     if (user.role!=='owner')return error('Somente a conta principal pode convidar.',403);
     const code=randomCode(),hash=await sha256(code),stamp=now();
