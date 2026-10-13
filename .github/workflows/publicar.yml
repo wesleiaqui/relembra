@@ -1,0 +1,65 @@
+name: Relembra - testes e publicação
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Confirmo publicar no Cloudflare após revisar e ter backup JSON."
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: relembra-producao
+  cancel-in-progress: false
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm test
+
+  publicar:
+    if: github.event_name == 'workflow_dispatch' && inputs.publicar == true
+    needs: testar
+    runs-on: ubuntu-latest
+    environment: producao
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - name: Verificar configuração D1
+        run: |
+          if grep -q '00000000-0000-0000-0000-000000000000' wrangler.jsonc; then
+            echo 'UUID D1 não configurado'; exit 1
+          fi
+      - name: Guardar bookmark D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler d1 time-travel info DB | tee d1-bookmark.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bookmark-d1-${{ github.run_number }}
+          path: d1-bookmark.txt
+          retention-days: 7
+      - name: Aplicar migrações e publicar
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler d1 migrations apply DB --remote
+          npx wrangler deploy
