@@ -529,9 +529,10 @@ async function handle(request, env) {
       await env.DB.batch([
         env.DB.prepare("INSERT INTO app_users(id,username,password_salt,password_hash,role,invite_hash,created_at) VALUES (?,?,?,?,'member',?,?)")
           .bind(id,account.username,salt,digest,hash,stamp),
-        env.DB.prepare('UPDATE app_invites SET used_by=? WHERE token_hash=? AND used_by IS NULL').bind(id,hash)
+        env.DB.prepare('UPDATE app_invites SET used_by=? WHERE token_hash=? AND used_by IS NULL').bind(id,hash),
+        ...BASE_CATEGORIES.map(([slugId,name,emoji,color])=>env.DB.prepare('INSERT INTO categories(id,name,emoji,color,owner_id) VALUES (?,?,?,?,?)')
+          .bind(ownerCategoryId(id,slugId),name,emoji,color,id))
       ]);
-      await registerMemberCategories(env,id);
     }catch{return error('Este nome de usuário ou convite já foi utilizado.',409);}
     await clearFailedLogin(env,rate);
     return json({ok:true,user:{username:account.username,role:'member'}},201,{'set-cookie':await newUserCookie(env,{id,session_version:1},request)});
