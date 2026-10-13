@@ -495,10 +495,10 @@ async function submitChat(message) {
 }
 
 /* Dicas para o momento: cartões práticos filtrados por situação, independentes do diário. */
-const standardTipContexts = ['Conversar','Sair de casa','Na rua','Segurança','Para mim'];
+const standardTipContexts = ['Conversar','Sair de casa','Na rua','Segurança','Para mim','Foco e produtividade'];
 const tipLabel = situation => ({
   'Conversar':'Vou conversar','Sair de casa':'Vou sair','Na rua':'Na rua',
-  'Segurança':'Segurança','Para mim':'Para mim','Geral':'Geral'
+  'Segurança':'Segurança','Para mim':'Para mim','Foco e produtividade':'Foco e produtividade','Geral':'Geral'
 })[situation] || situation;
 function normalizeTipText(text) {
   return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();

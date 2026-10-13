@@ -13,6 +13,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0004_thought_journal.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0005_situational_tips.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0006_private_accounts.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0007_focus_productivity_tips.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -442,7 +443,7 @@ test('dicas iniciais de conversas e frases ficam disponíveis somente com login'
   assert.equal((await req('/api/tips')).status, 401);
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
   const data = (await req('/api/tips')).data;
-  assert.equal(data.tips.length, 13);
+  assert.equal(data.tips.length, 20);
   assert.equal(data.tips.filter(t => t.situation === 'Conversar').length, 11);
   assert.equal(data.tips.filter(t => t.kind === 'frase').length, 6);
   assert.ok(data.tips.some(t => t.title.includes('Escute antes')));
@@ -484,7 +485,7 @@ test('backup de dicas restaura registros sem duplicação e não mistura com o c
   assert.equal((await req('/api/tips/'+entry.data.tip.id)).status,200);
   const again = (await req('/api/import','POST',backup)).data;
   assert.equal(again.tipsImported,0);
-  assert.ok(again.tipsSkipped>=13);
+  assert.ok(again.tipsSkipped>=20);
 });
 
 test('migração de dicas é aditiva e não afeta os dados de vídeos e diário', () => {
@@ -667,4 +668,69 @@ test('PBKDF2 respeita limite de 100 mil iterações do Cloudflare Workers', asyn
     username: 'principal', password: 'uma-senha-bem-forte-123'
   });
   assert.equal(login.status, 200, JSON.stringify(login.data));
+});
+
+
+test('dicas de foco e rotina entram na conta principal sem alterar as dicas anteriores', async () => {
+  const {req,env} = setup();
+  const before = env.DB;
+  // A migração foi aplicada antes da criação da conta: as novas dicas serão herdadas.
+  const legacy = (await before.prepare("SELECT COUNT(*) AS n FROM situational_tips WHERE owner_id='legacy' AND situation=?")
+    .bind('Foco e produtividade').first()).n;
+  assert.equal(legacy,7);
+  const login = await req('/api/setup-owner','POST',{
+    setup_key:'um-passphrase-longo-de-verdade',username:'dono',password:'uma-senha-de-teste-123'
+  });
+  assert.equal(login.status,201);
+  const result = (await req('/api/tips')).data.tips;
+  assert.equal(result.filter(x => x.situation === 'Foco e produtividade').length,7);
+  assert.equal(result.filter(x => x.situation === 'Conversar').length,11);
+  assert.equal(result.filter(x => x.situation === 'Sair de casa').length,2);
+  for (const title of ['Reduza o consumo de estímulos rápidos','Aprenda a tolerar o tédio','Valorize recompensas de longo prazo','Substitua o celular por atividades simples','Reaprenda a fazer atividades menos estimulantes','Comece antes de sentir motivação']) {
+    assert.equal(result.filter(x=>x.title===title).length,1,title);
+  }
+  const routine=result.find(x=>x.title==='Desafio diário de concentração');
+  assert.ok(routine);
+  assert.ok(routine.content.includes('Deixar o celular longe durante 25 minutos'));
+  assert.ok(routine.content.includes('Realizar uma tarefa importante sem abrir redes sociais'));
+  assert.ok(routine.content.includes('Passar 10 minutos sem estímulos digitais'));
+  assert.ok(routine.content.includes('Fazer uma caminhada ou atividade fora das telas'));
+  assert.ok(routine.content.includes('Anotar uma pequena conquista do dia'));
+  assert.equal((await before.prepare("SELECT COUNT(*) AS n FROM situational_tips WHERE owner_id='legacy'").first()).n,0);
+  assert.equal((await req('/api/export')).data.tips.some(x=>x.id===routine.id),true);
+});
+
+test('se o proprietário já existe, a migração entrega as dicas apenas para ele e não altera dados de convidados', () => {
+  const db=new DatabaseSync(':memory:');
+  for(const filename of ['0001_initial.sql','0002_visual.sql','0003_multiple_records.sql','0004_thought_journal.sql','0005_situational_tips.sql','0006_private_accounts.sql']) {
+    db.exec(readFileSync(new URL('../migrations/'+filename,import.meta.url),'utf8'));
+  }
+  const now=new Date().toISOString();
+  const owner='11111111-1111-4111-8111-111111111111';
+  const guest='22222222-2222-4222-8222-222222222222';
+  const stmt=db.prepare('INSERT INTO app_users(id,username,password_salt,password_hash,role,created_at) VALUES (?,?,?,?,?,?)');
+  stmt.run(owner,'owner','salt','hash','owner',now);
+  stmt.run(guest,'guest','salt','hash','member',now);
+  db.prepare("INSERT INTO situational_tips(id,title,content,situation,kind,owner_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)")
+    .run('manual-owner-tip','Meu lembrete anterior','Preservar meu texto','Para mim','dica',owner,now,now);
+  db.prepare("INSERT INTO situational_tips(id,title,content,situation,kind,owner_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)")
+    .run('guest-private-tip','Dica secreta de convidado','Não alterar','Para mim','dica',guest,now,now);
+  const migration=readFileSync(new URL('../migrations/0007_focus_productivity_tips.sql',import.meta.url),'utf8');
+  db.exec(migration);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM situational_tips WHERE situation='Foco e produtividade' AND owner_id=?").get(owner).n,7);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM situational_tips WHERE situation='Foco e produtividade' AND owner_id=?").get(guest).n,0);
+  assert.equal(db.prepare('SELECT content FROM situational_tips WHERE id=?').get('manual-owner-tip').content,'Preservar meu texto');
+  assert.equal(db.prepare('SELECT content FROM situational_tips WHERE id=?').get('guest-private-tip').content,'Não alterar');
+  db.exec(migration);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM situational_tips WHERE situation='Foco e produtividade' AND owner_id=?").get(owner).n,7);
+  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
+});
+
+test('atalho de foco aparece nas opções de consulta e de criação de dica', () => {
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  assert.equal((html.match(/data-tip-context="Foco e produtividade"/g)||[]).length,1);
+  assert.equal((html.match(/<option value="Foco e produtividade"/g)||[]).length,1);
+  assert.match(app,/const standardTipContexts = .*'Foco e produtividade'/);
+  assert.match(app,/'Foco e produtividade':'Foco e produtividade'/);
 });
