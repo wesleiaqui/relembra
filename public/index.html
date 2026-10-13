@@ -46,6 +46,10 @@
         <section id="homeView" class="view">
           <div class="welcome-head"><div><div class="eyebrow"><span class="eyebrow-mark">✧</span> SUA BIBLIOTECA PESSOAL</div><h1>Ideias que valem <em>guardar.</em></h1><p>Tudo que inspira você, organizado para encontrar quando precisar.</p></div><span class="welcome-deco" aria-hidden="true">✳</span></div>
           <section class="hero"><div class="hero-glow"></div><div class="hero-content"><span class="hero-tag">✦ COM AJUDA DA INTELIGÊNCIA ARTIFICIAL</span><h2>Salvou um vídeo e<br>não lembra onde está?</h2><p>Descreva o que você procura. O Relembra encontra o vídeo e pode responder sobre o conteúdo salvo.</p><button class="button hero-button" data-go="chat">✧ &nbsp; Perguntar à biblioteca <span>↗</span></button></div><div class="hero-art" aria-hidden="true"><div class="floating-card card-back">🍝 <span>Receitas favoritas</span></div><div class="floating-card card-front">✧ <span>Encontrei 3 vídeos para você</span><i>✦</i></div><div class="floating-icon">✦</div></div></section>
+          <section class="motivation-home-cta" aria-label="Lembretes para o momento">
+            <div class="motivation-home-text"><span class="eyebrow">✦ SEU ESPAÇO DE INCENTIVO</span><h2>Precisa de um incentivo agora?</h2><p>Relembre algo que você mesmo salvou, de acordo com o que está enfrentando.</p></div>
+            <button class="button button-primary" type="button" data-open-motivation>🔥 Preciso de motivação →</button>
+          </section>
           <div class="section-title minor"><h2>Sua biblioteca em números</h2><span>Uma coleção de boas ideias</span></div>
           <div class="stats-grid"><div class="stat-card"><div class="stat-icon blue">▦</div><div><strong id="statTotal">—</strong><span>Vídeos salvos</span></div></div><div class="stat-card"><div class="stat-icon rose">♡</div><div><strong id="statFavorites">—</strong><span>Favoritos</span></div></div><div class="stat-card"><div class="stat-icon mint">◷</div><div><strong id="statUnwatched">—</strong><span>Para assistir</span></div></div><div class="stat-card"><div class="stat-icon orange">⊞</div><div><strong id="statCategories">—</strong><span>Categorias em uso</span></div></div></div>
           <div class="section-title"><div><h2>Salvos recentemente</h2><p>Continue de onde parou</p></div><button class="text-link" data-go="library">Ver biblioteca <span>→</span></button></div>
@@ -163,7 +167,7 @@
               <h1>Dicas para <em>o momento.</em></h1>
               <p>Um lembrete rápido antes de sair, conversar ou fazer algo importante. Guarde o que funciona para você.</p>
             </div>
-            <button type="button" class="button button-primary" id="tipsAddBtn">＋ Nova dica</button>
+            <div class="tips-hero-actions"><button type="button" class="button button-outline" data-open-motivation>🔥 Preciso de motivação</button><button type="button" class="button button-primary" id="tipsAddBtn">＋ Nova dica</button></div>
           </div>
           <div class="tips-situation-heading"><h2>O que você vai fazer?</h2><span>Escolha uma situação para ver só o que importa agora.</span></div>
           <div class="tips-presets" id="tipsPresets" role="group" aria-label="Filtrar dicas por situação">
@@ -174,6 +178,7 @@
             <button type="button" class="tips-preset" data-tip-context="Segurança" aria-pressed="false"><span aria-hidden="true">🛡</span><strong>Segurança</strong><small>Cuidados práticos</small></button>
             <button type="button" class="tips-preset" data-tip-context="Para mim" aria-pressed="false"><span aria-hidden="true">✳</span><strong>Para mim</strong><small>Notas pessoais</small></button>
             <button type="button" class="tips-preset" data-tip-context="Foco e produtividade" aria-pressed="false"><span aria-hidden="true">🎯</span><strong>Foco e produtividade</strong><small>Telas, atenção e hábitos</small></button>
+            <button type="button" class="tips-preset" data-tip-context="Motivação e mentalidade" aria-pressed="false"><span aria-hidden="true">🔥</span><strong>Motivação e mentalidade</strong><small>Ânimo e perspectiva</small></button>
           </div>
           <div class="tips-custom-contexts" id="tipsCustomContexts" aria-label="Outras situações" hidden></div>
           <div class="tips-toolbar">
@@ -242,6 +247,24 @@
       <div class="image-viewer-footer"><button type="button" class="button button-outline" id="imageViewerEdit">Abrir ficha</button><span>Use as setas para navegar entre imagens.</span></div>
     </div>
   </div>
+  <div class="modal-backdrop" id="motivationModal" hidden>
+    <div class="motivation-dialog" role="dialog" aria-modal="true" aria-labelledby="motivationTitle" tabindex="-1">
+      <div class="modal-head"><div><span class="eyebrow">✦ SEUS PRÓPRIOS LEMBRETES</span><h2 id="motivationTitle">O que você precisa agora?</h2></div><button type="button" class="close-btn" id="motivationCloseBtn" aria-label="Fechar motivação">×</button></div>
+      <div class="motivation-dialog-inner">
+        <p>Escolha um momento. Vamos buscar dicas que você guardou, sem criar frases aleatórias.</p>
+        <div class="motivation-moments" role="group" aria-label="Escolher situação">
+          <button type="button" data-motivation-moment="procrastinar" aria-pressed="false">⏳ Estou procrastinando</button>
+          <button type="button" data-motivation-moment="desanimado" aria-pressed="false">🌤 Estou desanimado</button>
+          <button type="button" data-motivation-moment="inseguro" aria-pressed="false">🤝 Estou inseguro</button>
+          <button type="button" data-motivation-moment="foco" aria-pressed="false">🎯 Preciso me concentrar</button>
+        </div>
+        <section class="motivation-result" id="motivationResult" aria-live="polite">
+          <p>Selecione uma situação para encontrar seus lembretes.</p>
+        </section>
+      </div>
+      <div class="motivation-footer"><button type="button" id="motivationSeeAll" class="button button-outline">Ver minhas dicas</button><button type="button" id="motivationAddTip" class="button button-primary">+ Guardar nova dica</button></div>
+    </div>
+  </div>
   <div class="modal-backdrop" id="tipModal" hidden>
     <div class="small-modal tips-modal" role="dialog" aria-modal="true" aria-labelledby="tipModalTitle">
       <div class="modal-head"><div><span class="eyebrow">GUARDE PARA QUANDO PRECISAR</span><h2 id="tipModalTitle">Nova dica</h2></div><button class="close-btn" type="button" id="tipCloseBtn" aria-label="Fechar">×</button></div>
@@ -253,7 +276,7 @@
             <label class="field"><span>Para qual situação?</span><input name="situation" list="tipSituationSuggestions" maxlength="60" required placeholder="Ex.: Conversar"></label>
             <label class="field"><span>Tipo</span><select name="kind"><option value="dica">Dica</option><option value="frase">Frase para usar</option></select></label>
           </div>
-          <datalist id="tipSituationSuggestions"><option value="Conversar"></option><option value="Sair de casa"></option><option value="Na rua"></option><option value="Segurança"></option><option value="Para mim"></option><option value="Foco e produtividade"></option><option value="Geral"></option></datalist>
+          <datalist id="tipSituationSuggestions"><option value="Conversar"></option><option value="Sair de casa"></option><option value="Na rua"></option><option value="Segurança"></option><option value="Para mim"></option><option value="Foco e produtividade"></option><option value="Motivação e mentalidade"></option><option value="Geral"></option></datalist>
           <label class="field"><span>Link de origem <small>(opcional)</small></span><input name="source_url" maxlength="2048" type="url" placeholder="https://www.instagram.com/..."></label>
           <label class="toggle-label"><input name="favorite" type="checkbox"><span>★</span> Destacar nos favoritos</label>
         </div>
