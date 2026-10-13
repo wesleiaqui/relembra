@@ -636,10 +636,11 @@ async function importData(file) {
   if (file.size > 25_000_000) { toast('Arquivo muito grande. Limite: 25 MB.', true); return; }
   try {
     const data = JSON.parse(await file.text());
-    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts)) throw new Error('Esse arquivo não contém um backup válido.');
+    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts) && !Array.isArray(data.tips)) throw new Error('Esse arquivo não contém um backup válido.');
     const videos = Array.isArray(data.videos) ? data.videos : [];
     const thoughts = Array.isArray(data.thoughts) ? data.thoughts : [];
-    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0;
+    const tips = Array.isArray(data.tips) ? data.tips : [];
+    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0, tipsImported = 0, tipsSkipped = 0;
     const videoGroups = []; let group = [], groupBytes = 0;
     for (const video of videos) {
       const size = new TextEncoder().encode(JSON.stringify(video)).length + 50;
@@ -654,16 +655,25 @@ async function importData(file) {
       group.push(thought); groupBytes += size;
     }
     if (group.length) thoughtGroups.push(group);
-    const total = Math.max(videoGroups.length, thoughtGroups.length, 1);
+    const tipGroups = []; group = []; groupBytes = 0;
+    for (const tip of tips) {
+      const size = new TextEncoder().encode(JSON.stringify(tip)).length + 50;
+      if (group.length && (group.length >= 200 || groupBytes + size > 2_000_000)) { tipGroups.push(group); group = []; groupBytes = 0; }
+      group.push(tip); groupBytes += size;
+    }
+    if (group.length) tipGroups.push(group);
+    const total = Math.max(videoGroups.length, thoughtGroups.length, tipGroups.length, 1);
     for (let index = 0; index < total; index++) {
       toast(`Restaurando backup: lote ${index + 1} de ${total}...`);
-      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [] }) });
+      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [] }) });
       imported += res.imported; skipped += res.skipped;
       thoughtsImported += res.thoughtsImported || 0; thoughtsSkipped += res.thoughtsSkipped || 0;
+      tipsImported += res.tipsImported || 0; tipsSkipped += res.tipsSkipped || 0;
     }
     await syncCategories();
     if (state.view === 'thoughts') await loadThoughts();
-    toast(`${imported} vídeos e ${thoughtsImported} reflexões importados; ${skipped + thoughtsSkipped} já existentes/ignorados.`);
+    if (state.view === 'tips') await loadTips();
+    toast(`${imported} vídeos, ${thoughtsImported} reflexões e ${tipsImported} dicas importados; ${skipped + thoughtsSkipped + tipsSkipped} já existentes/ignorados.`);
   } catch (e) { toast(e.message, true); }
   finally { $('importFile').value = ''; }
 }
