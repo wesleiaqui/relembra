@@ -34,7 +34,7 @@ const validate = (kind, body) => {
     if (!name || !Number.isInteger(priority) || priority < 1 || priority > 5)
       throw Error('Informe conta e prioridade válidas.');
     return { name, amount_cents: cents(body.amount_cents), due_date: validDate(body.due_date),
-      priority, essential: body.essential === true ? 1 : 0, paid_at: validDate(body.paid_at, true) };
+      priority, essential: body.essential === true || body.essential === 1 ? 1 : 0, paid_at: validDate(body.paid_at, true) };
   }
   if (kind === 'goals') {
     const name = str(body.name, 120);
