@@ -1,7 +1,7 @@
 {
   "name": "relembra-cloudflare",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.5.0",
   "type": "module",
   "description": "Biblioteca de videos e diario de pensamentos com Cloudflare D1 e IA",
   "scripts": {
@@ -9,7 +9,7 @@
     "deploy": "wrangler deploy",
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:remote": "wrangler d1 migrations apply DB --remote",
-    "test": "node --experimental-sqlite --test tests/*.test.js",
+    "test": "node --check public/app.js && node --check src/worker.js && node --experimental-sqlite --test tests/*.test.js",
     "configurar:db": "node scripts/configure-db.mjs",
     "atualizar:publicar": "bash ATUALIZAR-E-PUBLICAR.sh"
   },

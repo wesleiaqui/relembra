@@ -363,3 +363,38 @@ test('chat diferencia busca nominal de instrucao que nao foi anotada', async () 
   const inferno = (await req('/api/chat','POST',{message:'posicoes de inferno cs2'})).data;
   assert.equal(inferno.sources.length,0);
 });
+
+test('chat informa captura Lightshot e imagem anexada sem expor o arquivo publicamente', async () => {
+  const { req, env } = setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const created = await req('/api/videos','POST',{
+    url:'https://instagram.com/p/mirage-janela/', category:'cs2',
+    title:'POSICAO JANELA MIRAGE https://prnt.sc/b_SJsjKWTean',
+    summary:'POSICAO JANELA MIRAGE',
+    cover_url:'https://i.imgur.com/captura.png',
+    transcript:'', notes:''
+  });
+  assert.equal(created.status,201);
+  const id = created.data.video.id;
+  const first = (await req('/api/chat','POST',{message:'posicoes mirage cs2'})).data.sources[0];
+  assert.equal(first.has_image,false);
+  assert.equal(first.cover_url,'https://i.imgur.com/captura.png');
+  assert.equal(first.screenshot_link,'https://prnt.sc/b_SJsjKWTean');
+  await env.DB.prepare('INSERT INTO video_images (video_id, media_type, data_base64, bytes, updated_at) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, 'image/png', 'iVBORw0KGgo=', 8, 'agora').run();
+  const second = (await req('/api/chat','POST',{message:'posicoes mirage cs2'})).data.sources[0];
+  assert.equal(second.has_image,true);
+  assert.equal(second.screenshot_link,first.screenshot_link);
+  const withoutLogin = await req('/api/videos/'+id+'/image','GET',null,false);
+  assert.equal(withoutLogin.status,401);
+});
+
+test('chat não inventa screenshot em ficha sem link e sem imagem', async () => {
+  const {req} = setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  await req('/api/videos','POST',{...vid,category:'turismo',title:'VIAGEM AO PONTAL'});
+  const result = (await req('/api/chat','POST',{message:'lugares para viajar'})).data;
+  assert.equal(result.sources.length,1);
+  assert.equal(result.sources[0].screenshot_link,'');
+  assert.equal(result.sources[0].has_image,false);
+});

@@ -220,6 +220,19 @@ function sourceListAnswer(matches, message, missingDetails = false) {
     : '\n\nClique em uma das fontes abaixo para abrir a ficha.';
   return header + '\n\n' + items.join('\n') + note;
 }
+function screenshotLinkFromVideo(video) {
+  // Links de páginas Lightshot podem estar no título ou nas anotações.
+  // Não pressupõe que a captura já esteja armazenada nem que seja pública.
+  const values = [video.title, video.summary, video.notes, video.transcript, video.visual_description];
+  for (const value of values) {
+    const match = String(value || '').match(/https:\/\/prnt\.sc\/[A-Za-z0-9_-]+/i);
+    if (match) {
+      const url = remoteImageUrl(match[0], true);
+      if (url) return url.toString();
+    }
+  }
+  return '';
+}
 async function answerQuestion(env, message) {
   const matches = await retrieveMatches(env, message);
   if (!matches.length) {
@@ -233,7 +246,8 @@ async function answerQuestion(env, message) {
   }
   const sources = matches.map(video => ({
     id: video.id, title: video.title, category: video.category, url: video.url,
-    summary: video.summary, has_image: video.has_image, relevance: video.relevance
+    summary: video.summary, has_image: Boolean(video.has_image), cover_url: video.cover_url,
+    screenshot_link: screenshotLinkFromVideo(video), relevance: video.relevance
   }));
   // Uma pergunta sobre QUAIS itens foram salvos já pode ser respondida pelos
   // títulos. Não peça ao modelo para inventar detalhes que o usuário não salvou.
