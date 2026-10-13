@@ -1,3 +1,4 @@
+import { handleFinance, exportFinances, importFinances } from './finance.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
@@ -561,6 +562,7 @@ async function handle(request, env) {
   const user=await verifySession(request,env);
   if (!user) return error('Faça login para acessar sua biblioteca.',401);
   if (path === '/api/me' && method === 'GET') return json({user:{username:user.username,role:user.role}});
+  if (path === '/api/finance' || path.startsWith('/api/finance/')) return handleFinance(request,env,user);
   if (path === '/api/invites' && method === 'POST') {
     if (user.role!=='owner')return error('Somente a conta principal pode convidar.',403);
     const code=randomCode(),hash=await sha256(code),stamp=now();
@@ -778,12 +780,12 @@ async function handle(request, env) {
     const videos = (await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
     const thoughts = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
     const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE owner_id=? ORDER BY created_at ASC LIMIT 5000`).bind(user.id).all()).results;
-    const file = { format: 'relembra-v1.9', exported_at: now(), categories: await categories(env,user.id), videos, thoughts, tips };
+    const file = { format: 'relembra-v1.10', exported_at: now(), categories: await categories(env,user.id), videos, thoughts, tips, finances: await exportFinances(env,user.id) };
     return json(file, 200, { 'content-disposition': `attachment; filename="relembra-backup-${new Date().toISOString().slice(0, 10)}.json"` });
   }
   if (path === '/api/import' && method === 'POST') {
     const body = await getBody(request, 4000000);
-    if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts) && !Array.isArray(body.tips)) return error('Backup inválido: faltam vídeos, registros e dicas.');
+    if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts) && !Array.isArray(body.tips) && !body.finances) return error('Backup inválido: faltam conteúdos restauráveis.');
     if ((body.videos || []).length > 250 || (body.thoughts || []).length > 250 || (body.tips || []).length > 250) return error('Importe até 250 itens de cada tipo por lote.');
     const existingCategories = await categories(env,user.id);
     const categoryMap = new Set(existingCategories.map(c => c.id));
@@ -851,7 +853,8 @@ async function handle(request, env) {
         tipsImported++;
       } catch { tipsSkipped++; }
     }
-    return json({ imported, skipped, thoughtsImported, thoughtsSkipped, tipsImported, tipsSkipped });
+    const financeImport = await importFinances(env,user.id,body.finances);
+    return json({ imported, skipped, thoughtsImported, thoughtsSkipped, tipsImported, tipsSkipped, financeImported:financeImport.imported, financeSkipped:financeImport.skipped });
   }
   return error('Rota não encontrada.', 404);
 }

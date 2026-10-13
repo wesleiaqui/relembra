@@ -8,6 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/finance.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -23,6 +24,7 @@
         <button class="nav-item" data-view="chat"><span class="nav-icon">✧</span> Chat inteligente <span class="nav-new">IA</span></button>
         <button class="nav-item" data-view="thoughts"><span class="nav-icon">☼</span> Diário de pensamentos <span class="nav-new">NOVO</span></button>
         <button class="nav-item" data-view="tips"><span class="nav-icon">✦</span> Dicas para o momento <span class="nav-new">NOVO</span></button>
+        <button class="nav-item" data-view="finance"><span class="nav-icon">◈</span> Minhas finanças</button>
       </nav>
       <div class="side-separator"></div>
       <div class="category-heading"><span class="nav-caption">COLEÇÕES</span><button title="Adicionar coleção" aria-label="Adicionar categoria" id="addCategoryBtn" class="tiny-btn">+</button></div>
@@ -192,10 +194,11 @@
           <div id="tipsGrid" class="tips-grid" aria-live="polite"></div>
           <div class="tips-bottom-note">✦ Essas dicas são suas anotações. Você pode editar, complementar ou excluir qualquer uma delas.</div>
         </section>
+        <section id="financeView" class="view" hidden><div id="financeRoot" aria-live="polite"></div></section>
         <section id="backupView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">CONTROLE DOS SEUS DADOS</div><h1>Backup e restauração</h1><p>Leve sua biblioteca com você. Seus dados são seus.</p></div></div>
-          <div class="settings-grid"><article class="setting-card"><div class="settings-icon blue">↓</div><h2>Exportar biblioteca</h2><p>Faça download de um arquivo JSON com vídeos, transcrições, categorias, reflexões e dicas pessoais organizadas por situação.</p><button class="button button-primary" id="exportBtn">↓ &nbsp; Baixar backup</button><small>O backup JSON inclui as descrições visuais, mas não os arquivos de imagem. Guarde seus screenshots originais separadamente.</small></article>
-          <article class="setting-card"><div class="settings-icon mint">↑</div><h2>Restaurar backup</h2><p>Importe um backup do Relembra. O aplicativo mantém as fichas existentes, evita duplicar registros com o mesmo ID e também importa reflexões.</p><label class="button button-outline file-label" for="importFile">↑ &nbsp; Escolher arquivo JSON</label><input id="importFile" type="file" accept="application/json,.json" hidden><small>Restaura vídeos, reflexões e dicas em lotes; arquivos de até 25 MB.</small></article></div>
+          <div class="settings-grid"><article class="setting-card"><div class="settings-icon blue">↓</div><h2>Exportar biblioteca</h2><p>Faça download de um arquivo JSON com vídeos, transcrições, categorias, reflexões, dicas e seus registros financeiros privados.</p><button class="button button-primary" id="exportBtn">↓ &nbsp; Baixar backup</button><small>O backup JSON inclui as descrições visuais, mas não os arquivos de imagem. Guarde seus screenshots originais separadamente.</small></article>
+          <article class="setting-card"><div class="settings-icon mint">↑</div><h2>Restaurar backup</h2><p>Importe um backup do Relembra. O aplicativo mantém as fichas existentes, evita duplicar registros com o mesmo ID e também importa reflexões, contas, entradas, gastos e metas financeiras.</p><label class="button button-outline file-label" for="importFile">↑ &nbsp; Escolher arquivo JSON</label><input id="importFile" type="file" accept="application/json,.json" hidden><small>Restaura vídeos, reflexões e dicas em lotes; arquivos de até 25 MB.</small></article></div>
           <div class="tip-panel"><span>🔒</span><div><strong>Seus dados são privados</strong><p>O aplicativo tem login por senha e salva sua biblioteca no banco de dados D1 da sua conta Cloudflare. Não compartilhe sua senha nem arquivos de backup.</p></div></div>
         </section>
       </main>

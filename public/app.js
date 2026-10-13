@@ -1,5 +1,6 @@
 import { MOTIVATION_MOMENTS, selectMotivationTips } from './motivation.js';
 import { embeddedMediaLink } from './media-links.js';
+import { setupFinance, loadFinance, resetFinance } from './finance.js';
 const $ = id => document.getElementById(id);
 const state = { thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
 let toastTimer;
@@ -92,7 +93,7 @@ async function loadList(append = false) {
   } catch(e) { if (requestNumber === listRequest) { box.innerHTML = skeletonEmpty('Erro ao carregar vídeos', e.message, '⚠️', false); toast(e.message, true); } }
   finally { if (requestNumber === listRequest) state.busy = false; }
 }
-const viewNames = { home: 'Visão geral', library: 'Minha biblioteca', favorites: 'Favoritos', unwatched: 'Para assistir', chat: 'Chat inteligente', thoughts: 'Diário de pensamentos', tips: 'Dicas para o momento', backup: 'Backup e dados' };
+const viewNames = { home: 'Visão geral', library: 'Minha biblioteca', favorites: 'Favoritos', unwatched: 'Para assistir', chat: 'Chat inteligente', thoughts: 'Diário de pensamentos', tips: 'Dicas para o momento', finance: 'Minhas finanças', backup: 'Backup e dados' };
 async function navigate(view, category = 'all') {
   const known = viewNames[view] ? view : 'home';
   state.view = known;
@@ -100,7 +101,8 @@ async function navigate(view, category = 'all') {
   else state.category = 'all';
   state.search = ''; state.sort = 'recent'; state.videos = [];
   document.querySelectorAll('.view').forEach(el => el.hidden = true);
-  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
+  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'finance' ? 'financeView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
+  $('addVideoBtn').hidden = known === 'finance';
   $('breadcrumbActive').textContent = known === 'library' && state.category !== 'all' ? catOf(state.category).name : viewNames[known];
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === known && (known !== 'library' || state.category === 'all')));
   document.querySelectorAll('[data-cat]').forEach(el => el.classList.toggle('active', known === 'library' && el.dataset.cat === category));
@@ -108,6 +110,7 @@ async function navigate(view, category = 'all') {
   if (known === 'home') await loadHome();
   if (known === 'thoughts') await loadThoughts();
   if (known === 'tips') await loadTips();
+  if (known === 'finance') await loadFinance();
   if (['library', 'favorites', 'unwatched'].includes(known)) {
     $('libraryTitle').textContent = known === 'favorites' ? 'Meus favoritos' : known === 'unwatched' ? 'Para assistir depois' : state.category !== 'all' ? catOf(state.category).name : 'Minha biblioteca';
     $('librarySubtitle').textContent = known === 'favorites' ? 'Tudo que você mais gostou, num só lugar.' : known === 'unwatched' ? 'Vídeos que ainda merecem sua atenção.' : 'Encontre qualquer ideia pelo assunto, resumo ou transcrição.';
@@ -792,11 +795,11 @@ async function importData(file) {
   if (file.size > 25_000_000) { toast('Arquivo muito grande. Limite: 25 MB.', true); return; }
   try {
     const data = JSON.parse(await file.text());
-    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts) && !Array.isArray(data.tips)) throw new Error('Esse arquivo não contém um backup válido.');
+    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts) && !Array.isArray(data.tips) && !data.finances) throw new Error('Esse arquivo não contém um backup válido.');
     const videos = Array.isArray(data.videos) ? data.videos : [];
     const thoughts = Array.isArray(data.thoughts) ? data.thoughts : [];
     const tips = Array.isArray(data.tips) ? data.tips : [];
-    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0, tipsImported = 0, tipsSkipped = 0;
+    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0, tipsImported = 0, tipsSkipped = 0, financeImported = 0, financeSkipped = 0;
     const videoGroups = []; let group = [], groupBytes = 0;
     for (const video of videos) {
       const size = new TextEncoder().encode(JSON.stringify(video)).length + 50;
@@ -818,18 +821,27 @@ async function importData(file) {
       group.push(tip); groupBytes += size;
     }
     if (group.length) tipGroups.push(group);
-    const total = Math.max(videoGroups.length, thoughtGroups.length, tipGroups.length, 1);
+    const finances = data.finances || {};
+    const financeGroups = {};
+    for (const kind of ['entries','bills','goals']) {
+      const rows = Array.isArray(finances[kind]) ? finances[kind] : [];
+      financeGroups[kind] = [];
+      for (let i = 0; i < rows.length; i += 200) financeGroups[kind].push(rows.slice(i, i + 200));
+    }
+    const total = Math.max(videoGroups.length, thoughtGroups.length, tipGroups.length, ...Object.values(financeGroups).map(g => g.length), 1);
     for (let index = 0; index < total; index++) {
       toast(`Restaurando backup: lote ${index + 1} de ${total}...`);
-      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [] }) });
+      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [], finances: { entries:financeGroups.entries[index] || [], bills:financeGroups.bills[index] || [], goals:financeGroups.goals[index] || [] } }) });
       imported += res.imported; skipped += res.skipped;
       thoughtsImported += res.thoughtsImported || 0; thoughtsSkipped += res.thoughtsSkipped || 0;
       tipsImported += res.tipsImported || 0; tipsSkipped += res.tipsSkipped || 0;
+      financeImported += res.financeImported || 0; financeSkipped += res.financeSkipped || 0;
     }
     await syncCategories();
     if (state.view === 'thoughts') await loadThoughts();
     if (state.view === 'tips') await loadTips();
-    toast(`${imported} vídeos, ${thoughtsImported} reflexões e ${tipsImported} dicas importados; ${skipped + thoughtsSkipped + tipsSkipped} já existentes/ignorados.`);
+    if (state.view === 'finance') await loadFinance();
+    toast(`${imported} vídeos, ${thoughtsImported} reflexões e ${tipsImported} dicas e ${financeImported} registros financeiros importados; ${skipped + thoughtsSkipped + tipsSkipped + financeSkipped} já existentes/ignorados.`);
   } catch (e) { toast(e.message, true); }
   finally { $('importFile').value = ''; }
 }
@@ -984,6 +996,7 @@ function showAccountMode(mode) {
 }
 function wipePreviousAccount() {
   closeMotivation();
+  resetFinance();
   state.videos=[];state.homeVideos=[];state.categories=[];
   state.thoughts=[];state.tips=[];state.total=0;state.offset=0;
   state.editId=null;state.tipEditId=null;state.thoughtEditId=null;
@@ -1018,6 +1031,7 @@ async function submitAccountForm(event,endpoint) {
 
 async function start() {
   bindEvents();
+  setupFinance({ api, toast });
   try {
     const session=await api('/api/session');
     if(!session.configured){$('loginError').textContent='Configure a senha administrativa e o D1 na Cloudflare.';return;}
