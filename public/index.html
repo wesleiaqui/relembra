@@ -52,8 +52,18 @@
         <section id="libraryView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">SUAS DESCOBERTAS</div><h1 id="libraryTitle">Minha biblioteca</h1><p id="librarySubtitle">Suas inspirações, sempre por perto.</p></div><button class="button button-ghost" id="newFromLibrary">+ Novo vídeo</button></div>
           <div class="filter-bar"><label class="search-field"><span>⌕</span><input id="searchInput" type="search" placeholder="Pesquise título, conteúdo, imagem ou transcrição..." autocomplete="off"></label><select id="categoryFilter" class="select-field" aria-label="Filtrar categoria"><option value="all">Todas as categorias</option></select><select id="sortFilter" class="select-field" aria-label="Ordenar"><option value="recent">Mais recentes</option><option value="oldest">Mais antigos</option><option value="title">Título A–Z</option></select></div>
-          <div class="result-heading"><span id="resultsCount">0 vídeos</span><button class="clear-btn" id="clearFilters" hidden>Limpar filtros ×</button></div>
-          <div id="libraryGrid" class="video-grid"></div><div class="load-more-wrap"><button class="button button-outline" id="loadMore" hidden>Carregar mais vídeos</button></div>
+          <div class="result-heading library-results-heading">
+            <span id="resultsCount">0 vídeos</span>
+            <div class="library-view-actions">
+              <div class="view-mode-switch" role="group" aria-label="Modo de visualização das imagens">
+                <button type="button" class="view-mode-btn active" data-view-mode="standard" aria-pressed="true" title="Cartões compactos">▦ <span>Cartões</span></button>
+                <button type="button" class="view-mode-btn" data-view-mode="gallery" aria-pressed="false" title="Imagens maiores e sem cortes">▣ <span>Galeria</span></button>
+                <button type="button" class="view-mode-btn" data-view-mode="focus" aria-pressed="false" title="Uma imagem grande por linha">⤢ <span>Foco</span></button>
+              </div>
+              <button class="clear-btn" id="clearFilters" hidden>Limpar filtros ×</button>
+            </div>
+          </div>
+          <div id="libraryGrid" class="video-grid" data-mode="standard"></div><div class="load-more-wrap"><button class="button button-outline" id="loadMore" hidden>Carregar mais vídeos</button></div>
         </section>
         <section id="chatView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">BUSCA COM CONTEXTO</div><h1>Chat com sua memória <span class="gradient-star">✧</span></h1><p>Faça perguntas sobre os vídeos que você salvou.</p></div><span class="ai-pill">✦ Inteligência artificial</span></div>
@@ -209,6 +219,26 @@
     </div><div class="modal-footer"><button class="button button-danger" type="button" id="deleteVideoBtn" hidden>Excluir</button><div class="modal-footer-right"><button class="button button-outline" type="button" id="cancelVideoBtn">Cancelar</button><button class="button button-primary" type="submit" id="saveVideoBtn">Salvar vídeo →</button></div></div></form></div></div>
 
 
+  <div class="modal-backdrop" id="mediaPlayerModal" hidden>
+    <div class="media-player-dialog" role="dialog" aria-modal="true" aria-labelledby="mediaPlayerTitle" tabindex="-1">
+      <div class="media-player-head"><div><span class="eyebrow">▶ REPRODUZIR SEM SAIR DO RELEMBRA</span><h2 id="mediaPlayerTitle">Visualizar vídeo</h2><small id="mediaPlayerProvider"></small></div><button type="button" class="close-btn" id="mediaPlayerClose" aria-label="Fechar vídeo">×</button></div>
+      <div class="media-player-content"><div id="mediaPlayerFrame" class="media-player-frame" aria-label="Reprodutor do vídeo"></div>
+      <p class="media-player-note">A reprodução depende das permissões do Instagram ou YouTube. Vídeos privados, bloqueados ou que exigem login podem não funcionar aqui.</p>
+      </div>
+      <div class="media-player-footer"><button type="button" class="button button-outline" id="mediaPlayerEdit">Editar ficha</button><a id="mediaPlayerOriginal" class="button button-primary" target="_blank" rel="noopener noreferrer">Abrir no site original ↗</a></div>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="imageViewerModal" hidden>
+    <div class="image-viewer-dialog" role="dialog" aria-modal="true" aria-labelledby="imageViewerTitle" tabindex="-1">
+      <div class="image-viewer-head"><div><span class="eyebrow">MEMÓRIA VISUAL</span><h2 id="imageViewerTitle">Imagem salva</h2><small id="imageViewerCount"></small></div><button type="button" class="close-btn" id="imageViewerClose" aria-label="Fechar imagem">×</button></div>
+      <div class="image-viewer-stage">
+        <button type="button" class="image-viewer-nav" id="imageViewerPrevious" aria-label="Imagem anterior">‹</button>
+        <img id="imageViewerImage" alt="Imagem ampliada do conteúdo salvo" referrerpolicy="no-referrer">
+        <button type="button" class="image-viewer-nav" id="imageViewerNext" aria-label="Próxima imagem">›</button>
+      </div>
+      <div class="image-viewer-footer"><button type="button" class="button button-outline" id="imageViewerEdit">Abrir ficha</button><span>Use as setas para navegar entre imagens.</span></div>
+    </div>
+  </div>
   <div class="modal-backdrop" id="tipModal" hidden>
     <div class="small-modal tips-modal" role="dialog" aria-modal="true" aria-labelledby="tipModalTitle">
       <div class="modal-head"><div><span class="eyebrow">GUARDE PARA QUANDO PRECISAR</span><h2 id="tipModalTitle">Nova dica</h2></div><button class="close-btn" type="button" id="tipCloseBtn" aria-label="Fechar">×</button></div>
