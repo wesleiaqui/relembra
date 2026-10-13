@@ -22,6 +22,7 @@
         <button class="nav-item" data-view="unwatched"><span class="nav-icon">◷</span> Para assistir</button>
         <button class="nav-item" data-view="chat"><span class="nav-icon">✧</span> Chat inteligente <span class="nav-new">IA</span></button>
         <button class="nav-item" data-view="thoughts"><span class="nav-icon">☼</span> Diário de pensamentos <span class="nav-new">NOVO</span></button>
+        <button class="nav-item" data-view="tips"><span class="nav-icon">✦</span> Dicas para o momento <span class="nav-new">NOVO</span></button>
       </nav>
       <div class="side-separator"></div>
       <div class="category-heading"><span class="nav-caption">COLEÇÕES</span><button title="Adicionar coleção" aria-label="Adicionar categoria" id="addCategoryBtn" class="tiny-btn">+</button></div>
@@ -142,6 +143,37 @@
             </article>
           </div>
         </section>
+
+        <section id="tipsView" class="view" hidden>
+          <div class="tips-hero">
+            <div>
+              <div class="eyebrow">✦ PARA RELEMBRAR NA HORA CERTA</div>
+              <h1>Dicas para <em>o momento.</em></h1>
+              <p>Um lembrete rápido antes de sair, conversar ou fazer algo importante. Guarde o que funciona para você.</p>
+            </div>
+            <button type="button" class="button button-primary" id="tipsAddBtn">＋ Nova dica</button>
+          </div>
+          <div class="tips-situation-heading"><h2>O que você vai fazer?</h2><span>Escolha uma situação para ver só o que importa agora.</span></div>
+          <div class="tips-presets" id="tipsPresets" role="group" aria-label="Filtrar dicas por situação">
+            <button type="button" class="tips-preset active" data-tip-context="all" aria-pressed="true"><span aria-hidden="true">▦</span><strong>Todas</strong><small>Minha coleção</small></button>
+            <button type="button" class="tips-preset" data-tip-context="Conversar" aria-pressed="false"><span aria-hidden="true">💬</span><strong>Vou conversar</strong><small>Conversas e frases</small></button>
+            <button type="button" class="tips-preset" data-tip-context="Sair de casa" aria-pressed="false"><span aria-hidden="true">🚪</span><strong>Vou sair</strong><small>Antes de sair</small></button>
+            <button type="button" class="tips-preset" data-tip-context="Na rua" aria-pressed="false"><span aria-hidden="true">🚶</span><strong>Na rua</strong><small>Observação e rotina</small></button>
+            <button type="button" class="tips-preset" data-tip-context="Segurança" aria-pressed="false"><span aria-hidden="true">🛡</span><strong>Segurança</strong><small>Cuidados práticos</small></button>
+            <button type="button" class="tips-preset" data-tip-context="Para mim" aria-pressed="false"><span aria-hidden="true">✳</span><strong>Para mim</strong><small>Notas pessoais</small></button>
+          </div>
+          <div class="tips-custom-contexts" id="tipsCustomContexts" aria-label="Outras situações" hidden></div>
+          <div class="tips-toolbar">
+            <div class="tips-filter-info"><h2 id="tipsCurrentHeading">Todas as dicas</h2><p id="tipsResultCount">Carregando suas dicas...</p></div>
+            <div class="tips-filter-controls">
+              <label class="tips-search"><span aria-hidden="true">⌕</span><input id="tipsSearch" type="search" placeholder="Buscar dica ou frase..." aria-label="Buscar dicas" autocomplete="off"></label>
+              <label class="tips-type-label">Tipo <select id="tipsKind" aria-label="Filtrar tipo"><option value="all">Todos</option><option value="dica">Dicas</option><option value="frase">Frases</option></select></label>
+              <label class="tips-only-favs"><input id="tipsFavoritesOnly" type="checkbox"> Só favoritas</label>
+            </div>
+          </div>
+          <div id="tipsGrid" class="tips-grid" aria-live="polite"></div>
+          <div class="tips-bottom-note">✦ Essas dicas são suas anotações. Você pode editar, complementar ou excluir qualquer uma delas.</div>
+        </section>
         <section id="backupView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">CONTROLE DOS SEUS DADOS</div><h1>Backup e restauração</h1><p>Leve sua biblioteca com você. Seus dados são seus.</p></div></div>
           <div class="settings-grid"><article class="setting-card"><div class="settings-icon blue">↓</div><h2>Exportar biblioteca</h2><p>Faça download de um arquivo JSON com links, transcrições, descrições visuais, anotações, categorias, favoritos e registros do diário de pensamentos.</p><button class="button button-primary" id="exportBtn">↓ &nbsp; Baixar backup</button><small>O backup JSON inclui as descrições visuais, mas não os arquivos de imagem. Guarde seus screenshots originais separadamente.</small></article>
@@ -176,6 +208,26 @@
       <div class="toggle-row"><label class="toggle-label"><input name="favorite" type="checkbox"><span>♡</span> Marcar como favorito</label><label class="toggle-label"><input name="watched" type="checkbox"><span>✓</span> Já assisti</label></div>
     </div><div class="modal-footer"><button class="button button-danger" type="button" id="deleteVideoBtn" hidden>Excluir</button><div class="modal-footer-right"><button class="button button-outline" type="button" id="cancelVideoBtn">Cancelar</button><button class="button button-primary" type="submit" id="saveVideoBtn">Salvar vídeo →</button></div></div></form></div></div>
 
+
+  <div class="modal-backdrop" id="tipModal" hidden>
+    <div class="small-modal tips-modal" role="dialog" aria-modal="true" aria-labelledby="tipModalTitle">
+      <div class="modal-head"><div><span class="eyebrow">GUARDE PARA QUANDO PRECISAR</span><h2 id="tipModalTitle">Nova dica</h2></div><button class="close-btn" type="button" id="tipCloseBtn" aria-label="Fechar">×</button></div>
+      <form id="tipForm">
+        <div class="tips-modal-fields">
+          <label class="field"><span>Título <b>*</b></span><input name="title" maxlength="180" required placeholder="Ex.: Escute antes de responder"></label>
+          <label class="field"><span>O que quero lembrar <b>*</b></span><textarea name="content" rows="5" maxlength="4000" required placeholder="Explique a dica de um jeito que seja útil na hora de consultar."></textarea></label>
+          <div class="field-row">
+            <label class="field"><span>Para qual situação?</span><input name="situation" list="tipSituationSuggestions" maxlength="60" required placeholder="Ex.: Conversar"></label>
+            <label class="field"><span>Tipo</span><select name="kind"><option value="dica">Dica</option><option value="frase">Frase para usar</option></select></label>
+          </div>
+          <datalist id="tipSituationSuggestions"><option value="Conversar"></option><option value="Sair de casa"></option><option value="Na rua"></option><option value="Segurança"></option><option value="Para mim"></option><option value="Geral"></option></datalist>
+          <label class="field"><span>Link de origem <small>(opcional)</small></span><input name="source_url" maxlength="2048" type="url" placeholder="https://www.instagram.com/..."></label>
+          <label class="toggle-label"><input name="favorite" type="checkbox"><span>★</span> Destacar nos favoritos</label>
+        </div>
+        <div class="modal-footer"><button type="button" class="button button-danger" id="tipDeleteBtn" hidden>Excluir</button><div class="modal-footer-right"><button type="button" class="button button-outline" id="tipCancelBtn">Cancelar</button><button type="submit" class="button button-primary" id="tipSaveBtn">Salvar dica</button></div></div>
+      </form>
+    </div>
+  </div>
   <div class="modal-backdrop" id="categoryModal" hidden><div class="small-modal" role="dialog" aria-modal="true" aria-labelledby="categoryTitle"><div class="modal-head"><div><span class="eyebrow">PERSONALIZE A BIBLIOTECA</span><h2 id="categoryTitle">Nova categoria</h2></div><button class="close-btn" id="closeCategoryBtn" aria-label="Fechar">×</button></div><form id="categoryForm"><label class="field"><span>Nome da categoria</span><input name="name" required maxlength="40" placeholder="Ex.: Exercícios"></label><div class="field-row"><label class="field"><span>Emoji</span><input name="emoji" maxlength="8" placeholder="🏋️" value="📁"></label><label class="field"><span>Cor</span><input name="color" type="color" value="#64748b"></label></div><div class="modal-footer"><button class="button button-outline" type="button" id="cancelCategoryBtn">Cancelar</button><button class="button button-primary" type="submit">Criar categoria</button></div></form></div></div>
 
   <div class="login-overlay" id="loginOverlay"><div class="login-card"><div class="login-logo"><span class="brand-icon">▶</span><strong>relembra<span class="brand-dot">.</span></strong></div><div class="login-decoration">✧</div><div class="eyebrow">SEU ESPAÇO PRIVADO</div><h1>Bem-vindo de volta.</h1><p>Suas ideias, vídeos e descobertas estão esperando por você.</p><form id="loginForm"><label class="field"><span>Senha de acesso</span><input type="password" name="password" id="passwordInput" placeholder="Digite sua senha" required autocomplete="current-password"></label><button class="button button-primary login-submit" type="submit">Entrar na minha biblioteca →</button></form><p class="login-error" id="loginError" role="alert"></p><small>🔒 Apenas você pode acessar esta biblioteca.</small></div></div>
