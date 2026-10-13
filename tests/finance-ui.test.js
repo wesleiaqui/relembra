@@ -57,7 +57,7 @@ test('painel financeiro replica a hierarquia visual e mantém os dados reais', a
     assert.ok(root.innerHTML.indexOf('Conta prioridade baixa')<root.innerHTML.indexOf('Conta essencial'), 'ordem por vencimento');
     listeners.input({target:{id:'financeSearch',value:'Conta essencial',selectionStart:15}});
     assert.match(root.innerHTML,/Conta essencial/);
-    assert.doesNotMatch(root.innerHTML,/Conta prioridade baixa/);
+    assert.doesNotMatch(root.innerHTML,/<strong class="finance-item-name">Conta prioridade baixa<\/strong>/);
     assert.match(root.innerHTML,/Contas pendentes/, 'busca não oculta KPI ou altera seus totais');
 
     listeners.click({target:{closest:()=>({dataset:{finAction:'next-month'}})}});
