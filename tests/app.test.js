@@ -336,3 +336,16 @@ test('chat filtra Mirage e lista fichas salvas', async () => {
   assert.equal(result.sources[0].id, mirage.data.video.id);
   assert.match(result.answer, /JANELA MIRAGE/);
 });
+
+test('chat de viagens mostra titulos mesmo sem transcricao', async () => {
+  const { req } = setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const base = { url:'https://instagram.com/p/turismo/', category:'turismo', summary:'', transcript:'', notes:'' };
+  await req('/api/videos','POST',{...base,title:'PRAIA DO PONTAL ARRAIAL DO CABO'});
+  await req('/api/videos','POST',{...base,title:'PARQUE AQUATICO WET N WILD'});
+  const result = (await req('/api/chat','POST',{message:'Quais lugares para viajar eu salvei?'})).data;
+  assert.equal(result.sources.length,2);
+  assert.match(result.answer,/PRAIA DO PONTAL/);
+  assert.match(result.answer,/WET N WILD/);
+  assert.equal(result.aiUsed,false);
+});
