@@ -1,9 +1,9 @@
 {
   "name": "relembra-cloudflare",
   "private": true,
-  "version": "1.21.0",
+  "version": "1.22.0",
   "type": "module",
-  "description": "Relembra — modo escuro em grafite e azul-aço, sem lilás/violeta",
+  "description": "Relembra — modo escuro grafite editorial e areia fosca, sem roxo ou ciano",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
