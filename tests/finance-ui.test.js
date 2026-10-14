@@ -93,3 +93,21 @@ test('ação de pagamento sempre abre formulário com data, valor, método e ori
   assert.match(src,/\/api\/finance\/bills\/'\+id\+'\/payment'/);
   assert.match(styles,/\.finance-payment-modal/);
 });
+
+
+test('contas fixas: formulário, painel, gerenciamento e mês selecionado',()=>{
+ const frontend=readFileSync(new URL('../public/finance.js',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../public/finance.css',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+ assert.match(frontend,/Repetir todos os meses/);
+ assert.match(frontend,/data-fin-action/);
+ assert.match(frontend,/function openRecurringManager/);
+ assert.match(frontend,/function openRecurringEditor/);
+ assert.match(frontend,/if\(action==='manage-recurring'\)/);
+ assert.match(frontend,/api\('\/api\/finance\/recurring'/);
+ assert.match(frontend,/recurring_id/);
+ assert.match(frontend,/\/api\/finance\?month=/);
+ assert.match(css,/finance-recurring-check/);
+ assert.match(css,/finance-recurring-modal/);
+ assert.match(app,/financeGroups\.recurring/,'backup importa modelos de recorrência');
+});
