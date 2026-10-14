@@ -136,22 +136,22 @@ body[data-visual-theme][data-color-mode="dark"][data-dark-palette="petrol"]{
   --palette-kpi-border:#416169;
 }
 body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"]{
-  --palette-bg:#080a0b;
-  --palette-bg-solid:#080a0b;
-  --palette-sidebar:#0b0d0e;
-  --palette-top:#0e1011;
-  --palette-surface:#171a1b;
-  --palette-raised:#232728;
-  --palette-base:#111415;
-  --palette-border:#34393a;
-  --palette-strong:#505858;
-  --palette-text:#f1f3ef;
-  --palette-muted:#b9c3be;
-  --palette-accent:#cebc9e;
-  --palette-accent-hover:#dfceb2;
-  --palette-active:#343027;
-  --palette-kpi:#1d2020;
-  --palette-kpi-border:#444743;
+  --palette-bg:#000000;
+  --palette-bg-solid:#000000;
+  --palette-sidebar:#050505;
+  --palette-top:#080808;
+  --palette-surface:#111111;
+  --palette-raised:#1b1b1b;
+  --palette-base:#0c0c0c;
+  --palette-border:#303030;
+  --palette-strong:#494949;
+  --palette-text:#f2f2f2;
+  --palette-muted:#bfbfbf;
+  --palette-accent:#dddddd;
+  --palette-accent-hover:#f2f2f2;
+  --palette-active:#252525;
+  --palette-kpi:#151515;
+  --palette-kpi-border:#363636;
 }
 body[data-visual-theme][data-color-mode="dark"][data-dark-palette="wine"]{
   --palette-bg:#20161b;
