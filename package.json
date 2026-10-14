@@ -1,9 +1,9 @@
 {
   "name": "relembra-cloudflare",
   "private": true,
-  "version": "1.15.0",
+  "version": "1.16.0",
   "type": "module",
-  "description": "Relembra — Início com prioridades, chat e busca integrados, finanças e calendário da vida",
+  "description": "Relembra — interfaces Clássico e Atlas com modos claro e escuro independentes",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
