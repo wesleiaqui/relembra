@@ -1,4 +1,5 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
+import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
@@ -563,6 +564,7 @@ async function handle(request, env) {
   if (!user) return error('Faça login para acessar sua biblioteca.',401);
   if (path === '/api/me' && method === 'GET') return json({user:{username:user.username,role:user.role}});
   if (path === '/api/finance' || path.startsWith('/api/finance/')) return handleFinance(request,env,user);
+  if (/^\/api\/(radar|life|habits|history|backup\/images|search\/all)(\/|$)/.test(path)) return handleCompanion(request,env,user);
   if (path === '/api/invites' && method === 'POST') {
     if (user.role!=='owner')return error('Somente a conta principal pode convidar.',403);
     const code=randomCode(),hash=await sha256(code),stamp=now();
@@ -667,6 +669,7 @@ async function handle(request, env) {
     if (method === 'GET') return json({ tip: previous });
     if (method === 'DELETE') {
       await env.DB.prepare('DELETE FROM situational_tips WHERE id=? AND owner_id=?').bind(id,user.id).run();
+      await env.DB.prepare("DELETE FROM saved_versions WHERE owner_id=? AND entity_type='tip' AND entity_id=?").bind(user.id,id).run();
       return json({ ok: true });
     }
     if (method === 'PATCH') {
@@ -680,6 +683,7 @@ async function handle(request, env) {
       let input;
       try { input = validateTip(await getBody(request, 10000)); }
       catch(e) { return error(e.message); }
+      await archiveVersion(env,user.id,'tip',id,previous);
       await env.DB.prepare('UPDATE situational_tips SET title=?, content=?, situation=?, kind=?, favorite=?, source_url=?, updated_at=? WHERE id=? AND owner_id=?')
         .bind(...tipValues(input), now(), id,user.id).run();
       return json({ tip: await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE id=? AND owner_id=?`).bind(id,user.id).first() });
@@ -756,14 +760,16 @@ async function handle(request, env) {
     if (method === 'DELETE') {
       await env.DB.prepare('DELETE FROM video_images WHERE video_id = ?').bind(id).run();
       await env.DB.prepare('DELETE FROM videos WHERE id = ? AND owner_id=?').bind(id,user.id).run();
+      await env.DB.prepare("DELETE FROM saved_versions WHERE owner_id=? AND entity_type='video' AND entity_id=?").bind(user.id,id).run();
       return json({ ok: true });
     }
     if (method === 'PUT') {
-      const old = await env.DB.prepare('SELECT id FROM videos WHERE id = ? AND owner_id=?').bind(id,user.id).first();
+      const old = await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos WHERE id = ? AND owner_id=?`).bind(id,user.id).first();
       if (!old) return error('Vídeo não encontrado.', 404);
       const input = validateVideo(await getBody(request));
       const cat = await env.DB.prepare('SELECT id FROM categories WHERE id = ? AND owner_id=?').bind(input.category,user.id).first();
       if (!cat) return error('Categoria não encontrada.');
+      await archiveVersion(env,user.id,'video',id,old);
       await env.DB.prepare('UPDATE videos SET url=?, title=?, category=?, summary=?, transcript=?, notes=?, tags=?, cover_url=?, favorite=?, watched=?, updated_at=?, visual_description=? WHERE id=? AND owner_id=?')
         .bind(input.url, input.title, input.category, input.summary, input.transcript, input.notes, input.tags, input.cover_url, input.favorite, input.watched, now(), input.visual_description, id,user.id).run();
       const video = await env.DB.prepare(`SELECT ${FULL_COLUMNS}, EXISTS(SELECT 1 FROM video_images vi WHERE vi.video_id=videos.id) AS has_image FROM videos WHERE id = ? AND owner_id=?`).bind(id,user.id).first();
@@ -780,12 +786,12 @@ async function handle(request, env) {
     const videos = (await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
     const thoughts = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
     const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE owner_id=? ORDER BY created_at ASC LIMIT 5000`).bind(user.id).all()).results;
-    const file = { format: 'relembra-v1.10', exported_at: now(), categories: await categories(env,user.id), videos, thoughts, tips, finances: await exportFinances(env,user.id) };
+    const file = { format: 'relembra-v1.10', exported_at: now(), categories: await categories(env,user.id), videos, thoughts, tips, finances: await exportFinances(env,user.id), extras: await exportCompanion(env,user.id) };
     return json(file, 200, { 'content-disposition': `attachment; filename="relembra-backup-${new Date().toISOString().slice(0, 10)}.json"` });
   }
   if (path === '/api/import' && method === 'POST') {
     const body = await getBody(request, 4000000);
-    if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts) && !Array.isArray(body.tips) && !body.finances) return error('Backup inválido: faltam conteúdos restauráveis.');
+    if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts) && !Array.isArray(body.tips) && !body.finances && !body.extras) return error('Backup inválido: faltam conteúdos restauráveis.');
     if ((body.videos || []).length > 250 || (body.thoughts || []).length > 250 || (body.tips || []).length > 250) return error('Importe até 250 itens de cada tipo por lote.');
     const existingCategories = await categories(env,user.id);
     const categoryMap = new Set(existingCategories.map(c => c.id));
@@ -854,7 +860,8 @@ async function handle(request, env) {
       } catch { tipsSkipped++; }
     }
     const financeImport = await importFinances(env,user.id,body.finances);
-    return json({ imported, skipped, thoughtsImported, thoughtsSkipped, tipsImported, tipsSkipped, financeImported:financeImport.imported, financeSkipped:financeImport.skipped });
+    const extrasImport = await importCompanion(env,user.id,body.extras);
+    return json({ imported, skipped, thoughtsImported, thoughtsSkipped, tipsImported, tipsSkipped, financeImported:financeImport.imported, financeSkipped:financeImport.skipped, extrasImported:extrasImport.imported, extrasSkipped:extrasImport.skipped });
   }
   return error('Rota não encontrada.', 404);
 }
