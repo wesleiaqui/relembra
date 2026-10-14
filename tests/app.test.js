@@ -949,3 +949,26 @@ test('pagamentos entram no backup e não são alterados por outra conta', async 
   assert.equal(restored.bills[0].paid_amount_cents,7200);
   assert.notEqual(restored.bills[0].id,created.data.id,'outro usuário recebe ID diferente');
 });
+
+
+test('migração 0010 preserva pagamentos anteriores sem inventar método',()=>{
+  const db=new DatabaseSync(':memory:');
+  for (let n=1;n<=9;n++){
+    const names=['0001_initial','0002_visual','0003_multiple_records','0004_thought_journal',
+      '0005_situational_tips','0006_private_accounts','0007_focus_productivity_tips',
+      '0008_motivation_tips','0009_finances'];
+    db.exec(readFileSync(new URL('../migrations/'+names[n-1]+'.sql',import.meta.url),'utf8'));
+  }
+  db.prepare("INSERT INTO app_users(id,username,password_salt,password_hash,role,created_at) VALUES (?,?,?,?,?,?)")
+    .run('u1','usuario-teste','sal','hash','owner','2026-10-10');
+  db.prepare("INSERT INTO finance_bills(id,owner_id,name,amount_cents,due_date,priority,essential,paid_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)")
+    .run('bill1','u1','Conta legada',21000,'2026-10-11',2,1,'2026-10-12','2026-10-10','2026-10-12');
+  db.exec(readFileSync(new URL('../migrations/0010_bill_payment_details.sql',import.meta.url),'utf8'));
+  const bill=db.prepare('SELECT * FROM finance_bills WHERE id=?').get('bill1');
+  assert.equal(bill.amount_cents,21000);
+  assert.equal(bill.paid_at,'2026-10-12');
+  assert.equal(bill.paid_amount_cents,21000);
+  assert.equal(bill.payment_method,null);
+  assert.equal(bill.payment_source,'');
+  db.close();
+});
