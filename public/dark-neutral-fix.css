@@ -26,16 +26,16 @@ body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"]{
   --neutral-bg:#000000;
   --neutral-sidebar:#050505;
   --neutral-top:#080808;
-  --neutral-card:#111111;
-  --neutral-elevated:#1b1b1b;
-  --neutral-input:#0c0c0c;
-  --neutral-border:#303030;
-  --neutral-strong:#494949;
+  --neutral-card:#0b0b0b;
+  --neutral-elevated:#141414;
+  --neutral-input:#080808;
+  --neutral-border:#282828;
+  --neutral-strong:#383838;
   --neutral-text:#f2f2f2;
   --neutral-muted:#bfbfbf;
   --neutral-accent:#dddddd;
   --neutral-hover:#f2f2f2;
-  --neutral-active:#252525;
+  --neutral-active:#1a1a1a;
   --neutral-fin-btn:#dddddd;
   --neutral-fin-hover:#f2f2f2;
   --neutral-fin-text:#101010;
@@ -288,3 +288,108 @@ body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palet
 }
 /* Vencimentos em vermelho, pendências em âmbar e recebimentos em verde
    permanecem em indicadores pequenos (.finance-pill), não em grandes fundos. */
+
+
+/* Ajuste OLED: tudo o que ocupa uma área grande é preto, não grafite amarronzado.
+   O texto dos estados continua semântico, mas SEM fundo colorido ou faixas. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-balance,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-pending,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-coverage,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-goal-card,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-planning,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-planning .finance-summary,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-footer,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-planned-note{
+  background:#0b0b0b;
+  background-image:none;
+  border-color:#282828;
+  box-shadow:none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table th,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-row-menu summary,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-menu-options{
+  background:#141414;
+  border-color:#282828;
+  color:#c9c9c9;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr:nth-child(even),
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr.finance-overdue,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr.finance-overdue:nth-child(even){
+  background:#0b0b0b;
+  background-image:none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr.finance-overdue:hover{
+  background:#171717;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr.finance-overdue td:first-child{
+  box-shadow:none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table td,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-summary-row,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-head{
+  background-color:transparent;
+  border-color:#252525;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi > .finance-icon,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-icon-balance,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-icon-coverage,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-icon-pending{
+  background:#191919;
+  border:1px solid #323232;
+  box-shadow:none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-bad,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-warn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-ok,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-essential,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-planned,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-neutral{
+  background:#191919;
+  border:1px solid #343434;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-bad{
+  color:#ff8989;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-warn{
+  color:#f8cb80;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-ok,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-essential{
+  color:#92d5b1;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-priority.finance-priority-high,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-priority{
+  background:#1a1a1a;
+  color:#cdcdcd;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-month-controls > button,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-sort select,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-month-input input,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-search{
+  background:#080808;
+  border-color:#363636;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-head .finance-btn[data-fin-action="manage-recurring"]{
+  background:#161616;
+  border-color:#353535;
+  color:#ededed;
+}
+/* Acabamento neutro fora do financeiro para não manter tons quentes na navegação. */
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .dark-palette-menu,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #chatView .chat-single-shell{
+  background:#0b0b0b;
+  border-color:#292929;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #chatView .chat-workspace-top,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #chatView .chat-composer-area{
+  background:#0b0b0b;
+  border-color:#292929;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #chatView .chat-workspace-composer{
+  background:#080808;
+  border-color:#3a3a3a;
+}
