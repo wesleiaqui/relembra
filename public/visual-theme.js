@@ -1,6 +1,6 @@
 // A escolha é local a este navegador: nenhuma preferência ou dado pessoal é enviado ao servidor.
 const STORAGE_KEY = 'relembra-visual-theme';
-const OPTIONS = Object.freeze(['classic','lume']);
+const OPTIONS = Object.freeze(['classic','lume','atlas']);
 export function normalizeVisualTheme(value) {
   return OPTIONS.includes(value) ? value : 'classic';
 }
@@ -18,6 +18,9 @@ export function setVisualTheme(value,{documentRef=globalThis.document,storage=gl
     control.classList.toggle('selected',selected);
   }
   if(persist){try{storage?.setItem(STORAGE_KEY,theme)}catch{}}
+  if(typeof CustomEvent!=='undefined'&&typeof documentRef.dispatchEvent==='function') {
+    documentRef.dispatchEvent(new CustomEvent('relembra:theme-change',{detail:{theme}}));
+  }
   return theme;
 }
 export function setupVisualTheme({documentRef=globalThis.document,windowRef=globalThis.window,storage=globalThis.localStorage}={}) {
