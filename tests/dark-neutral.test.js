@@ -53,6 +53,6 @@ test('finanças, chat, cabeçalho e cartões usam o mesmo conjunto de cores',()=
     '#chatView .chat-workspace-messages .message.user .bubble',
     '.sidebar','.topbar','.dark-palette-menu'
   ])assert.ok(css.includes(selector),'Faltou corrigir: '+selector);
-  assert.match(css,/#financeRoot \.finance-table tbody tr\.finance-overdue\.nth-child\(even\)/);
+  assert.match(css,/#financeRoot \.finance-table tbody tr\.finance-overdue:nth-child\(even\)/);
   assert.doesNotMatch(css,/\.finance-pill\.finance-bad\s*\{|\.finance-pill\.finance-warn\s*\{|\.finance-pill\.finance-ok\s*\{/);
 });
