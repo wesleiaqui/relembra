@@ -5,7 +5,7 @@ const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+
 const human=d=>d&&/^\d{4}-\d\d-\d\d/.test(d)?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):'';
 const money=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n||0)/100);
 let api,navigate,toast,editVideo,openTip,editThought;
-let radar=null,life=null,habits=null,selectedWeek=null,searchSerial=0,lifeLoadSerial=0,radarSerial=0;
+let radar=null,life=null,habits=null,selectedWeek=null,lifeLoadSerial=0,radarSerial=0;
 function download(name,blob){
   const url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
@@ -103,20 +103,14 @@ export async function loadHomeRadar(){
     for(const id of ['homeRadar','homeBills','homeHabits']) $(id).textContent='Não foi possível carregar agora. Tente abrir o Radar.';
   }
 }
-const typeLabels={video:'Vídeo',tip:'Dica',moment:'Momento da vida',task:'Tarefa',reflection:'Reflexão antiga',bill:'Conta financeira',income:'Lançamento financeiro'};
-export async function loadUniversalSearch(){
-  const serial=++searchSerial,q=$('chatInput').value.trim(),finance=$('universalFinance').checked;
-  const container=$('universalResults');
-  if(q.length<2){container.textContent='Digite pelo menos duas letras para pesquisar.';return;}
-  container.textContent='Pesquisando na sua biblioteca...';
-  try{
-    const r=await api('/api/search/all?q='+encodeURIComponent(q)+'&finance='+(finance?'1':'0'));
-    if(serial!==searchSerial)return;
-    if(!r.results.length){container.innerHTML='<div class="universal-empty">Nenhum resultado. Tente outras palavras ou confira o filtro financeiro.</div>';return;}
-    container.innerHTML=r.results.map(x=>'<button class="universal-card" type="button" data-search-id="'+esc(x.id)+'" data-search-type="'+esc(x.type)+'"><span class="universal-type">'+esc(typeLabels[x.type]||x.type)+'</span><strong>'+esc(x.title)+'</strong><p>'+esc(x.detail||'')+'</p></button>').join('');
-  }catch(e){if(serial===searchSerial)container.textContent='Não foi possível pesquisar: '+e.message;}
+// A pesquisa agora faz parte do fluxo do Chat, não possui tela ou caixa de resultados próprias.
+export async function searchMemory(query,includeFinance=false){
+  const q=String(query||'').trim();
+  if(q.length<2)return [];
+  const result=await api('/api/search/all?q='+encodeURIComponent(q)+'&finance='+(includeFinance?'1':'0'));
+  return Array.isArray(result.results)?result.results:[];
 }
-async function openSearchItem(type,id){
+export async function openSearchItem(type,id){
   if(type==='video'){await editVideo(id);return;}
   if(type==='tip'){await navigate('tips');openTip(id);return;}
   if(type==='moment'){await navigate('life');selectMoment(id);return;}
@@ -198,8 +192,8 @@ export async function loadHabits(){
   }catch(e){n.textContent=e.message;}
 }
 export function resetCompanion(){
-  ++radarSerial;++lifeLoadSerial;++searchSerial;radar=null;life=null;habits=null;selectedWeek=null;
-  for(const id of ['radarContent','universalResults','lifeOverview','lifeWeeks','lifeMomentsList','motivationHabits','homeRadar','homeBills','homeHabits']){
+  ++radarSerial;++lifeLoadSerial;radar=null;life=null;habits=null;selectedWeek=null;
+  for(const id of ['radarContent','lifeOverview','lifeWeeks','lifeMomentsList','motivationHabits','homeRadar','homeBills','homeHabits']){
     const el=$(id);if(el)el.replaceChildren();
   }
   $('universalFinance').checked=false;
@@ -327,12 +321,6 @@ export function setupCompanion(options){
     const checkbox=e.target.closest('[data-task-check]');if(!checkbox)return;
     try{await api('/api/radar/tasks/'+checkbox.dataset.taskCheck,{method:'PATCH',body:JSON.stringify({done:checkbox.checked})});await loadRadar();}
     catch(err){toast(err.message,true);await loadRadar();}
-  });
-  $('universalFinance').addEventListener('change',()=>{
-    if(!$('universalResults').hidden&&$('chatInput').value.trim().length>=2)loadUniversalSearch();
-  });
-  $('universalResults').addEventListener('click',e=>{
-    const item=e.target.closest('[data-search-id]');if(item)openSearchItem(item.dataset.searchType,item.dataset.searchId);
   });
   $('lifeProfileForm').addEventListener('submit',async e=>{
     e.preventDefault();
