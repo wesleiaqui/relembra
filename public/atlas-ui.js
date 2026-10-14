@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const types={video:'Vídeo',tip:'Dica pessoal',moment:'Momento',task:'Tarefa',reflection:'Reflexão'};
-let api,navigate,editVideo,openTipEditor,editThought,openEditor,loadUniversalSearch;
+let api,navigate,editVideo,openTipEditor,editThought,openEditor,openUnifiedSearch;
 let serial=0,timer,priorFocus=null,initialized=false;
 
 export function renderAtlasCollections(categories=[],active='all'){
@@ -84,16 +84,12 @@ export async function searchAtlas(query){
 async function showCompleteSearch(){
   const q=$('atlasCommandQuery').value.trim();
   closeAtlasCommand();
-  await navigate('search');
-  if(q){
-    $('universalQuery').value=q;
-    await loadUniversalSearch();
-  }else $('universalQuery').focus();
+  await openUnifiedSearch(q);
 }
 export function setupAtlasUI(options){
   if(initialized)return;
   initialized=true;
-  ({api,navigate,editVideo,openTipEditor,editThought,openEditor,loadUniversalSearch}=options);
+  ({api,navigate,editVideo,openTipEditor,editThought,openEditor,openUnifiedSearch}=options);
   const hint=$('atlasCommandTrigger').querySelector('kbd');
   if(hint)hint.textContent=/Mac|iPhone|iPad/.test(navigator.platform||'')?'⌘ K':'Ctrl K';
   $('atlasCommandTrigger').addEventListener('click',openAtlasCommand);
