@@ -648,3 +648,219 @@ body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finan
   border-color: #343b3b;
   color: #b9c1bc;
 }
+
+
+/* --------------------------------------------------------------
+   ACABAMENTO CARVÃO + AREIA: nenhum roxo/ciano mesmo no Atlas.
+   Tons sem brilho; hierarquia por tipografia e contraste, não cor.
+   -------------------------------------------------------------- */
+body[data-visual-theme][data-color-mode="dark"] {
+  --night-bg: #111314;
+  --night-base: #171a1b;
+  --night-sidebar: #141718;
+  --night-card: #1d2122;
+  --night-elevated: #272c2c;
+  --night-border: #343b3b;
+  --night-strong-border: #4a5351;
+  --night-text: #ecede9;
+  --night-secondary: #b9c1bc;
+  --night-muted: #99a59e;
+  --night-accent: #c9b18f;
+  --night-green: #80b69d;
+  --night-yellow: #e2b980;
+  --night-red: #e29a94;
+  --primary: #c9b18f;
+  --primary2: #e0c9a7;
+}
+body[data-visual-theme][data-color-mode="dark"] .workspace {
+  background: #111314;
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .workspace {
+  background: linear-gradient(165deg,#131616,#111314 60%);
+}
+body[data-visual-theme][data-color-mode="dark"] .topbar,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .topbar {
+  background: #151819;
+  border-bottom: 1px solid #303637;
+}
+body[data-visual-theme][data-color-mode="dark"] .sidebar,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .sidebar {
+  background: #151819;
+  border-color: #303637;
+}
+body[data-visual-theme][data-color-mode="dark"] .brand-icon,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .brand-icon {
+  background: #494133;
+  box-shadow: none;
+  color: #e8d9bd;
+}
+body[data-visual-theme][data-color-mode="dark"] .nav-item,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .nav-item{
+  color: #b9c1bc;
+}
+body[data-visual-theme][data-color-mode="dark"] .nav-item:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .nav-item:hover,
+body[data-visual-theme][data-color-mode="dark"] .category-item:hover {
+  color: #e8e9e3;
+  background: #252a2a;
+}
+body[data-visual-theme][data-color-mode="dark"] .nav-item.active,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .nav-item.active {
+  color: #f2eee7;
+  background: #302e28;
+  box-shadow: inset 3px 0 0 #c9b18f;
+}
+body[data-visual-theme][data-color-mode="dark"] .nav-item.active .nav-icon,
+body[data-visual-theme][data-color-mode="dark"] .brand-dot,
+body[data-visual-theme][data-color-mode="dark"] .eyebrow,
+body[data-visual-theme][data-color-mode="dark"] .gradient-star,
+body[data-visual-theme][data-color-mode="dark"] .text-link,
+body[data-visual-theme][data-color-mode="dark"] .companion-heading h1 em,
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-page-heading h1 span {
+  color: #c9b18f;
+}
+body[data-visual-theme][data-color-mode="dark"] .appearance-settings .visual-theme-control,
+body[data-visual-theme][data-color-mode="dark"] .appearance-settings .visual-color-control,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .appearance-settings .visual-theme-control{
+  background: #202424;
+  border-color: #383f3c;
+}
+body[data-visual-theme][data-color-mode="dark"] .appearance-settings .visual-theme-option.selected,
+body[data-visual-theme][data-color-mode="dark"] .appearance-settings .visual-color-option.selected,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .appearance-settings .visual-theme-option.selected {
+  background: #39352e;
+  color: #f3eee5;
+  box-shadow: none;
+}
+body[data-visual-theme][data-color-mode="dark"] .button-primary,
+body[data-visual-theme][data-color-mode="dark"] .send-btn,
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-workspace-composer .send-btn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel-head .finance-btn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-save {
+  color: #1a1b19;
+  background: #c2a77f;
+  border: 1px solid #c2a77f;
+  box-shadow: none;
+}
+body[data-visual-theme][data-color-mode="dark"] .button-primary:hover,
+body[data-visual-theme][data-color-mode="dark"] .send-btn:hover:not(:disabled),
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-workspace-composer .send-btn:hover:not(:disabled),
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel-head .finance-btn:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-save:hover {
+  background: #d5bc98;
+  border-color: #d5bc98;
+  color: #141615;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-goal-top .finance-btn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-menu-options .finance-btn {
+  background: #272c2c;
+  color: #e6e4db;
+  border: 1px solid #424946;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-delete {
+  background: #3b2929;
+  color: #efb3ab;
+  border: 1px solid #74504d;
+}
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-single-shell,
+body[data-visual-theme][data-color-mode="dark"] .radar-panel,
+body[data-visual-theme][data-color-mode="dark"] .radar-snapshot,
+body[data-visual-theme][data-color-mode="dark"] .radar-reflection,
+body[data-visual-theme][data-color-mode="dark"] .home-work-section,
+body[data-visual-theme][data-color-mode="dark"] .video-card,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi{
+  background: #1d2122;
+  border-color: #343b3b;
+  box-shadow: none;
+}
+body[data-visual-theme][data-color-mode="dark"] .hero,
+body[data-visual-theme][data-color-mode="dark"] .tips-hero {
+  background: linear-gradient(130deg,#222727,#2a2925);
+  border: 1px solid #414039;
+  box-shadow: none;
+}
+body[data-visual-theme][data-color-mode="dark"] .hero-glow {
+  background: radial-gradient(ellipse,rgb(201 177 143 / 6%),transparent 72%);
+}
+body[data-visual-theme][data-color-mode="dark"] .home-task-item,
+body[data-visual-theme][data-color-mode="dark"] .home-bill-item,
+body[data-visual-theme][data-color-mode="dark"] .home-habit-item,
+body[data-visual-theme][data-color-mode="dark"] .radar-empty-state,
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-welcome-suggestions button,
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-memory-result{
+  background: #272c2c;
+  border-color: #343b3b;
+}
+body[data-visual-theme][data-color-mode="dark"] .radar-bill-row:hover,
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-welcome-suggestions button:hover,
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-memory-result:hover,
+body[data-visual-theme][data-color-mode="dark"] .video-card:hover{
+  background: #303433;
+  border-color: #746b59;
+}
+body[data-visual-theme][data-color-mode="dark"] #chatView{
+  --cw-surface: #1d2122;
+  --cw-muted-surface: #272c2c;
+  --cw-tile: #272c2c;
+  --cw-border: #343b3b;
+  --cw-border-soft: #343b3b;
+  --cw-text: #ecede9;
+  --cw-muted: #b9c1bc;
+  --cw-soft: #d4d8cf;
+  --cw-accent: #c9b18f;
+  --cw-action: #c2a77f;
+  --cw-action-hover: #d5bc98;
+}
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-avatar,
+body[data-visual-theme][data-color-mode="dark"] #chatView .bot-avatar {
+  background: #4b4234;
+  color: #e8d5b4;
+  box-shadow: none;
+}
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-workspace-messages .message.user .bubble {
+  color: #f3eee3;
+  background: #3b3831;
+  border-color: #615442;
+}
+body[data-visual-theme][data-color-mode="dark"] #chatView .chat-workspace-composer{
+  background: #171a1b;
+  border-color: #49504b;
+}
+body[data-visual-theme][data-color-mode="dark"] .filter-bar,
+body[data-visual-theme][data-color-mode="dark"] .search-field,
+body[data-visual-theme][data-color-mode="dark"] .select-field,
+body[data-visual-theme][data-color-mode="dark"] .view-mode-switch,
+body[data-visual-theme][data-color-mode="dark"] .atlas-command-trigger{
+  color: #d5dad3;
+  background: #232829;
+  border-color: #383f3d;
+}
+body[data-visual-theme][data-color-mode="dark"] .atlas-collection-chip.active,
+body[data-visual-theme][data-color-mode="dark"] .view-mode-btn.active{
+  color: #e8dac0;
+  background: #36342d;
+  border-color: #655a49;
+}
+body[data-visual-theme][data-color-mode="dark"] .life-week.lived{background:#59615a}
+body[data-visual-theme][data-color-mode="dark"] .life-week.present{background:#c2a77f}
+body[data-visual-theme][data-color-mode="dark"] .life-week.saved{background:#6e9f88}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table th{
+  background:#242a29;color:#c4ccc4;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table tbody tr:hover{
+  background:rgb(201 177 143 / 6%);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table tbody tr.finance-overdue{
+  background:rgb(226 154 148 / 5%);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel-footer,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-planned-note{
+  background:#171a1b;
+  color:#b9c1bc;
+  border-color:#343b3b;
+}
+body[data-visual-theme][data-color-mode="dark"] :is(button,input,textarea,select,summary):focus-visible{
+  outline:2px solid #c9b18f;
+  outline-offset:2px;
+}
