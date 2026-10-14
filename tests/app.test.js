@@ -1203,7 +1203,7 @@ test('novos componentes existem sem substituir ou excluir os dados do diário an
   const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
   const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
   const client=readFileSync(new URL('../public/companion.js',import.meta.url),'utf8');
-  for(const id of ['radarView','chatView','lifeView','lifeWeeks','lifeOverview','lifeMomentForm','chatInput','universalResults','universalFinance','radarContent','homeBills','homeHabits','homeQuickTaskForm','backupImagesBtn','restoreImagesFile','historyModal','motivationHabits'])
+  for(const id of ['radarView','chatView','lifeView','lifeWeeks','lifeOverview','lifeMomentForm','chatInput','universalFinance','radarContent','homeBills','homeHabits','homeQuickTaskForm','backupImagesBtn','restoreImagesFile','historyModal','motivationHabits'])
     assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
   assert.match(html,/id="thoughtsView"/);
   assert.match(html,/lifeOldDiary/);
@@ -1219,22 +1219,57 @@ test('home acionável e busca universal integrada ao Chat em todos os temas', ()
   const companion=readFileSync(new URL('../public/companion.js',import.meta.url),'utf8');
   const css=readFileSync(new URL('../public/home-workspace.css',import.meta.url),'utf8');
   const atlas=readFileSync(new URL('../public/atlas-ui.js',import.meta.url),'utf8');
-  for(const id of ['homeRadar','homeQuickTaskForm','homeQuickTaskTitle','homeQuickTaskDate','homeBills','homeHabits','homeGrid','chatView','chatMessages','universalResults','universalFinance','chatInput','chatForm'])
+  for(const id of ['homeRadar','homeQuickTaskForm','homeQuickTaskTitle','homeQuickTaskDate','homeBills','homeHabits','homeGrid','chatView','chatMessages','universalFinance','chatInput','chatForm'])
     assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
   assert.doesNotMatch(html,/id="searchView"|id="universalQuery"|data-view="favorites"|data-view="unwatched"|data-view="search"/);
   assert.doesNotMatch(html,/name="watched" type="checkbox"><span>|Marcar como favorito|Já assisti<\/label>/);
   assert.doesNotMatch(app,/function toggleFavorite\(|data-fav=/);
-  assert.match(html,/data-chat-mode="search"/);
-  assert.match(html,/data-chat-mode="ai"/);
-  assert.match(app,/function setChatMode\(mode\)/);
-  assert.match(app,/if\(chatMode==='search'\) await loadUniversalSearch\(\)/);
-  assert.match(app,/else await submitChat\(q\)/);
+  assert.doesNotMatch(html,/data-chat-mode=|id="universalResults"|id="chatModeDescription"/);
+  assert.equal((html.match(/id="chatForm"/g)||[]).length,1);
+  assert.match(app,/Promise\.allSettled\(\[/);
+  assert.match(app,/searchMemory\(q,includeFinance\)/);
+  assert.match(app,/api\('\/api\/chat',\{method:'POST'/);
+  assert.match(app,/appendMemoryResults\(block,results/);
+  assert.match(app,/openSearchItem\(item\.dataset\.memoryType,item\.dataset\.memoryId\)/);
   assert.match(companion,/api\('\/api\/radar\/tasks\/'\+checkbox\.dataset\.homeTaskId/);
   assert.match(companion,/api\('\/api\/habits\/'\+checkbox\.dataset\.homeHabitId/);
   assert.match(companion,/api\('\/api\/search\/all\?q='\+encodeURIComponent\(q\)\+'&finance='/);
   assert.match(atlas,/openUnifiedSearch\(q\)/);
   assert.doesNotMatch(atlas,/api\/search\/all/);
   assert.match(css,/\.home-focus-grid/);
-  assert.match(css,/\.chat-unified-switch/);
+  assert.match(readFileSync(new URL('../public/chat-radar-refinement.css',import.meta.url),'utf8'),/\.chat-single-shell/);
   assert.match(css,/body\[data-visual-theme="atlas"\] #homeView:not\(\[hidden\]\)\{display:block!important\}/);
+});
+
+test('Chat pesquisa perguntas naturais sem busca duplicada e não expõe finanças sem consentimento',async()=>{
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const tip=await req('/api/tips','POST',{title:'Economizar dinheiro',content:'Planejar gastos e montar reserva',situation:'Financeiro pessoal',kind:'dica'});
+  assert.equal(tip.status,201);
+  const termQuery=encodeURIComponent('Quais dicas eu tenho sobre economizar dinheiro?');
+  const results=(await req('/api/search/all?q='+termQuery+'&terms=1')).data.results;
+  assert.ok(results.some(x=>x.type==='tip'&&x.title==='Economizar dinheiro'));
+  const bill=await req('/api/finance/bills','POST',{name:'Conta particular do mês',amount_cents:10500,due_date:'2026-10-14',essential:true,priority:1});
+  assert.equal(bill.status,201);
+  const q=encodeURIComponent('Preciso rever conta particular do mês');
+  assert.equal((await req('/api/search/all?q='+q+'&terms=1')).data.results.some(x=>x.type==='bill'),false);
+  assert.equal((await req('/api/search/all?q='+q+'&terms=1&finance=1')).data.results.some(x=>x.type==='bill'),true);
+  // O endpoint de IA continua isolado dos registros financeiros e dicas.
+  const chat=(await req('/api/chat','POST',{message:'Conta particular do mês'})).data;
+  assert.equal(chat.sources.some(x=>x.title==='Conta particular do mês'),false);
+});
+test('Radar não cria painéis vazios altos; separa atrasos e mantém ações privadas',()=>{
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const companion=readFileSync(new URL('../public/companion.js',import.meta.url),'utf8');
+  const css=readFileSync(new URL('../public/chat-radar-refinement.css',import.meta.url),'utf8');
+  const formIndex=html.indexOf('id="radarTaskForm"'),listIndex=html.indexOf('id="radarContent"');
+  assert.ok(formIndex>=0&&formIndex<listIndex,'A criação de tarefas deve vir antes do painel');
+  assert.match(companion,/radar-main-grid/);
+  assert.match(companion,/radar-empty-state/);
+  assert.match(companion,/radar-bills-more/);
+  assert.match(companion,/data-radar-create/);
+  assert.match(companion,/data-radar-finance/);
+  assert.match(css,/\.radar-main-grid\{[\s\S]{0,160}align-items:start/);
+  assert.match(css,/\.radar-bills-more/);
+  assert.match(css,/body\[data-color-mode="light"\] \.radar-bill-row/);
 });
