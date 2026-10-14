@@ -44,7 +44,7 @@ test('duas interfaces e dois modos: Clássico escuro e Atlas claro como padrões
   assert.equal(sample.documentRef.body.dataset.colorMode,'dark');
   assert.equal(sample.layoutButtons[0].attrs['aria-pressed'],'true');
   assert.equal(sample.colorButtons[1].attrs['aria-pressed'],'true');
-  assert.equal(sample.meta.attributes.content,'#0c1424');
+  assert.equal(sample.meta.attributes.content,'#0b1020');
 });
 test('Clássico e Atlas lembram cores diferentes e trocam imediatamente, sem recarregar',()=>{
   const sample=ui();setupVisualTheme(sample);
