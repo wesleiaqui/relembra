@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/visual-atlas.css">
   <link rel="stylesheet" href="/home-workspace.css">
   <link rel="stylesheet" href="/appearance-modes.css">
+  <link rel="stylesheet" href="/chat-radar-refinement.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -126,21 +127,15 @@
         <section id="chatView" class="view" hidden>
           <header class="page-head"><div><div class="eyebrow">SUA SEGUNDA MEMÓRIA</div><h1>Chat e pesquisa <span class="gradient-star">✧</span></h1><p>Uma única área para encontrar qualquer informação salva ou fazer perguntas à IA sobre seus vídeos.</p></div></header>
           <div class="chat-unified-shell">
-            <div class="chat-unified-heading">
-              <div class="chat-unified-switch" role="group" aria-label="Como deseja consultar sua memória">
-                <button class="chat-mode-button active" type="button" data-chat-mode="search" aria-pressed="true">⌕ Encontrar informações</button>
-                <button class="chat-mode-button" type="button" data-chat-mode="ai" aria-pressed="false">✧ Perguntar à IA</button>
+            <div class="chat-shell chat-single-shell">
+              <div class="chat-top"><div class="chat-avatar">✧</div><div><strong>Converse com sua memória</strong><small>Busco suas anotações automaticamente e posso responder sobre vídeos salvos</small></div><span class="online-pill"><span class="status-dot"></span> Privado</span></div>
+              <div class="chat-messages" id="chatMessages" role="log" aria-label="Conversa e resultados encontrados" aria-live="polite">
+                <div class="chat-welcome"><div class="big-spark">✧</div><h2>O que você quer lembrar?</h2><p>Faça uma pergunta ou escreva o que procura. Vou consultar sua biblioteca, suas dicas e suas anotações na mesma conversa.</p>
+                  <div class="chat-starters"><button type="button" data-prompt="Quais coisas importantes eu salvei recentemente?">⌕ Minhas informações</button><button type="button" data-prompt="Quais lugares para viajar eu salvei?">✧ Minhas viagens</button></div>
+                </div>
               </div>
-              <label class="chat-finance-optin" id="chatFinanceOption"><input id="universalFinance" type="checkbox"> Incluir minhas finanças na pesquisa</label>
-            </div>
-            <div class="chat-unified-description" id="chatModeDescription">Busque em vídeos, dicas, tarefas, momentos e reflexões. Seus dados financeiros ficam excluídos por padrão.</div>
-            <div class="chat-shell"><div class="chat-top"><div class="chat-avatar">✧</div><div><strong>Seu espaço de consulta</strong><small id="chatContextLabel">Encontre registros pessoais sem usar IA</small></div><span class="online-pill"><span class="status-dot"></span> Privado</span></div>
-              <div class="chat-messages" id="chatMessages">
-                <div class="chat-welcome"><div class="big-spark">⌕</div><h2>O que você procura?</h2><p>Pesquise assuntos que você guardou. Quando quiser conversar sobre seus vídeos, escolha “Perguntar à IA”.</p></div>
-              </div>
-              <div class="chat-search-results" id="universalResults" aria-live="polite" hidden><div class="chat-search-empty">Digite um assunto para encontrar seus vídeos, dicas, tarefas e anotações — tudo aqui no Chat.</div></div>
-              <form class="chat-compose" id="chatForm"><input id="chatInput" type="search" placeholder="Ex.: financiamento, foco, uma receita..." required minlength="2" maxlength="500" autocomplete="off"><button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Pesquisar ou perguntar">➤</button></form>
-              <div class="chat-footnote" id="chatFootnote">Pesquisa textual dos dados salvos nesta conta. A IA só é chamada no modo Perguntar.</div>
+              <form class="chat-compose" id="chatForm"><input id="chatInput" type="text" placeholder="Pergunte ou encontre algo na sua memória..." required minlength="2" maxlength="500" autocomplete="off"><button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Enviar mensagem">➤</button></form>
+              <div class="chat-single-footer"><label class="chat-finance-optin" id="chatFinanceOption"><input id="universalFinance" type="checkbox"> Incluir resultados financeiros</label><small>Dados financeiros não são enviados à IA. As informações encontradas aparecem na conversa.</small></div>
             </div>
           </div>
         </section>
@@ -259,13 +254,14 @@
         </section>
         <section id="radarView" class="view companion-view" hidden>
           <div class="companion-heading"><span class="eyebrow">✦ PRIORIDADES SEM POLUIÇÃO</span><h1>Radar <em>do dia.</em></h1><p>O que precisa da sua atenção agora? Contas, tarefas e seus próprios lembretes, sem cobranças automáticas.</p></div>
-          <div id="radarContent" class="radar-content" aria-live="polite">Carregando...</div>
-          <form id="radarTaskForm" class="companion-form">
-            <label>Nova tarefa<input name="title" required maxlength="160" placeholder="Algo importante que preciso resolver"></label>
-            <label>Até quando<input name="due_date" type="date" required></label>
+          <form id="radarTaskForm" class="companion-form radar-quick-form">
+            <div class="radar-form-intro"><span class="eyebrow">＋ NOVA PRIORIDADE</span><strong>O que você precisa resolver?</strong></div>
+            <label>Tarefa<input name="title" required maxlength="160" placeholder="Ex.: organizar documentos"></label>
+            <label>Vencimento<input name="due_date" type="date" required></label>
             <label>Prioridade<select name="priority"><option value="1">Alta</option><option value="2" selected>Normal</option><option value="3">Baixa</option></select></label>
-            <button class="button button-primary" type="submit">＋ Adicionar</button>
+            <button class="button button-primary" type="submit">＋ Criar tarefa</button>
           </form>
+          <div id="radarContent" class="radar-content radar-workspace" aria-live="polite">Carregando suas prioridades...</div>
         </section>
         <section id="lifeView" class="view companion-view" hidden>
           <div class="companion-heading"><span class="eyebrow">✦ VALORIZE SUAS SEMANAS</span><h1>Calendário <em>da vida.</em></h1><p>Um espaço para guardar acontecimentos bons, conquistas e reflexões. Cada quadrado representa uma semana.</p></div>
