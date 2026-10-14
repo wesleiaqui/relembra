@@ -107,7 +107,7 @@ async function navigate(view, category = 'all') {
   else state.category = 'all';
   state.search = ''; state.sort = 'recent'; state.videos = [];
   document.querySelectorAll('.view').forEach(el => el.hidden = true);
-  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'radar' ? 'radarView' : known === 'search' ? 'searchView' : known === 'life' ? 'lifeView' : known === 'finance' ? 'financeView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
+  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'radar' ? 'radarView' : known === 'life' ? 'lifeView' : known === 'finance' ? 'financeView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
   $('addVideoBtn').hidden = known === 'finance';
   $('breadcrumbActive').textContent = known === 'library' && state.category !== 'all' ? catOf(state.category).name : viewNames[known];
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === known && (known !== 'library' || state.category === 'all')));
