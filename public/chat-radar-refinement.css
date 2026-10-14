@@ -75,6 +75,8 @@ body[data-color-mode="light"] .chat-memory-result>span{color:#738197}
 .radar-bill-row>b{font-size:11.5px;white-space:nowrap;margin-left:auto}
 .radar-row-arrow{font-size:11px;color:#8292b4}
 .radar-collapsed{margin-top:10px;border-top:1px solid #364760;padding-top:10px}
+.radar-bills-more{margin-top:6px;padding-top:7px}
+.radar-bills-more[open]{padding-bottom:5px}
 .radar-collapsed summary{list-style:none;color:#b8bcfa;font-size:11px;font-weight:800;cursor:pointer;padding:8px 2px;display:flex;justify-content:space-between;gap:8px}
 .radar-collapsed summary::-webkit-details-marker{display:none}
 .radar-collapsed summary:hover{text-decoration:underline}
