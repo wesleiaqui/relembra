@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/chat-workspace.css">
   <link rel="stylesheet" href="/dark-unified.css">
   <link rel="stylesheet" href="/finance-dark-refined.css">
+  <link rel="stylesheet" href="/chat-layout-refined.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -148,9 +149,8 @@
               <div class="chat-messages chat-workspace-messages" id="chatMessages" role="log" aria-label="Conversa e resultados encontrados" aria-live="polite"></div>
               <div class="chat-composer-area">
                 <form class="chat-compose chat-workspace-composer" id="chatForm">
-                  <label class="sr-only" for="chatInput">Digite sua pergunta ou o que deseja encontrar</label>
-                  <textarea id="chatInput" rows="1" placeholder="Escreva uma pergunta ou procure uma lembrança..." required minlength="2" maxlength="500" aria-label="Mensagem para o Relembra"></textarea>
-                  <button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Enviar mensagem" title="Enviar mensagem"><span aria-hidden="true">➤</span></button>
+                  <textarea id="chatInput" rows="1" placeholder="Pergunte algo ou pesquise nas suas memórias..." required minlength="2" maxlength="500" aria-label="Digite sua pergunta ou o que deseja encontrar"></textarea>
+                  <button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Enviar mensagem" title="Enviar mensagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
                 </form>
                 <div class="chat-single-footer chat-workspace-footer">
                   <label class="chat-finance-optin" id="chatFinanceOption"><input id="universalFinance" type="checkbox"><span>Incluir resultados financeiros</span></label>
