@@ -234,3 +234,32 @@ body.finance-mode #financeView{min-height:calc(100vh - 79px);padding:0;backgroun
   .finance-payment-grid{grid-template-columns:1fr;gap:0}
   .finance-payment-actions .finance-delete{width:100%;margin-bottom:4px;margin-right:0}
 }
+
+
+/* Contas fixas mensais: elementos compactos, sem novas métricas no dashboard. */
+.finance-recurring-tag{display:inline-flex;align-items:center;color:#08785e;background:#e9f6f0;
+  font-size:10px;font-weight:750;border-radius:999px;padding:3px 7px;margin:5px 0 0;white-space:nowrap}
+.finance-recurring-check{padding:13px 14px;background:#f0faf6;border:1px solid #d8e9df;border-radius:10px;align-items:flex-start}
+.finance-recurring-check input{margin-top:3px}
+.finance-recurring-check span{display:grid;gap:5px}
+.finance-recurring-check strong{color:#315449;font-size:12px}
+.finance-recurring-check small{color:#779389;font-size:11px;line-height:1.5}
+.finance-recurring-info{background:#f2faf6;border:1px solid #dcece4;color:#557c69;padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.55}
+.finance-recurring-modal{width:min(595px,100%)}
+.finance-recurring-modal .finance-modal-title{align-items:flex-start}
+.finance-recurring-help{font-size:12px;line-height:1.5;color:#849a95;margin:8px 0 0}
+.finance-recurring-list{display:grid;gap:10px;max-height:54vh;overflow:auto;padding:4px 0}
+.finance-recurring-row{display:flex;align-items:center;justify-content:space-between;gap:15px;border:1px solid #e0eae5;background:#fbfefd;border-radius:11px;padding:13px 14px}
+.finance-recurring-rule-details{display:grid;gap:7px;min-width:0}
+.finance-recurring-rule-details strong{font-size:13px;color:#28483e;overflow-wrap:anywhere}
+.finance-recurring-rule-details small{font-size:11px;color:#82968d}
+.finance-recurring-row-actions{display:flex;gap:6px;flex-shrink:0}
+.finance-recurring-row-actions button{border:1px solid #cee1d7;color:#14775a;background:#f0faf5;border-radius:7px;padding:8px 10px;font-size:11px;font-weight:750;cursor:pointer}
+.finance-recurring-row-actions button:hover{background:#e4f5eb}
+.finance-recurring-row-actions button:disabled{opacity:.6;cursor:wait}
+.finance-recurring-footnote{font-size:11px;line-height:1.7;color:#738b82;margin:15px 0 17px}
+.finance-recurring-empty{color:#718b7e;font-size:12px;line-height:1.6;background:#f5faf7;padding:24px 14px;border-radius:11px;text-align:center}
+.finance-recurring-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+@media(max-width:600px){.finance-recurring-row{align-items:flex-start;flex-direction:column}
+  .finance-recurring-row-actions{width:100%;justify-content:flex-end}
+  .finance-recurring-grid{grid-template-columns:1fr;gap:0}}

@@ -824,7 +824,7 @@ async function importData(file) {
     if (group.length) tipGroups.push(group);
     const finances = data.finances || {};
     const financeGroups = {};
-    for (const kind of ['entries','bills','goals']) {
+    for (const kind of ['recurring','entries','bills','goals']) {
       const rows = Array.isArray(finances[kind]) ? finances[kind] : [];
       financeGroups[kind] = [];
       for (let i = 0; i < rows.length; i += 200) financeGroups[kind].push(rows.slice(i, i + 200));
@@ -832,7 +832,7 @@ async function importData(file) {
     const total = Math.max(videoGroups.length, thoughtGroups.length, tipGroups.length, ...Object.values(financeGroups).map(g => g.length), 1);
     for (let index = 0; index < total; index++) {
       toast(`Restaurando backup: lote ${index + 1} de ${total}...`);
-      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [], finances: { entries:financeGroups.entries[index] || [], bills:financeGroups.bills[index] || [], goals:financeGroups.goals[index] || [] } }) });
+      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [], finances: { recurring:financeGroups.recurring[index] || [], entries:financeGroups.entries[index] || [], bills:financeGroups.bills[index] || [], goals:financeGroups.goals[index] || [] } }) });
       imported += res.imported; skipped += res.skipped;
       thoughtsImported += res.thoughtsImported || 0; thoughtsSkipped += res.thoughtsSkipped || 0;
       tipsImported += res.tipsImported || 0; tipsSkipped += res.tipsSkipped || 0;

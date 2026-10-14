@@ -16,7 +16,7 @@ Um painel de planejamento com poucos indicadores: saldo confirmado, contas pende
 ## Importante ao começar
 1. Este módulo inicia vazio; os valores que aparecem nos desenhos de exemplo **não foram importados**.
 2. Para refletir dinheiro que já existia antes da adoção do módulo, registre o saldo inicial como uma entrada confirmada na data do início do controle; não registre novamente movimentações que já foram lançadas.
-3. As contas cadastradas **não são repetidas automaticamente** todos os meses. Cadastre cada vencimento mensal, ou implemente recorrência em uma etapa futura.
+3. Para internet, água, luz e outros gastos fixos, marque **Repetir todos os meses** ao cadastrar uma conta. Uma conta antiga também pode ser transformada em recorrente ao editá-la. As regras são gerenciadas em **Contas fixas**; contas avulsas continuam avulsas.
 4. Não há envio automático de notificações por e-mail ou push nesta versão; os alertas de atraso aparecem na tela.
 5. Nenhuma informação financeira entra no contexto das perguntas ao chat de vídeos.
 
@@ -38,3 +38,13 @@ A confirmação em ambiente real precisa ocorrer após a aplicação da migraç�
 ## Atualização de pagamento
 
 A migração aditiva `migrations/0010_bill_payment_details.sql` adiciona dados de pagamento sem apagar contas atuais. Contas já marcadas como pagas continuam pagas, com o valor original preservado e meio de pagamento **não informado**, até serem revisadas. A interface não inventa qual banco/cartão foi usado.
+
+## Contas fixas mensais
+
+- Abra **Minhas finanças → + Nova conta**, preencha o vencimento e marque **Repetir todos os meses**. O primeiro vencimento é salvo como uma conta normal pendente e as próximas competências são geradas automaticamente quando o painel é acessado (até 24 meses de atraso por regra a cada consulta).
+- As novas contas são geradas como **pendentes**, uma por mês, mesmo após o pagamento da ocorrência anterior. Não são criadas cópias se o painel for reaberto.
+- O dia 29/30/31 é ajustado para o último dia nos meses mais curtos; volta ao dia original nos outros meses.
+- Para tornar recorrente uma conta já cadastrada, abra **Editar** e marque **Repetir todos os meses**. O mês original e seus pagamentos são preservados.
+- Clique em **↻ Contas fixas** para ajustar nome, valor, dia, prioridade, essencialidade ou para pausar e retomar. Mudanças não alteram contas já geradas; pausar não exclui cobranças antigas.
+- Este recurso gera contas quando o Relembra for acessado, não envia push e não executa cobranças bancárias automáticas. O sistema não precisa ficar aberto para lembrar a configuração, mas a materialização das parcelas ocorre ao abrir o painel.
+- A migração do banco é `migrations/0011_recurring_monthly_bills.sql`; o backup JSON passa a incluir os modelos de recorrência e seus vínculos.
