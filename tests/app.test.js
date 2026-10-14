@@ -1332,3 +1332,39 @@ test('Chat redesenhado apresenta boas-vindas após login, sugere ações úteis 
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
   assert.doesNotMatch(css,/body\.finance-mode|#financeRoot|\.finance-dashboard/);
 });
+
+
+test('modo escuro não contém violeta ou lilás e mantém cores semânticas',()=>{
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const css=readFileSync(new URL('../public/dark-unified.css',import.meta.url),'utf8');
+  const oldAtlas=readFileSync(new URL('../public/appearance-modes.css',import.meta.url),'utf8');
+  const theme=readFileSync(new URL('../public/visual-theme.js',import.meta.url),'utf8');
+  assert.ok(html.includes('href="/dark-unified.css"'),'camada de cores precisa ser carregada');
+  assert.ok(html.indexOf('/dark-unified.css')>html.indexOf('/appearance-modes.css'),'cores noturnas devem prevalecer sobre estilos antigos');
+  assert.match(css,/--night-bg:\s*#101416/);
+  assert.match(css,/--night-sidebar:\s*#111719/);
+  assert.match(css,/--night-card:\s*#1b2427/);
+  assert.match(css,/--night-accent:\s*#82c4cc/);
+  assert.match(css,/--night-green:\s*#66c9a5/);
+  assert.match(css,/--night-yellow:\s*#e7b975/);
+  assert.match(css,/--night-red:\s*#e68b90/);
+  assert.match(css,/body\[data-visual-theme\]\[data-color-mode="dark"\] \.sidebar/);
+  assert.match(css,/body\[data-visual-theme\]\[data-color-mode="dark"\] #chatView \.chat-avatar/);
+  assert.match(css,/body\.finance-mode\[data-visual-theme\]\[data-color-mode="dark"\] #financeRoot \.finance-panel-footer/);
+  assert.ok(!css.includes('--night-purple'));
+  assert.ok(!css.includes('#b9a8ff')&&!oldAtlas.includes('#b9a8ff'));
+  assert.ok(!/rgb\(139 127 255/.test(css));
+  assert.match(theme,/mode==='light'\?'#f7f8fc':'#101416'/);
+  for(const match of css.matchAll(/#([a-f0-9]{6})\b/gi)){
+    const hex=match[1];
+    const [r,g,b]=[0,2,4].map(i=>parseInt(hex.slice(i,i+2),16)/255);
+    const max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min;
+    let hue=0;
+    if(delta>0){
+      hue=max===r?((g-b)/delta)%6:max===g?(b-r)/delta+2:(r-g)/delta+4;
+      hue=(hue*60+360)%360;
+    }
+    assert.ok(!(hue>=233&&hue<=310&&max>.2&&delta/(max||1)>.13),
+      'A cor #'+hex+' reintroduziu roxo/lilás no escuro');
+  }
+});

@@ -13,11 +13,11 @@ function brightness(hex){
 function contrast(a,b){const x=brightness(a),y=brightness(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
 
 test('paleta noturna legível, com quatro superfícies separadas por contraste controlado',()=>{
-  const colors=['#0b1020','#10182b','#0e1627','#131d31','#18243a','#25324a','#eef2ff','#b7c2d9','#8b7fff'];
+  const colors=['#101416','#151c1f','#111719','#1b2427','#243034','#314044','#eaf1f0','#b2c2c3','#82c4cc'];
   for(const color of colors)assert.ok(palette.includes(color),'Cor ausente: '+color);
-  assert.ok(contrast('#eef2ff','#131d31')>=12,'texto deve ter contraste alto');
-  assert.ok(contrast('#b7c2d9','#131d31')>=7,'texto secundário deve permanecer legível');
-  assert.ok(contrast('#eef2ff','#18243a')>=11,'texto deve permanecer legível em superfícies elevadas');
+  assert.ok(contrast('#eaf1f0','#1b2427')>=12,'texto deve ter contraste alto');
+  assert.ok(contrast('#b2c2c3','#1b2427')>=7,'texto secundário deve permanecer legível');
+  assert.ok(contrast('#eaf1f0','#243034')>=11,'texto deve permanecer legível em superfícies elevadas');
 });
 
 test('estilo noturno está isolado e é a última folha CSS — sem tocar no modo claro',()=>{
@@ -42,14 +42,14 @@ test('sidebar, cartões, Radar, Chat, Dicas, Calendário e Finanças compartilha
   ]){
     assert.ok(palette.includes(selector),'Faltou componentizar: '+selector);
   }
-  assert.match(palette,/--night-card:\s*#131d31/);
-  assert.match(palette,/--night-purple:\s*#8b7fff/);
-  assert.match(palette,/--night-green:\s*#33c59b/);
-  assert.match(palette,/--night-yellow:\s*#f2b45e/);
-  assert.match(palette,/--night-red:\s*#f07b8b/);
+  assert.match(palette,/--night-card:\s*#1b2427/);
+  assert.match(palette,/--night-accent:\s*#82c4cc/);
+  assert.match(palette,/--night-green:\s*#66c9a5/);
+  assert.match(palette,/--night-yellow:\s*#e7b975/);
+  assert.match(palette,/--night-red:\s*#e68b90/);
 });
 
-test('as ações destrutivas continuam sinalizadas em vermelho, apesar dos botões violetas',()=>{
+test('as ações destrutivas continuam sinalizadas em vermelho, mesmo com botões azul-aço',()=>{
   const deleteRule=palette.match(/#financeRoot \.finance-delete\s*\{[^}]+\}/);
   assert.ok(deleteRule,'Estilo de excluir deve existir');
   assert.match(deleteRule[0],/#ffb3bc/);
