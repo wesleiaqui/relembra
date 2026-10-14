@@ -86,7 +86,7 @@ test('opção salva globalmente entre Clássico e Atlas e recebe mudanças de ou
   ui.map.set('relembra-dark-palette','oled');
   ui.windowHandlers.storage({key:'relembra-dark-palette'});
   assert.equal(ui.documentRef.body.dataset.darkPalette,'oled');
-  assert.equal(ui.meta.value,'#080a0b');
+  assert.equal(ui.meta.value,'#000000');
   ui.map.set('relembra-dark-palette','invalid');
   ui.windowHandlers.storage({key:'relembra-dark-palette'});
   assert.equal(ui.documentRef.body.dataset.darkPalette,'graphite');
