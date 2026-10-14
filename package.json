@@ -1,9 +1,9 @@
 {
   "name": "relembra-cloudflare",
   "private": true,
-  "version": "1.19.0",
+  "version": "1.20.0",
   "type": "module",
-  "description": "Relembra — Chat unificado com boas-vindas, atalhos de memória e composição aprimorada",
+  "description": "Relembra — paleta escura unificada para Clássico e Atlas",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
