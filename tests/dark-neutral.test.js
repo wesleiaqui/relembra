@@ -54,15 +54,18 @@ test('finanças, chat, cabeçalho e cartões usam o mesmo conjunto de cores',()=
     '.sidebar','.topbar','.dark-palette-menu'
   ])assert.ok(css.includes(selector),'Faltou corrigir: '+selector);
   assert.match(css,/#financeRoot \.finance-table tbody tr\.finance-overdue:nth-child\(even\)/);
-  // Status mantêm o significado pelas letras, nunca por fundos marrons.
-  const oledOverrides=css.slice(css.indexOf('/* Ajuste OLED: tudo o que ocupa'));
-  assert.match(oledOverrides,/\.finance-pill\.finance-bad,/);
-  assert.match(oledOverrides,/\.finance-pill\.finance-warn,/);
-  assert.match(oledOverrides,/\.finance-pill\.finance-essential,/);
-  assert.match(oledOverrides,/background:#191919;/);
-  assert.match(oledOverrides,/background:#0b0b0b;/);
-  assert.match(oledOverrides,/background-image:none;/);
+  // As tintas são semânticas e discretas, como no modo claro.
+  const oledOverrides=css.slice(css.indexOf('/* OLED · Finanças v2'));
+  assert.match(oledOverrides,/\.finance-pill\.finance-bad\{/);
+  assert.match(oledOverrides,/\.finance-pill\.finance-warn\{/);
+  assert.match(oledOverrides,/\.finance-pill\.finance-essential\{/);
+  assert.match(oledOverrides,/rgb\(255 107 107 \/ 11%\)/);
+  assert.match(oledOverrides,/rgb\(244 196 109 \/ 11%\)/);
+  assert.match(oledOverrides,/rgb\(93 213 167 \/ 11%\)/);
+  assert.match(oledOverrides,/linear-gradient\(110deg, rgb\(84 201 145 \/ 10%\)/);
+  assert.match(oledOverrides,/linear-gradient\(110deg, rgb\(255 120 125 \/ 9%\)/);
   assert.match(oledOverrides,/\.finance-icon-pending\{/);
   assert.match(oledOverrides,/\.finance-table tbody tr\.finance-overdue:nth-child\(even\)/);
+  assert.match(oledOverrides,/--fin-oled-green:#0c8062/);
   assert.doesNotMatch(oledOverrides,/#(?:3b2929|cebc9e|e7c18a|c2a77f)/i);
 });
