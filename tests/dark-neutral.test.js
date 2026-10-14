@@ -15,11 +15,11 @@ test('Preto OLED é realmente #000000 com superfícies sem tonalidade marrom',()
     '--palette-bg':'#000000',
     '--palette-sidebar':'#050505',
     '--palette-top':'#080808',
-    '--palette-surface':'#111111',
-    '--palette-raised':'#1b1b1b',
-    '--palette-base':'#0c0c0c',
+    '--palette-surface':'#0b0b0b',
+    '--palette-raised':'#141414',
+    '--palette-base':'#080808',
     '--palette-accent':'#dddddd',
-    '--palette-kpi':'#151515'
+    '--palette-kpi':'#0b0b0b'
   };
   for(const [key,value] of Object.entries(expected)){
     assert.ok(oled.includes(key+':'+value+';'),key+' inesperada');
@@ -54,5 +54,15 @@ test('finanças, chat, cabeçalho e cartões usam o mesmo conjunto de cores',()=
     '.sidebar','.topbar','.dark-palette-menu'
   ])assert.ok(css.includes(selector),'Faltou corrigir: '+selector);
   assert.match(css,/#financeRoot \.finance-table tbody tr\.finance-overdue:nth-child\(even\)/);
-  assert.doesNotMatch(css,/\.finance-pill\.finance-bad\s*\{|\.finance-pill\.finance-warn\s*\{|\.finance-pill\.finance-ok\s*\{/);
+  // Status mantêm o significado pelas letras, nunca por fundos marrons.
+  const oledOverrides=css.slice(css.indexOf('/* Ajuste OLED: tudo o que ocupa'));
+  assert.match(oledOverrides,/\.finance-pill\.finance-bad,/);
+  assert.match(oledOverrides,/\.finance-pill\.finance-warn,/);
+  assert.match(oledOverrides,/\.finance-pill\.finance-essential,/);
+  assert.match(oledOverrides,/background:#191919;/);
+  assert.match(oledOverrides,/background:#0b0b0b;/);
+  assert.match(oledOverrides,/background-image:none;/);
+  assert.match(oledOverrides,/\.finance-icon-pending\{/);
+  assert.match(oledOverrides,/\.finance-table tbody tr\.finance-overdue:nth-child\(even\)/);
+  assert.doesNotMatch(oledOverrides,/#(?:3b2929|cebc9e|e7c18a|c2a77f)/i);
 });
