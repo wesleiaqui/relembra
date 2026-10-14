@@ -37,20 +37,75 @@ export async function loadRadar(){
   try{const data=await api('/api/radar');if(serial!==radarSerial)return;radar=data;renderRadar();}
   catch(e){if(serial===radarSerial)$('radarContent').textContent=e.message;}
 }
+function homePriorities(data){
+  const tasks=(data.tasks||[]).filter(t=>!t.done_at).slice(0,5);
+  const n=$('homeRadar');
+  n.replaceChildren();
+  if(!tasks.length){
+    n.innerHTML='<div class="home-empty-priority"><span aria-hidden="true">✓</span><strong>Suas tarefas estão em dia</strong><p>Adicione abaixo algo que precisa resolver hoje ou nos próximos dias.</p></div>';
+    return;
+  }
+  const list=document.createElement('div');list.className='home-task-list';
+  for(const item of tasks){
+    const label=document.createElement('label');label.className='home-task-item';
+    const box=document.createElement('input');box.type='checkbox';box.dataset.homeTaskId=item.id;
+    box.setAttribute('aria-label','Concluir tarefa '+item.title);
+    const detail=document.createElement('span');detail.className='home-task-details';
+    const title=document.createElement('strong');title.textContent=item.title;
+    const meta=document.createElement('small');
+    meta.textContent=(item.due_date<today()?'Atrasada · ':item.due_date===today()?'Hoje · ':'')+human(item.due_date)+(item.priority===1?' · Prioridade alta':'');
+    if(item.due_date<today())meta.classList.add('home-warning');
+    detail.append(title,meta);label.append(box,detail);list.append(label);
+  }
+  n.append(list);
+}
+function homeBills(data){
+  const target=$('homeBills'),bills=(data.bills||[]).slice(0,4);
+  target.replaceChildren();
+  if(!bills.length){target.innerHTML='<p class="home-placeholder">Nenhuma conta pendente nos próximos 14 dias.</p>';return;}
+  const list=document.createElement('div');list.className='home-bills-list';
+  for(const item of bills){
+    const line=document.createElement('button');line.type='button';line.className='home-bill-item';line.dataset.go='finance';
+    const text=document.createElement('span');
+    const title=document.createElement('strong');title.textContent=item.name;
+    const date=document.createElement('small');date.textContent=(item.due_date<today()?'Vencida · ':item.due_date===today()?'Hoje · ':'')+human(item.due_date);
+    if(item.due_date<=today())date.classList.add('home-warning');
+    const amount=document.createElement('b');amount.textContent=money(item.amount_cents);
+    text.append(title,date);line.append(text,amount);list.append(line);
+  }
+  target.append(list);
+}
+function homeHabitList(data){
+  const target=$('homeHabits');target.replaceChildren();
+  const rows=(data.habits||[]).slice(0,4);
+  if(!rows.length){target.innerHTML='<p class="home-placeholder">Configure seus primeiros hábitos em Motivação.</p>';return;}
+  const list=document.createElement('div');list.className='home-habits-list';
+  for(const habit of rows){
+    const label=document.createElement('label');label.className='home-habit-item'+(habit.done?' checked':'');
+    const input=document.createElement('input');input.type='checkbox';input.checked=Boolean(habit.done);input.dataset.homeHabitId=habit.id;
+    const name=document.createElement('span');name.textContent=habit.title;
+    label.append(input,name);list.append(label);
+  }
+  target.append(list);
+}
 export async function loadHomeRadar(){
   const serial=++radarSerial;
-  const n=$('homeRadar');
-  if(!n)return;
+  const date=$('homeDate'),quick=$('homeQuickTaskDate');
+  if(date)date.textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
+  if(quick&&!quick.value)quick.value=today();
   try{
-    const data=await api('/api/radar');if(serial!==radarSerial)return;
-    const tasks=data.tasks.filter(x=>!x.done_at),urgent=data.bills.filter(x=>x.due_date<=today());
-    n.hidden=false;
-    n.innerHTML='<h2>◉ Seu radar de hoje</h2><p>'+esc(tasks.length?tasks.length+' tarefa(s) próximas · ':'')+esc(urgent.length?urgent.length+' conta(s) vencidas ou vencendo hoje.':'Suas prioridades em um só lugar.')+'</p><button type="button" class="button button-outline" data-go="radar">Abrir radar →</button>';
-  }catch{n.hidden=true;}
+    const [data,habitsData]=await Promise.all([api('/api/radar'),api('/api/habits')]);
+    if(serial!==radarSerial)return;
+    radar=data;habits=habitsData;
+    homePriorities(data);homeBills(data);homeHabitList(habitsData);
+  }catch{
+    if(serial!==radarSerial)return;
+    for(const id of ['homeRadar','homeBills','homeHabits']) $(id).textContent='Não foi possível carregar agora. Tente abrir o Radar.';
+  }
 }
 const typeLabels={video:'Vídeo',tip:'Dica',moment:'Momento da vida',task:'Tarefa',reflection:'Reflexão antiga',bill:'Conta financeira',income:'Lançamento financeiro'};
 export async function loadUniversalSearch(){
-  const serial=++searchSerial,q=$('universalQuery').value.trim(),finance=$('universalFinance').checked;
+  const serial=++searchSerial,q=$('chatInput').value.trim(),finance=$('universalFinance').checked;
   const container=$('universalResults');
   if(q.length<2){container.textContent='Digite pelo menos duas letras para pesquisar.';return;}
   container.textContent='Pesquisando na sua biblioteca...';
@@ -144,11 +199,10 @@ export async function loadHabits(){
 }
 export function resetCompanion(){
   ++radarSerial;++lifeLoadSerial;++searchSerial;radar=null;life=null;habits=null;selectedWeek=null;
-  for(const id of ['radarContent','universalResults','lifeOverview','lifeWeeks','lifeMomentsList','motivationHabits','homeRadar']){
+  for(const id of ['radarContent','universalResults','lifeOverview','lifeWeeks','lifeMomentsList','motivationHabits','homeRadar','homeBills','homeHabits']){
     const el=$(id);if(el)el.replaceChildren();
   }
-  const home=$('homeRadar');if(home)home.hidden=true;
-  $('universalQuery').value='';$('universalFinance').checked=false;
+  $('universalFinance').checked=false;
   $('lifeProfileForm').reset();$('lifeMomentForm').reset();
   $('historyModal').hidden=true;
 }
@@ -228,6 +282,36 @@ export async function openHistory(type,id){
 }
 export function setupCompanion(options){
   ({api,navigate,toast,editVideo,openTip,editThought}=options);
+  $('homeQuickTaskForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const form=e.currentTarget,title=form.elements.namedItem('title').value.trim();
+    const due_date=form.elements.namedItem('due_date').value;
+    if(!title||!due_date)return;
+    const submit=form.querySelector('button[type=submit]');submit.disabled=true;
+    try{
+      await api('/api/radar/tasks',{method:'POST',body:JSON.stringify({title,due_date,priority:2})});
+      form.elements.namedItem('title').value='';
+      await loadHomeRadar();
+      toast('Tarefa adicionada ao seu radar.');
+    }catch(error){toast(error.message,true);}
+    finally{submit.disabled=false;}
+  });
+  $('homeRadar').addEventListener('change',async e=>{
+    const checkbox=e.target.closest('[data-home-task-id]');if(!checkbox)return;
+    checkbox.disabled=true;
+    try{
+      await api('/api/radar/tasks/'+checkbox.dataset.homeTaskId,{method:'PATCH',body:JSON.stringify({done:checkbox.checked})});
+      await loadHomeRadar();
+    }catch(error){toast(error.message,true);checkbox.disabled=false;checkbox.checked=!checkbox.checked;}
+  });
+  $('homeHabits').addEventListener('change',async e=>{
+    const checkbox=e.target.closest('[data-home-habit-id]');if(!checkbox)return;
+    checkbox.disabled=true;
+    try{
+      await api('/api/habits/'+checkbox.dataset.homeHabitId+'/check',{method:'PATCH',body:JSON.stringify({done:checkbox.checked})});
+      await loadHomeRadar();
+    }catch(error){toast(error.message,true);checkbox.disabled=false;checkbox.checked=!checkbox.checked;}
+  });
   $('radarTaskForm').addEventListener('submit',async e=>{
     e.preventDefault();const b=Object.fromEntries(new FormData(e.currentTarget));
     try{await api('/api/radar/tasks',{method:'POST',body:JSON.stringify(b)});e.currentTarget.elements.namedItem('title').value='';await loadRadar();toast('Tarefa adicionada.');}catch(err){toast(err.message,true);}
@@ -244,9 +328,9 @@ export function setupCompanion(options){
     try{await api('/api/radar/tasks/'+checkbox.dataset.taskCheck,{method:'PATCH',body:JSON.stringify({done:checkbox.checked})});await loadRadar();}
     catch(err){toast(err.message,true);await loadRadar();}
   });
-  let timer;
-  $('universalQuery').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(loadUniversalSearch,300);});
-  $('universalFinance').addEventListener('change',loadUniversalSearch);
+  $('universalFinance').addEventListener('change',()=>{
+    if(!$('universalResults').hidden&&$('chatInput').value.trim().length>=2)loadUniversalSearch();
+  });
   $('universalResults').addEventListener('click',e=>{
     const item=e.target.closest('[data-search-id]');if(item)openSearchItem(item.dataset.searchType,item.dataset.searchId);
   });

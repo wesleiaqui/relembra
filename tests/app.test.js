@@ -819,7 +819,7 @@ test('interface motivação oferece contexto, dica editável e limpa dados no lo
   const css=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
   assert.equal((html.match(/data-tip-context="Motivação e mentalidade"/g)||[]).length,1);
   assert.equal((html.match(/<option value="Motivação e mentalidade"/g)||[]).length,1);
-  assert.equal((html.match(/data-open-motivation/g)||[]).length,2);
+  assert.equal((html.match(/data-open-motivation/g)||[]).length,3);
   for(const id of ['motivationModal','motivationTitle','motivationCloseBtn','motivationResult','motivationSeeAll','motivationAddTip'])
     assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
   for(const context of Object.keys(MOTIVATION_MOMENTS))
@@ -1203,11 +1203,38 @@ test('novos componentes existem sem substituir ou excluir os dados do diário an
   const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
   const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
   const client=readFileSync(new URL('../public/companion.js',import.meta.url),'utf8');
-  for(const id of ['radarView','searchView','lifeView','lifeWeeks','lifeOverview','lifeMomentForm','universalQuery','universalFinance','radarContent','backupImagesBtn','restoreImagesFile','historyModal','motivationHabits'])
+  for(const id of ['radarView','chatView','lifeView','lifeWeeks','lifeOverview','lifeMomentForm','chatInput','universalResults','universalFinance','radarContent','homeBills','homeHabits','homeQuickTaskForm','backupImagesBtn','restoreImagesFile','historyModal','motivationHabits'])
     assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
   assert.match(html,/id="thoughtsView"/);
   assert.match(html,/lifeOldDiary/);
   assert.match(app,/setupCompanion/);
   assert.match(client,/function renderLife/);
   assert.match(html,/idade de referência.*não é uma previsão/i);
+});
+
+
+test('home acionável e busca universal integrada ao Chat em todos os temas', () => {
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  const companion=readFileSync(new URL('../public/companion.js',import.meta.url),'utf8');
+  const css=readFileSync(new URL('../public/home-workspace.css',import.meta.url),'utf8');
+  const atlas=readFileSync(new URL('../public/atlas-ui.js',import.meta.url),'utf8');
+  for(const id of ['homeRadar','homeQuickTaskForm','homeQuickTaskTitle','homeQuickTaskDate','homeBills','homeHabits','homeGrid','chatView','chatMessages','universalResults','universalFinance','chatInput','chatForm'])
+    assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
+  assert.doesNotMatch(html,/id="searchView"|id="universalQuery"|data-view="favorites"|data-view="unwatched"|data-view="search"/);
+  assert.doesNotMatch(html,/name="watched" type="checkbox"><span>|Marcar como favorito|Já assisti<\/label>/);
+  assert.doesNotMatch(app,/function toggleFavorite\(|data-fav=/);
+  assert.match(html,/data-chat-mode="search"/);
+  assert.match(html,/data-chat-mode="ai"/);
+  assert.match(app,/function setChatMode\(mode\)/);
+  assert.match(app,/if\(chatMode==='search'\) await loadUniversalSearch\(\)/);
+  assert.match(app,/else await submitChat\(q\)/);
+  assert.match(companion,/api\('\/api\/radar\/tasks\/'\+checkbox\.dataset\.homeTaskId/);
+  assert.match(companion,/api\('\/api\/habits\/'\+checkbox\.dataset\.homeHabitId/);
+  assert.match(companion,/api\('\/api\/search\/all\?q='\+encodeURIComponent\(q\)\+'&finance='/);
+  assert.match(atlas,/openUnifiedSearch\(q\)/);
+  assert.doesNotMatch(atlas,/api\/search\/all/);
+  assert.match(css,/\.home-focus-grid/);
+  assert.match(css,/\.chat-unified-switch/);
+  assert.match(css,/body\[data-visual-theme="atlas"\] #homeView:not\(\[hidden\]\)\{display:block!important\}/);
 });

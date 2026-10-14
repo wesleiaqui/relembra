@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const types={video:'Vídeo',tip:'Dica pessoal',moment:'Momento',task:'Tarefa',reflection:'Reflexão'};
-let api,navigate,editVideo,openTipEditor,editThought,openEditor,loadUniversalSearch;
+let api,navigate,editVideo,openTipEditor,editThought,openEditor,openUnifiedSearch;
 let serial=0,timer,priorFocus=null,initialized=false;
 
 export function renderAtlasCollections(categories=[],active='all'){
@@ -54,46 +54,30 @@ async function openItem(type,id){
   if(type==='moment'){await navigate('life');return;}
   if(type==='task'){await navigate('radar');return;}
 }
+// Ctrl+K é apenas um lançador, não uma segunda busca paralela.
 export async function searchAtlas(query){
-  const token=++serial;
+  ++serial;
   if(!dialogOpen())return;
   const q=String(query||'').trim();
-  if(q.length<2){resetResult('Digite duas ou mais letras para começar.');return;}
-  resetResult('Buscando na sua memória...');
-  try{
-    // Dado financeiro é excluído e não existem chamadas a serviços externos.
-    const data=await api('/api/search/all?q='+encodeURIComponent(q));
-    if(token!==serial||!dialogOpen())return;
-    const results=Array.isArray(data.results)?data.results.filter(item=>types[item.type]).slice(0,8):[];
-    if(!results.length){resetResult('Nenhum resultado para esta busca. Tente outras palavras.');return;}
-    const root=$('atlasCommandResults');root.replaceChildren();
-    for(const item of results){
-      const btn=document.createElement('button');btn.type='button';
-      btn.className='atlas-command-result';btn.dataset.atlasResultType=item.type;btn.dataset.atlasResultId=item.id;
-      const icon=document.createElement('span');icon.className='atlas-command-result-icon';icon.setAttribute('aria-hidden','true');
-      icon.textContent=({video:'▣',tip:'✦',moment:'◉',task:'✓',reflection:'✧'})[item.type];
-      const body=document.createElement('span');body.className='atlas-command-result-body';
-      const title=document.createElement('strong');title.textContent=item.title||'Sem título';
-      const detail=document.createElement('small');detail.textContent=types[item.type]+(item.detail?' · '+String(item.detail).slice(0,100):'');
-      body.append(title,detail);
-      const arrow=document.createElement('span');arrow.setAttribute('aria-hidden','true');arrow.textContent='↗';
-      btn.append(icon,body,arrow);root.append(btn);
-    }
-  }catch(e){if(token===serial&&dialogOpen())resetResult('Não foi possível buscar agora. Tente novamente.');}
+  const root=$('atlasCommandResults');root.replaceChildren();
+  if(q.length<2){resetResult('Digite duas ou mais letras para pesquisar pelo Chat e pesquisa.');return;}
+  const btn=document.createElement('button');btn.type='button';btn.className='atlas-command-result';btn.dataset.atlasSearch=q;
+  const icon=document.createElement('span');icon.className='atlas-command-result-icon';icon.setAttribute('aria-hidden','true');icon.textContent='⌕';
+  const body=document.createElement('span');body.className='atlas-command-result-body';
+  const title=document.createElement('strong');title.textContent='Pesquisar "'+q.slice(0,80)+'"';
+  const detail=document.createElement('small');detail.textContent='Abrir no Chat e pesquisa · sem IA';
+  const arrow=document.createElement('span');arrow.setAttribute('aria-hidden','true');arrow.textContent='↗';
+  body.append(title,detail);btn.append(icon,body,arrow);root.append(btn);
 }
 async function showCompleteSearch(){
   const q=$('atlasCommandQuery').value.trim();
   closeAtlasCommand();
-  await navigate('search');
-  if(q){
-    $('universalQuery').value=q;
-    await loadUniversalSearch();
-  }else $('universalQuery').focus();
+  await openUnifiedSearch(q);
 }
 export function setupAtlasUI(options){
   if(initialized)return;
   initialized=true;
-  ({api,navigate,editVideo,openTipEditor,editThought,openEditor,loadUniversalSearch}=options);
+  ({api,navigate,editVideo,openTipEditor,editThought,openEditor,openUnifiedSearch}=options);
   const hint=$('atlasCommandTrigger').querySelector('kbd');
   if(hint)hint.textContent=/Mac|iPhone|iPad/.test(navigator.platform||'')?'⌘ K':'Ctrl K';
   $('atlasCommandTrigger').addEventListener('click',openAtlasCommand);
@@ -102,8 +86,8 @@ export function setupAtlasUI(options){
     if(e.target===$('atlasCommandModal'))closeAtlasCommand();
     const route=e.target.closest('[data-atlas-route]');
     if(route){closeAtlasCommand();navigate(route.dataset.atlasRoute);}
-    const result=e.target.closest('[data-atlas-result-id]');
-    if(result)openItem(result.dataset.atlasResultType,result.dataset.atlasResultId);
+    const search=e.target.closest('[data-atlas-search]');
+    if(search)showCompleteSearch();
   });
   $('atlasCommandAllSearch').addEventListener('click',showCompleteSearch);
   $('atlasCommandQuery').addEventListener('input',e=>{
@@ -118,7 +102,7 @@ export function setupAtlasUI(options){
     if(!dialogOpen())return;
     if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();closeAtlasCommand();return;}
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){
-      const available=Array.from($('atlasCommandModal').querySelectorAll('[data-atlas-route],[data-atlas-result-id]'));
+      const available=Array.from($('atlasCommandModal').querySelectorAll('[data-atlas-route],[data-atlas-search]'));
       if(!available.length)return;
       e.preventDefault();
       const i=available.indexOf(document.activeElement);
@@ -126,8 +110,8 @@ export function setupAtlasUI(options){
       available[next].focus();
     }
     if(e.key==='Enter'&&document.activeElement===$('atlasCommandQuery')){
-      const top=$('atlasCommandResults').querySelector('[data-atlas-result-id]');
-      if(top){e.preventDefault();openItem(top.dataset.atlasResultType,top.dataset.atlasResultId);}
+      const top=$('atlasCommandResults').querySelector('[data-atlas-search]');
+      if(top){e.preventDefault();showCompleteSearch();}
       else if($('atlasCommandQuery').value.trim().length>=2){e.preventDefault();showCompleteSearch();}
     }
     if(e.key==='Tab'){

@@ -1,9 +1,9 @@
 {
   "name": "relembra-cloudflare",
   "private": true,
-  "version": "1.14.0",
+  "version": "1.15.0",
   "type": "module",
-  "description": "Relembra — biblioteca inteligente com temas Clássico, Lume e Atlas Workspace",
+  "description": "Relembra — Início com prioridades, chat e busca integrados, finanças e calendário da vida",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",

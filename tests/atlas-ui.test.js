@@ -65,7 +65,8 @@ test('Atlas é opção separada; visuais antigos preservados; sem migração fin
   assert.match(app,/renderAtlasCollections\(state\.categories,state\.category\)/);
   assert.match(app,/class="atlas-card-footer"/);
   assert.match(atlas,/ctrlKey\|\|e\.metaKey/);
-  assert.match(atlas,/api\/search\/all\?q=/);
+  assert.match(atlas,/openUnifiedSearch\(q\)/);
+  assert.doesNotMatch(atlas,/api\/search\/all\?q=/);
   assert.doesNotMatch(atlas,/\?finance=1|localStorage|APP_PASSWORD/);
   assert.match(css,/#homeView:not\(\[hidden\]\)\{[\s\S]{0,100}display:grid/);
   assert.match(css,/\.atlas-command-dialog/);
@@ -79,8 +80,8 @@ test('menu de comando exclui dados financeiros por padrão e respeita login',()=
   const source=readFileSync(new URL('../public/atlas-ui.js',import.meta.url),'utf8');
   assert.match(source,/const canOpen\(\)|function canOpen\(\)/);
   assert.match(source,/loginOverlay.*hidden/);
-  assert.match(source,/api\('\/api\/search\/all\?q='\+encodeURIComponent\(q\)\)/);
-  assert.match(source,/const token=\+\+serial/);
+  assert.doesNotMatch(source,/api\/search\/all/);
+  assert.match(source,/openUnifiedSearch\(q\)/);
   assert.match(source,/e\.key==='Escape'/);
   assert.match(source,/e\.key==='Tab'/);
 });
