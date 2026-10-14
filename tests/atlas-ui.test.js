@@ -54,9 +54,9 @@ test('Atlas é opção separada; visuais antigos preservados; sem migração fin
   const oldCss=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
   const atlas=readFileSync(new URL('../public/atlas-ui.js',import.meta.url),'utf8');
   assert.equal(normalizeVisualTheme('classic'),'classic');
-  assert.equal(normalizeVisualTheme('lume'),'lume');
+  assert.equal(normalizeVisualTheme('lume'),'classic'); // modo antigo migra para Clássico Claro
   assert.equal(normalizeVisualTheme('atlas'),'atlas');
-  for(const mode of ['classic','lume','atlas'])
+  for(const mode of ['classic','atlas'])
     assert.equal((html.match(new RegExp('data-visual-option="'+mode+'"','g'))||[]).length,1,mode);
   assert.match(html,/visual-atlas\.css/);
   assert.match(html,/id="atlasCommandQuery"/);

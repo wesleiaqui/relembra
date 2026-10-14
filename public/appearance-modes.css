@@ -1,0 +1,517 @@
+/* Aparência Relembra: interface (Clássico/Atlas) separada de cor (Claro/Escuro).
+   Carregado por último para sobrescrever estilos antigos, inclusive no módulo financeiro. */
+.appearance-settings{display:inline-flex;align-items:center;flex-wrap:nowrap;gap:7px;min-width:0}
+.visual-color-control{display:inline-flex;align-items:center;gap:2px;padding:4px;border:1px solid #35445f;border-radius:12px;background:#151f33;white-space:nowrap;flex-shrink:0}
+.visual-color-option{border:0;border-radius:8px;padding:7px 9px;min-height:31px;display:inline-flex;align-items:center;justify-content:center;gap:5px;background:transparent;color:#acb9d5;font-size:11px;font-weight:800;cursor:pointer}
+.visual-color-option span:first-child{font-size:16px;line-height:1}
+.visual-color-option.selected,.visual-color-option[aria-pressed="true"]{background:#344675;color:#fff;box-shadow:0 2px 7px #04091826}
+.visual-color-option:not(.selected):hover{background:#283954;color:#fff}
+.visual-color-option:focus-visible{outline:2px solid #b7aaff;outline-offset:2px}
+body[data-color-mode="light"] .visual-color-control{background:#efeff8;border-color:#e2e4ee}
+body[data-color-mode="light"] .visual-color-option{color:#746d91}
+body[data-color-mode="light"] .visual-color-option.selected{background:#fff;color:#5346ad;box-shadow:0 2px 8px #2b316c24}
+body[data-color-mode="light"] .visual-color-option:hover{color:#4e43a4}
+
+/* O modo Claro do Atlas passa a abranger TODA a navegação, inclusive a lateral.
+   Estas regras também corrigem os estilos específicos ao abrir Minhas finanças. */
+body[data-visual-theme="atlas"][data-color-mode="light"] .sidebar,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .sidebar{
+  background:linear-gradient(175deg,#fffdfa,#f5f4fb 78%);color:#344058;
+  border-right:1px solid #e4e3ed;box-shadow:8px 0 35px #3438500d
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .brand,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .brand{color:#29314c}
+body[data-visual-theme="atlas"][data-color-mode="light"] .brand small,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .brand small{color:#8491a6}
+body[data-visual-theme="atlas"][data-color-mode="light"] .brand-dot{color:#7468c1}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-caption,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .nav-caption{color:#9298aa}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-item,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .nav-item{color:#606c84}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-item:hover,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .nav-item:hover{
+  background:#edeafa;color:#5145ae
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-item.active,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .nav-item.active{
+  background:#ebe8fb;color:#5042ac;box-shadow:inset 3px 0 #8470df
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-icon,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .nav-icon{color:#8791ad}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-item.active .nav-icon,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .nav-item.active .nav-icon{color:#594cc3}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-new,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .nav-new{
+  color:#675bb6;background:#ece9fc
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .category-item,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .category-item{color:#69768b}
+body[data-visual-theme="atlas"][data-color-mode="light"] .category-item:hover,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .category-item:hover{background:#efebfa;color:#5145ac}
+body[data-visual-theme="atlas"][data-color-mode="light"] .category-item.active,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .category-item.active{
+  color:#5145ac;background:#edeafb
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .side-separator,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .side-separator{background:#e3e4eb}
+body[data-visual-theme="atlas"][data-color-mode="light"] .side-bottom,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .side-bottom{border-color:#e3e4eb}
+body[data-visual-theme="atlas"][data-color-mode="light"] .tiny-btn,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .tiny-btn{color:#6254b5}
+body[data-visual-theme="atlas"][data-color-mode="light"] .tiny-btn:hover{background:#eeebfa;color:#5043a3}
+body[data-visual-theme="atlas"][data-color-mode="light"] .account-label,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .account-label{color:#626b83}
+body[data-visual-theme="atlas"][data-color-mode="light"] .privacy-note,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .privacy-note{
+  background:#eef7f3;color:#3b8068;border-color:#d7e9dd
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .privacy-note small{color:#78998d}
+
+/* Atlas Escuro: conteúdo, fundos, sidebar, busca, cartões e formulários. */
+body[data-visual-theme="atlas"][data-color-mode="dark"]{
+  color-scheme:dark;
+  --bg:#0d1424;--sidebar:#121c30;--panel:#18253a;--panel2:#1d2b43;
+  --stroke:#33435e;--text:#ecf2ff;--soft:#a5b7d1;--muted:#a8b8cf;
+  --primary:#9384ef;--primary2:#7061d5;--shadow:0 20px 55px #03071080;
+  background:#0d1424;color:#ebeffa
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .workspace{
+  background:radial-gradient(ellipse 850px 500px at 82% -8%,#25214b66,transparent 66%),#0e1728
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .sidebar,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .sidebar{
+  background:linear-gradient(170deg,#182238,#111a2c 84%);border-color:#2d3a50;color:#dce5fa;
+  box-shadow:12px 0 35px #03081128
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .brand,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .brand{color:#f3f4ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .brand small{color:#9baad0}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .nav-caption,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .nav-caption{color:#8e9ebd}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .nav-item,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .nav-item{color:#aab8d0}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .nav-item:hover,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .nav-item:hover{
+  background:#293956;color:#fff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .nav-item.active,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .nav-item.active{
+  background:#343456;color:#f4edff;box-shadow:inset 3px 0 #b1a0ff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .nav-item.active .nav-icon{color:#c5b7ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .nav-icon,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .nav-icon{color:#9dadd0}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .category-item,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .category-item{color:#a0b0ca}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .category-item:hover,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .category-item:hover{
+  background:#293955;color:#f3f1ff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .category-item.active,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .category-item.active{
+  background:#343956;color:#d9ceff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .side-separator,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .side-separator{background:#30405a}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .side-bottom{border-color:#30405a}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .account-label{color:#ccd5ea}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .privacy-note,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .privacy-note{
+  background:#1e3739;border-color:#375650;color:#9ce0c9
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .privacy-note small{color:#8eb8b1}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .topbar,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .topbar{
+  background:#111b2cf0;border-color:#2a3850;box-shadow:0 8px 21px #070c183b
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .top-left,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .top-left{color:#9eacc5}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .top-left strong,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .top-left strong{color:#eff3ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .slash{color:#65748e}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .visual-theme-control,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .visual-color-control,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .visual-theme-control{
+  background:#202d44;border-color:#32425e
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .visual-theme-option,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .visual-color-option,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .visual-theme-option{color:#b1bed8}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .visual-theme-option.selected,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .visual-color-option.selected,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="dark"] .visual-theme-option.selected{
+  background:#394968;color:#f8f8ff;box-shadow:0 2px 7px #070e254a
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-trigger{
+  color:#aab9d1;background:#202e46;border-color:#344660
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-trigger:hover{background:#2a3953;border-color:#7e70c6}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-trigger kbd{
+  color:#c0c8dd;background:#1b2840;border-color:#394864
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .page-head h1,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .welcome-head h1,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-new-heading h1,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .companion-heading h1{color:#f3f4ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .page-head p,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .welcome-head p,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-new-heading p,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .companion-heading p{color:#a5b3ce}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .eyebrow{color:#b9a8ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .button-outline,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .button-ghost{
+  background:#202f4a;color:#ddd8ff;border-color:#3b4c6d
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .button-primary{background:#7161d3;color:#fff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .filter-bar,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .search-field,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .select-field,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .view-mode-switch{
+  color:#cfdaee;background:#19263b;border-color:#34425d;box-shadow:none
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .search-field input{color:#f1f5ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .search-field input::placeholder{color:#a0b0c8}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .view-mode-btn{color:#adbbcf}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .view-mode-btn.active{color:#e1d9ff;background:#383659}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-collection-chip{
+  background:#1b2a41;border-color:#334660;color:#c6d5eb
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-collection-chip.active{
+  color:#fff;background:#574f99;border-color:#7168b7
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-collection-chip:hover{background:#303f59;color:#fff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .result-heading{color:#b0bdd1}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .video-card{
+  background:#192539;border-color:#2e3d55;box-shadow:0 7px 20px #040a1833
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .video-card:hover{border-color:#8974dc;box-shadow:0 14px 32px #070e234d}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .card-body{color:#dde5f3}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .card-title{color:#f3f5ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .card-topline{color:#c7b9ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .card-summary{color:#a6b4ce}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .card-bottom{border-color:#36445d}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .card-date{color:#a4b1c7}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-card-primary{
+  background:#39365e;color:#e5dcff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-card-primary:hover{background:#4b4576}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-card-more summary{background:#28364e;color:#c2cde0;border-color:#3b4a66}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-card-menu{
+  background:#202f47;border-color:#40526c;box-shadow:0 15px 30px #03071666
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-card-menu a,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-card-menu button{color:#dae5fb}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-card-menu a:hover,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-card-menu button:hover{
+  color:#fff;background:#373d68
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-work-section,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-shortcuts button,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-recent-section{
+  color:#e4eafb
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-work-section,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-shortcuts button{
+  background:#19263a;border-color:#33435b;box-shadow:0 8px 25px #04091633
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-work-heading h2,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-shortcuts strong{color:#eff3ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-work-section .home-task-item,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-work-section .home-bill-item,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-work-section .home-habit-item{
+  background:#22324a;border-color:#394c65;color:#e3e9fa
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-task-details strong,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-empty-priority strong,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-bill-item strong{color:#f1f5ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-task-details small,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-bill-item small,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-placeholder{color:#acbcd2}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-quick-task{border-color:#3c4c61}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-quick-task input{
+  color-scheme:dark;color:#edf2fd;background:#152238;border-color:#40516e
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-shortcuts button>span{
+  color:#ded5ff;background:#36345e
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-shortcuts small{color:#aab8d0}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .home-inline-link{color:#c2b3ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-unified-switch{
+  background:#1c2940;border-color:#3a4762
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-mode-button{color:#b4c0d6}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-mode-button.active{
+  background:#3a4264;color:#fff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-finance-optin,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-unified-description{color:#a7b8d2}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-shell,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-panel,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-calendar-panel,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-panel,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-old-journal,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .setting-card,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .image-backup-panel,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .companion-form{
+  background:#19273c;border-color:#34465f;color:#e1eafa;box-shadow:0 8px 28px #04091629
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-top{border-color:#34445b}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-top strong,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-welcome h2,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-panel h2,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-panel h2,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .setting-card h2{color:#f0f3ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-top small,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-welcome p,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-panel>p,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-panel>p,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .setting-card p{color:#aebbd2}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-compose{background:#121f34;border-color:#405673}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-compose input{color:#eef3ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .chat-footnote{color:#abb8cc}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .message .bubble{background:#273650;color:#e7eefa}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .message.user .bubble{background:#594c9e;color:white}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .prompt-chip,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .source-button{
+  background:#26354d;border-color:#445676;color:#dfdfff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .universal-card,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .universal-empty{
+  background:#22324a;border-color:#3b4d67;color:#ebf1ff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .universal-card:hover{background:#323657;border-color:#655ca0}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .universal-card p{color:#aebbd1}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-item,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-item{
+  background:#223149;border-color:#3c4d67;color:#e6effe
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-item strong,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-mini,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-tip,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-tip strong,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-item strong{color:#eef2ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-mini{border-color:#3f4e61}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-item small,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .radar-nothing,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-item p,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-item small{color:#a9b8d1}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .companion-form input,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .companion-form select,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-form input,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-form textarea,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-form select,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .universal-search{
+  color:#eff4ff;background:#132136;border-color:#40506d
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-stat{background:#22324a;border-color:#3c4f69}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-stat strong{color:#f0f5ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-stat small{color:#aab8d2}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-week{background:#334059}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-week.lived{background:#7865b9}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-week.saved{background:#4a9f8d}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-week.present{background:#e6ae72}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-hero{background:linear-gradient(115deg,#2a3358,#433e69);border-color:#5e5798}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-preset,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tip-card,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-bottom-note{
+  color:#e6eefe;background:#1a2940;border-color:#364761
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-preset strong,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-filter-info h2{color:#e7eefe}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-preset small{color:#a9b8cf}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-preset:hover{background:#303458}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-search,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-type-label select{
+  background:#1b2a42;border-color:#3c4d6a;color:#f0f5ff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tips-search input{color:#f0f4ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .editor-modal,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .small-modal,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-dialog,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .history-dialog,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-dialog{
+  background:#19273d;color:#f0f3ff;border-color:#42506b
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .modal-head,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .modal-footer,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-input-wrap,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-footer{
+  background:#152238;border-color:#34445f
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .modal-head h2{color:#f0f4ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-links button,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-result,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-moments button,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .history-entry{
+  background:#223149;color:#e5eafa;border-color:#3e506d
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-result-body strong,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-result h3,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-advice strong{color:#f0f4ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-links button:hover,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-result:hover{background:#373b65}
+body[data-visual-theme="atlas"][data-color-mode="dark"] #atlasCommandQuery{color:#f0f3ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .atlas-command-result-body small{color:#aab8d2}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-result,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-advice{
+  background:#1e2d45;border-color:#3e4b68
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-advice p,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-result>p{color:#acbad4}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .field,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .life-moment-form label,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .companion-form label{color:#c5d3e8}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .editor-modal input,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .editor-modal textarea,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .editor-modal select,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .small-modal input,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .small-modal select,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .small-modal textarea{
+  background:#132139;border-color:#405373;color:#f3f7ff
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .history-entry p{color:#b3c1d8}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .history-entry button{background:#333b64;color:#f1eaff;border-color:#574f82}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-habit-row,
+body[data-visual-theme="atlas"][data-color-mode="dark"] .motivation-habit-area p{color:#c2cfe5}
+body[data-visual-theme="atlas"][data-color-mode="dark"] #motivationHabitAddForm input{background:#17243a;border-color:#40526e;color:#f2f6ff}
+body[data-visual-theme="atlas"][data-color-mode="dark"] .tip-panel{background:#213b3e;border-color:#365953;color:#b9ded1}
+
+/* Finanças no modo escuro: também respeita a aparência ativa.
+   O modo claro segue a folha financeira original sem mudanças em seus dados. */
+body.finance-mode[data-color-mode="dark"],
+body.finance-mode[data-color-mode="dark"] .workspace,
+body.finance-mode[data-color-mode="dark"] #financeView,
+body.finance-mode[data-color-mode="dark"] .finance-dashboard{
+  background:#0e1728;color:#e4ecf9
+}
+body.finance-mode[data-color-mode="dark"] #financeRoot{color-scheme:dark;color:#e8effb}
+body.finance-mode[data-color-mode="dark"] .finance-kpi,
+body.finance-mode[data-color-mode="dark"] .finance-panel,
+body.finance-mode[data-color-mode="dark"] .finance-goal-card,
+body.finance-mode[data-color-mode="dark"] .finance-modal{
+  background:#19263b;border-color:#344761;box-shadow:0 3px 16px #050b1b25;color:#e7edfb
+}
+body.finance-mode[data-color-mode="dark"] .finance-kpi-balance,
+body.finance-mode[data-color-mode="dark"] .finance-kpi-coverage{background:linear-gradient(110deg,#193b39,#19273a)}
+body.finance-mode[data-color-mode="dark"] .finance-kpi-pending{background:linear-gradient(110deg,#352737,#19263b)}
+body.finance-mode[data-color-mode="dark"] .finance-title-area h1,
+body.finance-mode[data-color-mode="dark"] .finance-heading-group h2,
+body.finance-mode[data-color-mode="dark"] .finance-modal-title h2,
+body.finance-mode[data-color-mode="dark"] .finance-payment-modal .finance-modal-title h2,
+body.finance-mode[data-color-mode="dark"] .finance-goal-top strong{
+  color:#f2f5ff
+}
+body.finance-mode[data-color-mode="dark"] .finance-title-area p,
+body.finance-mode[data-color-mode="dark"] .finance-heading-group p,
+body.finance-mode[data-color-mode="dark"] .finance-kpi small,
+body.finance-mode[data-color-mode="dark"] .finance-footnote,
+body.finance-mode[data-color-mode="dark"] .finance-empty p{
+  color:#aebbd2
+}
+body.finance-mode[data-color-mode="dark"] .finance-kpi>div>span{color:#c5d6e8}
+body.finance-mode[data-color-mode="dark"] .finance-kpi strong{color:#e1f9ed}
+body.finance-mode[data-color-mode="dark"] .finance-kpi-pending strong{color:#f5dce6}
+body.finance-mode[data-color-mode="dark"] .finance-month-controls>button,
+body.finance-mode[data-color-mode="dark"] .finance-month-input input,
+body.finance-mode[data-color-mode="dark"] .finance-sort select,
+body.finance-mode[data-color-mode="dark"] .finance-search,
+body.finance-mode[data-color-mode="dark"] .finance-field input,
+body.finance-mode[data-color-mode="dark"] .finance-field select,
+body.finance-mode[data-color-mode="dark"] .finance-payment-modal .finance-field input,
+body.finance-mode[data-color-mode="dark"] .finance-payment-modal .finance-field select{
+  background:#132137;border-color:#3a4d68;color:#e9f1ff
+}
+body.finance-mode[data-color-mode="dark"] .finance-search input{color:#f0f5ff}
+body.finance-mode[data-color-mode="dark"] .finance-table-wrap,
+body.finance-mode[data-color-mode="dark"] .finance-table th,
+body.finance-mode[data-color-mode="dark"] .finance-table td,
+body.finance-mode[data-color-mode="dark"] .finance-summary-row,
+body.finance-mode[data-color-mode="dark"] .finance-panel-footer{
+  border-color:#32435a
+}
+body.finance-mode[data-color-mode="dark"] .finance-table th{
+  background:#17263a;color:#adbed6
+}
+body.finance-mode[data-color-mode="dark"] .finance-table td,
+body.finance-mode[data-color-mode="dark"] .finance-table .finance-item-name,
+body.finance-mode[data-color-mode="dark"] .finance-summary-row,
+body.finance-mode[data-color-mode="dark"] .finance-goal-bottom b{
+  color:#d9e6f8
+}
+body.finance-mode[data-color-mode="dark"] .finance-table tbody tr:hover{background:#263952}
+body.finance-mode[data-color-mode="dark"] .finance-table tbody tr.finance-overdue{background:#302638}
+body.finance-mode[data-color-mode="dark"] .finance-menu-options,
+body.finance-mode[data-color-mode="dark"] .finance-row-menu summary{
+  background:#203249;border-color:#42566d;color:#eaf2ff
+}
+body.finance-mode[data-color-mode="dark"] .finance-menu-options .finance-btn{
+  background:#2e4260;border-color:#435877;color:#e8effd
+}
+body.finance-mode[data-color-mode="dark"] .finance-summary,
+body.finance-mode[data-color-mode="dark"] .finance-payment-bill,
+body.finance-mode[data-color-mode="dark"] .finance-payment-impact{
+  background:#1b3044;border-color:#3a5162;color:#ebf3ff
+}
+body.finance-mode[data-color-mode="dark"] .finance-summary-row strong{color:#d9f8e9}
+body.finance-mode[data-color-mode="dark"] .finance-payment-bill strong,
+body.finance-mode[data-color-mode="dark"] .finance-payment-bill-value strong{color:#f2f6ff}
+body.finance-mode[data-color-mode="dark"] .finance-modal-title>button,
+body.finance-mode[data-color-mode="dark"] .finance-cancel,
+body.finance-mode[data-color-mode="dark"] .finance-delete{background:#253850;color:#f0f3ff;border-color:#44566d}
+body.finance-mode[data-color-mode="dark"] .finance-payment-modal .finance-field>span,
+body.finance-mode[data-color-mode="dark"] .finance-field{color:#d1ddea}
+body.finance-mode[data-color-mode="dark"] .finance-payment-modal .finance-field small,
+body.finance-mode[data-color-mode="dark"] .finance-payment-modal .finance-modal-title p{color:#aabbd0}
+
+/* No Clássico escuro, Finanças anteriormente forçava uma lateral branca. */
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .topbar{
+  background:#0c1422;border-color:#26354d
+}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .sidebar{
+  background:linear-gradient(170deg,#101a2e,#0c1424 75%);border-color:#27344b
+}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .brand{color:#f2f6ff}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .brand small{color:#8a9fbe}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .brand-dot{color:#91a4ff}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .nav-caption{color:#8c9fbe}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .nav-item{color:#aab8d1}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .nav-item:hover{background:#1b2943;color:#e8edff}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .nav-item.active{
+  background:#273965;color:#c5d4ff;box-shadow:inset 3px 0 #8298ff
+}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .nav-item.active .nav-icon{color:#a3b7ff}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .nav-icon,
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .category-item{color:#9cadc7}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .category-item:hover,
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .category-item.active{
+  background:#23334e;color:#d0dbff
+}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .side-separator{background:#253550}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .side-bottom{border-color:#253550}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .privacy-note{
+  background:#14243a;border-color:#283d55;color:#c6d4e7
+}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .account-label{color:#bed0e2}
+body.finance-mode[data-visual-theme="classic"][data-color-mode="dark"] .top-left strong{color:#e5ecfb}
+
+/* Preferências sempre alcançáveis no cabeçalho sem criar linhas de toolbar. */
+@media(max-width:1470px){
+  .appearance-settings{gap:5px}
+  .visual-color-text{display:none}
+  .visual-color-option{padding:7px 10px}
+}
+@media(max-width:1140px){
+  .visual-theme-label{display:none}
+  .visual-theme-option{padding-inline:8px}
+  .visual-color-option{padding-inline:8px}
+}
+@media(max-width:700px){
+  .appearance-settings{gap:3px}
+  .visual-theme-control,.visual-color-control{padding:3px;gap:1px}
+  .visual-theme-option,.visual-color-option{padding:7px 6px;min-height:29px;font-size:10px}
+  .visual-color-option span:first-child{font-size:14px}
+}
+@media(max-width:390px){
+  .visual-theme-option{padding-inline:5px;font-size:9px}
+  .visual-color-option{padding-inline:4px}
+}

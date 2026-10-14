@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/visual-lume.css">
   <link rel="stylesheet" href="/visual-atlas.css">
   <link rel="stylesheet" href="/home-workspace.css">
+  <link rel="stylesheet" href="/appearance-modes.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -51,11 +52,16 @@
           <button class="atlas-command-trigger" type="button" id="atlasCommandTrigger" aria-keyshortcuts="Control+k Meta+k" aria-haspopup="dialog">
             <span class="atlas-command-icon" aria-hidden="true">⌕</span><span>Buscar ou ir para...</span><kbd>⌘ K</kbd>
           </button>
-          <div class="visual-theme-control" role="group" aria-label="Escolher aparência">
-            <span class="visual-theme-label" aria-hidden="true">Aparência</span>
-            <button class="visual-theme-option" type="button" data-visual-option="classic" aria-pressed="true" title="Voltar à aparência original">Clássico</button>
-            <button class="visual-theme-option" type="button" data-visual-option="lume" aria-pressed="false" title="Visual claro Lume">Lume</button>
-            <button class="visual-theme-option" type="button" data-visual-option="atlas" aria-pressed="false" title="Nova interface Atlas com organização renovada">✦ Atlas</button>
+          <div class="appearance-settings" aria-label="Aparência do Relembra">
+            <div class="visual-theme-control" role="group" aria-label="Escolher interface">
+              <span class="visual-theme-label" aria-hidden="true">Interface</span>
+              <button class="visual-theme-option" type="button" data-visual-option="classic" aria-pressed="true" title="Interface Clássica">Clássico</button>
+              <button class="visual-theme-option" type="button" data-visual-option="atlas" aria-pressed="false" title="Interface Atlas">✦ Atlas</button>
+            </div>
+            <div class="visual-color-control" role="group" aria-label="Escolher modo de cor">
+              <button class="visual-color-option" type="button" data-color-option="light" aria-pressed="false" title="Ativar modo claro"><span aria-hidden="true">☀</span><span class="visual-color-text">Claro</span></button>
+              <button class="visual-color-option" type="button" data-color-option="dark" aria-pressed="true" title="Ativar modo escuro"><span aria-hidden="true">☾</span><span class="visual-color-text">Escuro</span></button>
+            </div>
           </div>
           <span class="header-date" id="todayText"></span><button class="button button-primary" id="addVideoBtn"><span class="plus">+</span> <span>Adicionar vídeo</span></button></div>
       </header>
