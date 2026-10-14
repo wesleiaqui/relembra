@@ -290,94 +290,246 @@ body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palet
    permanecem em indicadores pequenos (.finance-pill), não em grandes fundos. */
 
 
-/* Ajuste OLED: tudo o que ocupa uma área grande é preto, não grafite amarronzado.
-   O texto dos estados continua semântico, mas SEM fundo colorido ou faixas. */
+/* OLED · Finanças v2: reproduzir hierarquia do modo claro sem perder o preto.
+   Um painel neutro e tintas semânticas em KPIs/badges; nenhuma camada opaca
+   deve ocultar o gradiente. Regra limitada ao tema OLED de Finanças. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"]{
+  --fin-oled-surface:#101010;
+  --fin-oled-elevated:#171717;
+  --fin-oled-border:#292929;
+  --fin-oled-text:#f2f2f2;
+  --fin-oled-muted:#bdbdbd;
+  --fin-oled-green:#0c8062; /* contraste AA com texto branco */
+  --fin-oled-green-hover:#117d60;
+  --fin-oled-success:#9be0bb;
+  --fin-oled-danger:#ffaaaa;
+  --fin-oled-warning:#f4c987;
+  --fin-night-bg:#000000;
+  --fin-night-panel:var(--fin-oled-surface);
+  --fin-night-panel-raised:var(--fin-oled-elevated);
+  --fin-night-border:var(--fin-oled-border);
+  --fin-night-border-soft:var(--fin-oled-border);
+  --fin-night-text:var(--fin-oled-text);
+  --fin-night-secondary:var(--fin-oled-muted);
+  --fin-night-success:var(--fin-oled-success);
+  --fin-night-danger:var(--fin-oled-danger);
+  --fin-night-warning:var(--fin-oled-warning);
+}
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-balance,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-pending,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-coverage,
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-goal-card,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-goal-card{
+  background:var(--fin-oled-surface);
+  border:1px solid var(--fin-oled-border);
+  box-shadow:none;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-balance{
+  background:linear-gradient(110deg, rgb(84 201 145 / 10%), rgb(84 201 145 / 0%) 82%), var(--fin-oled-surface);
+  border-color:#30483a;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-pending{
+  background:linear-gradient(110deg, rgb(255 120 125 / 9%), rgb(255 120 125 / 0%) 82%), var(--fin-oled-surface);
+  border-color:#493133;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-coverage{
+  background:linear-gradient(110deg, rgb(83 192 143 / 8%), rgb(83 192 143 / 0%) 82%), var(--fin-oled-surface);
+  border-color:#304339;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi > .finance-icon.finance-icon-balance,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi > .finance-icon.finance-icon-coverage{
+  background:#193529;
+  color:#95ddb7;
+  border:1px solid #315a45;
+  box-shadow:none;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi > .finance-icon.finance-icon-pending{
+  background:#3a2325;
+  color:#f6aaaa;
+  border:1px solid #5b373a;
+  box-shadow:none;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-balance strong{
+  color:var(--fin-oled-success);
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-pending strong{
+  color:var(--fin-oled-text);
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi-coverage strong.finance-positive{
+  color:var(--fin-oled-success);
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi .finance-negative{
+  color:var(--fin-oled-danger);
+}
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-planning,
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-planning .finance-summary,
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-footer,
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-planned-note{
-  background:#0b0b0b;
-  background-image:none;
-  border-color:#282828;
-  box-shadow:none;
+  background:var(--fin-oled-surface);
+  color:var(--fin-oled-muted);
+  border-color:var(--fin-oled-border);
 }
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table th,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-row-menu summary,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-menu-options{
-  background:#141414;
-  border-color:#282828;
-  color:#c9c9c9;
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-summary-row,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-head,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table-wrap,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table-empty{
+  border-color:var(--fin-oled-border);
 }
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-summary-row strong.finance-positive{
+  color:var(--fin-oled-success);
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-summary-row strong.finance-negative{
+  color:var(--fin-oled-danger);
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table th{
+  background:var(--fin-oled-elevated);
+  color:var(--fin-oled-muted);
+  border-color:var(--fin-oled-border);
+}
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr:nth-child(even),
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr:nth-child(even){
+  background:var(--fin-oled-surface);
+}
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr.finance-overdue,
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr.finance-overdue:nth-child(even){
-  background:#0b0b0b;
-  background-image:none;
+  background:linear-gradient(rgb(245 120 120 / 4.5%), rgb(245 120 120 / 4.5%)),var(--fin-oled-surface);
 }
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr:hover,
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr.finance-overdue:hover{
-  background:#171717;
+  background:var(--fin-oled-elevated);
 }
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table tbody tr.finance-overdue td:first-child{
   box-shadow:none;
 }
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table td,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-summary-row,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-head{
-  background-color:transparent;
-  border-color:#252525;
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-table td{
+  background:transparent;
+  border-color:var(--fin-oled-border);
 }
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-kpi > .finance-icon,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-icon-balance,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-icon-coverage,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-icon-pending{
-  background:#191919;
-  border:1px solid #323232;
-  box-shadow:none;
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-priority.finance-priority-high{
+  background:rgb(255 122 130 / 13%);
+  color:#ffa4ae;
 }
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-bad,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-warn,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-ok,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-essential,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-planned,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-neutral{
-  background:#191919;
-  border:1px solid #343434;
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-priority:not(.finance-priority-high){
+  background:#202020;color:#c8c8c8;
 }
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-bad{
-  color:#ff8989;
+  background:rgb(255 107 107 / 11%);
+  border:1px solid rgb(255 107 107 / 20%);
+  color:var(--fin-oled-danger);
 }
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-warn{
-  color:#f8cb80;
+  background:rgb(244 196 109 / 11%);
+  border:1px solid rgb(244 196 109 / 20%);
+  color:var(--fin-oled-warning);
 }
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-ok,
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-essential{
-  color:#92d5b1;
+  background:rgb(93 213 167 / 11%);
+  border:1px solid rgb(93 213 167 / 20%);
+  color:var(--fin-oled-success);
 }
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-priority.finance-priority-high,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-priority{
-  background:#1a1a1a;
-  color:#cdcdcd;
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-neutral,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-pill.finance-planned{
+  background:#1d1d1d;
+  color:#d5d5d5;
+  border:1px solid #373737;
 }
+
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-month-controls > button,
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-sort select,
 body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-month-input input,
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-search{
-  background:#080808;
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-search,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-row-menu summary,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-menu-options{
+  background:#111111;
   border-color:#363636;
+  color:var(--fin-oled-text);
 }
-body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-head .finance-btn[data-fin-action="manage-recurring"]{
-  background:#161616;
-  border-color:#353535;
-  color:#ededed;
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-head .finance-btn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-save{
+  background:var(--fin-oled-green);
+  border:1px solid var(--fin-oled-green);
+  color:#fff;
+  box-shadow:none;
 }
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-head .finance-btn:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-save:hover{
+  background:var(--fin-oled-green-hover);
+  border-color:var(--fin-oled-green-hover);
+  color:#fff;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-head .finance-btn[data-fin-action="manage-recurring"],
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-goal-top .finance-btn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-menu-options .finance-btn{
+  background:#1b1b1b;
+  border:1px solid #393939;
+  color:#e8e8e8;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-panel-head .finance-btn[data-fin-action="manage-recurring"]:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-goal-top .finance-btn:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-menu-options .finance-btn:hover{
+  background:#292929;
+  border-color:#565656;
+  color:#fff;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #financeRoot .finance-delete{
+  background:rgb(255 115 115 / 12%);
+  border:1px solid rgb(255 115 115 / 23%);
+  color:#ffb2b2;
+}
+
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .finance-modal,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .finance-payment-modal{
+  background:var(--fin-oled-surface);
+  border-color:var(--fin-oled-border);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .finance-payment-bill,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .finance-payment-impact,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .finance-recurring-check,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .finance-recurring-info{
+  background:var(--fin-oled-elevated);
+  border-color:var(--fin-oled-border);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .finance-payment-actions .finance-save{
+  background:var(--fin-oled-green);
+  border-color:var(--fin-oled-green);
+  color:#fff;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .finance-payment-actions .finance-save:hover{
+  background:var(--fin-oled-green-hover);
+  border-color:var(--fin-oled-green-hover);
+  color:#fff;
+}
+
 /* Acabamento neutro fora do financeiro para não manter tons quentes na navegação. */
 body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] .dark-palette-menu,
 body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"] #chatView .chat-single-shell{
