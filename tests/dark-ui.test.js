@@ -68,3 +68,30 @@ test('Chat redesenhado e paleta noturna coabitam sem perda da interface de pesqu
   assert.match(chat,/#chatView \.chat-workspace-composer/);
   assert.match(palette,/#chatView \.chat-workspace-composer/);
 });
+
+
+test('finanças escuras espelham o modo claro sem o antigo cartão azul',()=>{
+  const finance=file('finance-dark-refined.css');
+  const base=index.indexOf('/dark-unified.css');
+  const last=index.indexOf('/finance-dark-refined.css');
+  assert.ok(last>base,'camada financeira precisa carregar após o tema global');
+  assert.equal((index.match(/\/finance-dark-refined\.css/g)||[]).length,1);
+  assert.match(finance,/body\.finance-mode\[data-visual-theme\]\[data-color-mode="dark"\]/);
+  assert.doesNotMatch(finance,/\[data-color-mode="light"\]|!important|#b9a8ff/i);
+  assert.match(finance,/\.finance-planning \.finance-summary\s*\{\s*background: var\(--fin-night-panel\)/);
+  assert.match(finance,/\.finance-kpi-balance\s*\{\s*background: linear-gradient/);
+  assert.match(finance,/\.finance-kpi-pending\s*\{\s*background: linear-gradient/);
+  assert.match(finance,/\.finance-kpi-coverage\s*\{\s*background: linear-gradient/);
+  assert.match(finance,/\.finance-table tbody tr\.finance-overdue/);
+  assert.match(finance,/\.finance-pill\.finance-bad/);
+  assert.match(finance,/\.finance-pill\.finance-warn/);
+  assert.match(finance,/\.finance-pill\.finance-essential/);
+  assert.match(finance,/\.finance-btn\[data-fin-action="manage-recurring"\]/);
+  assert.match(finance,/\.finance-delete/);
+  assert.match(finance,/\.finance-payment-modal/);
+  assert.match(finance,/@media \(max-width: 780px\)/);
+  assert.ok(contrast('#f0f2ef','#1e2324')>=12,'texto principal legível em cartões');
+  assert.ok(contrast('#bbc7c1','#1e2324')>=7,'texto secundário legível em cartões');
+  assert.ok(contrast('#ffffff','#19735b')>=4.5,'botão principal com texto branco acessível');
+  assert.ok(contrast('#ffffff','#1c8067')>=4.5,'hover do botão acessível');
+});
