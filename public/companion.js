@@ -17,23 +17,43 @@ function taskHtml(t){
 }
 function renderRadar(){
   if(!radar)return;
-  const pending=radar.tasks.filter(t=>!t.done_at);
-  const done=radar.tasks.filter(t=>t.done_at);
-  const orderedBills=radar.bills.slice(0,8);
-  const bills=orderedBills.map(b=>'<div class="radar-mini"><span>'+esc(b.name)+'<small>'+human(b.due_date)+(b.due_date<today()?' · vencida':'')+'</small></span><b>'+money(b.amount_cents)+'</b></div>').join('');
-  $('radarContent').innerHTML='<div class="radar-panel"><h2>Tarefas que merecem atenção</h2><p>Pendências de hoje e dos próximos 14 dias.</p><div class="radar-list">'+
-    (pending.length?pending.map(taskHtml).join(''):empty('Tudo em dia nesta janela. Você pode acrescentar uma tarefa abaixo.'))+
-    (done.length?'<p class="companion-footnote">Concluídas hoje</p>'+done.map(taskHtml).join(''):'')+'</div></div>'+
-    '<div class="radar-side"><div class="radar-panel radar-alert"><h2>Contas próximas</h2><p>Consulte vencimentos, sem assumir que entradas previstas já chegaram.</p>'+
-    (bills||empty('Nenhuma conta pendente com vencimento até os próximos 14 dias.'))+
-    '<button class="button button-outline" data-radar-finance type="button">Ver minhas finanças →</button></div>'+
-    '<div class="radar-panel"><h2>Um lembrete seu</h2>'+(radar.tips.length?'<div class="radar-tip"><strong>'+esc(radar.tips[0].title)+'</strong>'+esc(radar.tips[0].content)+'</div>':empty('Favorite dicas para vê-las aqui.'))+
-    (radar.moments.length?'<p class="companion-footnote">Hoje no calendário: '+esc(radar.moments[0].title)+'</p>':'')+'</div></div>';
+  const date=radar.date||today(),tasks=radar.tasks||[],pending=tasks.filter(t=>!t.done_at),done=tasks.filter(t=>t.done_at);
+  const bills=(radar.bills||[]).slice().sort((a,b)=>String(a.due_date).localeCompare(String(b.due_date))||(a.priority||2)-(b.priority||2));
+  const overdueBills=bills.filter(b=>b.due_date<date),dueToday=bills.filter(b=>b.due_date===date);
+  const overdueTasks=pending.filter(t=>t.due_date<date),upcomingTasks=pending.filter(t=>t.due_date>=date);
+  const dateCaption=d=>d<date?'Vencida · '+human(d):d===date?'Vence hoje':'Vence '+human(d);
+  const billItem=b=>'<button type="button" class="radar-bill-row '+(b.due_date<date?'radar-bill-late':b.due_date===date?'radar-bill-today':'')+'" data-radar-finance title="Abrir minhas finanças">'+
+    '<span class="radar-bill-mark" aria-hidden="true">'+(b.due_date<date?'!':b.due_date===date?'●':'○')+'</span>'+
+    '<span class="radar-bill-info"><strong>'+esc(b.name)+'</strong><small>'+esc(dateCaption(b.due_date))+'</small></span>'+
+    '<b>'+money(b.amount_cents)+'</b><span class="radar-row-arrow" aria-hidden="true">↗</span></button>';
+  const alerts=(overdueBills.length?'<span class="radar-count-alert">'+overdueBills.length+' conta(s) vencida(s)</span>':'<span class="radar-count-good">Sem contas vencidas nesta lista</span>');
+  const taskDisplay=overdueTasks.length?'<div class="radar-list-label">Atrasadas <span>'+overdueTasks.length+'</span></div>'+overdueTasks.map(taskHtml).join(''):'';
+  const upcomingDisplay=upcomingTasks.length?'<div class="radar-list-label">Próximas <span>'+upcomingTasks.length+'</span></div>'+upcomingTasks.map(taskHtml).join(''):'';
+  const doneDisplay=done.length?'<details class="radar-collapsed"><summary>✓ '+done.length+' tarefa(s) concluída(s) hoje</summary><div class="radar-list">'+done.map(taskHtml).join('')+'</div></details>':'';
+  const emptyState='<div class="radar-empty-state"><div class="radar-empty-icon" aria-hidden="true">✓</div><strong>Suas tarefas estão em dia</strong><p>Que tal anotar uma prioridade para o próximo passo?</p><button type="button" class="button button-outline" data-radar-create>＋ Criar uma tarefa</button></div>';
+  const initialBills=bills.slice(0,4),restBills=bills.slice(4);
+  $('radarContent').innerHTML=
+    '<div class="radar-snapshot"><div><span class="eyebrow">SEU RESUMO</span><strong>'+pending.length+' tarefa(s) pendente(s)</strong><small>Hoje e próximos 14 dias, incluindo atrasadas</small></div>'+
+    '<div>'+alerts+(dueToday.length?'<small>'+dueToday.length+' conta(s) vencendo hoje</small>':'<small>Organize suas contas antes dos vencimentos</small>')+'</div></div>'+
+    '<div class="radar-main-grid">'+
+      '<section class="radar-panel radar-tasks-panel"><div class="radar-panel-top"><div><span class="eyebrow">FOCO</span><h2>Minhas tarefas</h2></div><span class="radar-soft-count">'+pending.length+' pendente(s)</span></div>'+
+      '<p>Marque as tarefas quando concluir. A prioridade começa pelo que está atrasado.</p>'+
+      '<div class="radar-list">'+(pending.length?taskDisplay+upcomingDisplay:emptyState)+doneDisplay+'</div></section>'+
+      '<section class="radar-panel radar-bills-panel"><div class="radar-panel-top"><div><span class="eyebrow">CONTAS</span><h2>Próximos vencimentos</h2></div><span class="radar-soft-count">'+bills.length+' conta(s)</span></div>'+
+      '<p>Contas pendentes registradas nas suas finanças.</p>'+
+      '<div class="radar-bills-list">'+(bills.length?initialBills.map(billItem).join(''):'<div class="radar-bills-empty">Nenhuma conta pendente nesta janela.</div>')+
+      (restBills.length?'<details class="radar-collapsed radar-bills-more"><summary>Mostrar outras '+restBills.length+' conta(s) <span aria-hidden="true">↓</span></summary>'+restBills.map(billItem).join('')+'</details>':'')+
+      '</div><button class="radar-finance-link" data-radar-finance type="button">Abrir painel financeiro <span aria-hidden="true">↗</span></button></section></div>'+
+    '<section class="radar-reflection">'+
+      '<div><span class="eyebrow">LEMBRETE PARA O DIA</span><h2>'+(radar.tips.length?esc(radar.tips[0].title):'Pequenos passos contam')+'</h2>'+
+      '<p>'+(radar.tips.length?esc(radar.tips[0].content):'Adicione uma dica destacada em “Dicas para o momento” para vê-la aqui quando precisar.')+'</p>'+
+      (radar.moments.length?'<small>✧ Hoje no seu calendário: '+esc(radar.moments[0].title)+'</small>':'')+'</div>'+
+      '<button type="button" class="button button-outline" data-radar-tips>Ver minhas dicas ↗</button></section>';
 }
 export async function loadRadar(){
   const serial=++radarSerial;
   $('radarContent').textContent='Carregando suas prioridades...';
-  $('radarTaskForm').elements.namedItem('due_date').value=today();
+  const due=$('radarTaskForm').elements.namedItem('due_date');if(!due.value)due.value=today();
   try{const data=await api('/api/radar');if(serial!==radarSerial)return;radar=data;renderRadar();}
   catch(e){if(serial===radarSerial)$('radarContent').textContent=e.message;}
 }
@@ -315,6 +335,8 @@ export function setupCompanion(options){
       if(!confirm('Excluir esta tarefa?'))return;
       try{await api('/api/radar/tasks/'+del.dataset.taskDelete,{method:'DELETE'});await loadRadar();}catch(err){toast(err.message,true);}return;
     }
+    if(e.target.closest('[data-radar-create]')){$('radarTaskForm').elements.namedItem('title').focus();return;}
+    if(e.target.closest('[data-radar-tips]')){await navigate('tips');return;}
     if(e.target.closest('[data-radar-finance]'))await navigate('finance');
   });
   $('radarContent').addEventListener('change',async e=>{
