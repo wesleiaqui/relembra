@@ -1,0 +1,396 @@
+/*
+ * Relembra · Paletas alternativas para o modo escuro
+ * Usadas em Clássico e Atlas. O Grafite original continua intocado.
+ * Só estilos. Mudanças são locais e nunca chegam ao servidor.
+ */
+/* Controle enxuto: não sobrecarrega a barra superior. */
+.dark-palette-picker{position:relative;flex:none;display:flex;align-items:center}
+.dark-palette-picker[hidden],.dark-palette-menu[hidden]{display:none}
+.dark-palette-trigger{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:37px;padding:6px 10px;border:1px solid #414a47;
+  background:#262c2b;color:#e3e8e3;border-radius:11px;
+  font:750 11px 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap
+}
+.dark-palette-trigger:hover,.dark-palette-trigger[aria-expanded="true"]{
+  border-color:#8b9a91;background:#333a38
+}
+.dark-palette-trigger:focus-visible,.dark-palette-option:focus-visible{
+  outline:2px solid #b6c8bc;outline-offset:2px
+}
+.dark-palette-chevron{font-size:16px;line-height:1;opacity:.7}
+.dark-palette-swatch{
+  display:inline-block;flex:none;width:19px;height:19px;border-radius:6px;
+  border:1px solid rgb(255 255 255 / 29%);box-shadow:0 0 0 1px rgb(0 0 0 / 12%)
+}
+.dark-palette-swatch[data-palette="graphite"]{background:#111314}
+.dark-palette-swatch[data-palette="midnight"]{background:#111b2cf0}
+.dark-palette-swatch[data-palette="deepblue"]{background:#101722}
+.dark-palette-swatch[data-palette="forest"]{background:#111d18}
+.dark-palette-swatch[data-palette="petrol"]{background:#0f1d21}
+.dark-palette-swatch[data-palette="oled"]{background:#080a0b}
+.dark-palette-swatch[data-palette="wine"]{background:#20161b}
+.dark-palette-menu{
+  position:absolute;z-index:60;right:0;top:calc(100% + 12px);
+  width:min(328px,calc(100vw - 24px));max-height:min(67dvh,480px);
+  overflow:auto;padding:12px;background:#242a2a;border:1px solid #485351;
+  border-radius:15px;box-shadow:0 18px 50px rgb(0 0 0 / 42%);
+  color:#eef1ec;scrollbar-width:thin
+}
+.dark-palette-menu-heading{display:grid;gap:4px;padding:5px 6px 12px}
+.dark-palette-menu-heading strong{font-size:13px}
+.dark-palette-menu-heading small{font-size:10px;color:#b7c4bc}
+.dark-palette-options{display:grid;grid-template-columns:1fr;gap:4px}
+.dark-palette-option{
+  display:flex;align-items:center;gap:11px;width:100%;min-height:49px;
+  padding:8px 10px;background:transparent;color:#e5eae5;
+  border:1px solid transparent;border-radius:10px;cursor:pointer;text-align:left
+}
+.dark-palette-option:hover{background:#333b3a;border-color:#465451}
+.dark-palette-option.selected{background:#373f3c;border-color:#708176}
+.dark-palette-option .dark-palette-swatch{width:28px;height:28px;border-radius:9px}
+.dark-palette-option-copy{display:grid;gap:2px;flex:1;min-width:0}
+.dark-palette-option-copy strong{font-size:11.5px;font-weight:760}
+.dark-palette-option-copy small{font-size:10px;color:#abbdb2}
+.dark-palette-check{font-weight:800;color:#b6dcc2;opacity:0}
+.dark-palette-option.selected .dark-palette-check{opacity:1}
+@media(max-width:980px){
+ .dark-palette-trigger{padding:6px 8px;gap:5px}
+ .dark-palette-chevron{display:none}
+}
+@media(max-width:640px){
+ .dark-palette-trigger{min-height:35px;font-size:0;gap:0;padding:6px 8px}
+ .dark-palette-trigger .dark-palette-swatch{height:20px;width:20px}
+ .dark-palette-menu{right:-8px}
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="midnight"]{
+  --palette-bg:#111b2cf0;
+  --palette-bg-solid:#111b2c;
+  --palette-sidebar:#101929;
+  --palette-top:#111b2cf0;
+  --palette-surface:#192637;
+  --palette-raised:#233348;
+  --palette-base:#141f30;
+  --palette-border:#34475e;
+  --palette-strong:#4b6076;
+  --palette-text:#edf3f9;
+  --palette-muted:#b0c2d4;
+  --palette-accent:#9abddd;
+  --palette-accent-hover:#b8d1ea;
+  --palette-active:#273b50;
+  --palette-kpi:#202b3a;
+  --palette-kpi-border:#405268;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="deepblue"]{
+  --palette-bg:#101722;
+  --palette-bg-solid:#101722;
+  --palette-sidebar:#111a28;
+  --palette-top:#101722;
+  --palette-surface:#1a2533;
+  --palette-raised:#243446;
+  --palette-base:#141d29;
+  --palette-border:#324355;
+  --palette-strong:#475c72;
+  --palette-text:#edf2fa;
+  --palette-muted:#b5c3d1;
+  --palette-accent:#8db6d8;
+  --palette-accent-hover:#adcde7;
+  --palette-active:#27384c;
+  --palette-kpi:#202a38;
+  --palette-kpi-border:#415166;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="forest"]{
+  --palette-bg:#111d18;
+  --palette-bg-solid:#111d18;
+  --palette-sidebar:#111a16;
+  --palette-top:#14211a;
+  --palette-surface:#1d2923;
+  --palette-raised:#293a31;
+  --palette-base:#17221c;
+  --palette-border:#395043;
+  --palette-strong:#516a5a;
+  --palette-text:#edf3ec;
+  --palette-muted:#b6c9b9;
+  --palette-accent:#a0cead;
+  --palette-accent-hover:#bce0c5;
+  --palette-active:#2b4334;
+  --palette-kpi:#233129;
+  --palette-kpi-border:#45604c;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="petrol"]{
+  --palette-bg:#0f1d21;
+  --palette-bg-solid:#0f1d21;
+  --palette-sidebar:#102026;
+  --palette-top:#102329;
+  --palette-surface:#1a2b30;
+  --palette-raised:#283b41;
+  --palette-base:#15252a;
+  --palette-border:#395158;
+  --palette-strong:#527179;
+  --palette-text:#eaf3f3;
+  --palette-muted:#afc7c9;
+  --palette-accent:#9ac9ca;
+  --palette-accent-hover:#b7dadd;
+  --palette-active:#29454a;
+  --palette-kpi:#20353a;
+  --palette-kpi-border:#416169;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"]{
+  --palette-bg:#080a0b;
+  --palette-bg-solid:#080a0b;
+  --palette-sidebar:#0b0d0e;
+  --palette-top:#0e1011;
+  --palette-surface:#171a1b;
+  --palette-raised:#232728;
+  --palette-base:#111415;
+  --palette-border:#34393a;
+  --palette-strong:#505858;
+  --palette-text:#f1f3ef;
+  --palette-muted:#b9c3be;
+  --palette-accent:#cebc9e;
+  --palette-accent-hover:#dfceb2;
+  --palette-active:#343027;
+  --palette-kpi:#1d2020;
+  --palette-kpi-border:#444743;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="wine"]{
+  --palette-bg:#20161b;
+  --palette-bg-solid:#20161b;
+  --palette-sidebar:#21181d;
+  --palette-top:#251b20;
+  --palette-surface:#302329;
+  --palette-raised:#3f3037;
+  --palette-base:#281d22;
+  --palette-border:#55414a;
+  --palette-strong:#745963;
+  --palette-text:#f5eeee;
+  --palette-muted:#d1bcc2;
+  --palette-accent:#e0b5ae;
+  --palette-accent-hover:#efcbc5;
+  --palette-active:#4b3238;
+  --palette-kpi:#36272d;
+  --palette-kpi-border:#63464e;
+}
+/* Paleta colorida somente quando selecionada: zero mudanças no modo claro. */
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]){
+  --bg:var(--palette-bg);
+  --sidebar:var(--palette-sidebar);
+  --panel:var(--palette-surface);
+  --panel2:var(--palette-raised);
+  --stroke:var(--palette-border);
+  --text:var(--palette-text);
+  --soft:var(--palette-muted);
+  --muted:var(--palette-muted);
+  --primary:var(--palette-accent);
+  --primary2:var(--palette-accent-hover);
+  --night-bg:var(--palette-bg);
+  --night-base:var(--palette-base);
+  --night-sidebar:var(--palette-sidebar);
+  --night-card:var(--palette-surface);
+  --night-elevated:var(--palette-raised);
+  --night-border:var(--palette-border);
+  --night-strong-border:var(--palette-strong);
+  --night-text:var(--palette-text);
+  --night-secondary:var(--palette-muted);
+  --night-accent:var(--palette-accent);
+  background:var(--palette-bg);
+  color:var(--palette-text);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .workspace,
+body[data-visual-theme="atlas"][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .workspace{
+  background:var(--palette-bg);color:var(--palette-text);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .topbar,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .topbar{
+  background:var(--palette-top);border-color:var(--palette-border);color:var(--palette-text);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .sidebar,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .sidebar{
+  background:var(--palette-sidebar);border-color:var(--palette-border);color:var(--palette-text);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .nav-item.active,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .nav-item.active {
+  color:var(--palette-text);background:var(--palette-active);
+  box-shadow:inset 3px 0 0 var(--palette-accent);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .nav-item.active .nav-icon,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .brand-dot,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .eyebrow,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .gradient-star,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .text-link,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .companion-heading h1 em,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-page-heading h1 span{
+  color:var(--palette-accent);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .nav-item:hover,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .category-item:hover{
+  color:var(--palette-text);background:var(--palette-raised);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .appearance-settings .visual-theme-control,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .appearance-settings .visual-color-control{
+  background:var(--palette-base);border-color:var(--palette-border);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .appearance-settings .visual-theme-option.selected,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .appearance-settings .visual-color-option.selected{
+  background:var(--palette-active);color:var(--palette-text);box-shadow:none;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .button-primary,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .send-btn,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-workspace-composer .send-btn {
+  background:var(--palette-accent);border:1px solid var(--palette-accent);
+  color:var(--palette-bg-solid);box-shadow:none;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .button-primary:hover,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .send-btn:hover:not(:disabled),
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-workspace-composer .send-btn:hover:not(:disabled) {
+  background:var(--palette-accent-hover);border-color:var(--palette-accent-hover);color:var(--palette-bg-solid);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .button-outline,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .button-ghost{
+  background:var(--palette-raised);color:var(--palette-text);border-color:var(--palette-border);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .home-work-section,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .home-shortcuts button,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .stat-card,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .video-card,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .radar-snapshot,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .radar-panel,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .radar-reflection,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .tips-preset,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .life-calendar-panel,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .life-moment-panel,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-single-shell{
+  background:var(--palette-surface);border-color:var(--palette-border);box-shadow:none;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .home-task-item,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .home-bill-item,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .home-habit-item,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .radar-empty-state,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-welcome-suggestions button,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-memory-result {
+  background:var(--palette-raised);border-color:var(--palette-border);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .filter-bar,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .search-field,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .select-field,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .view-mode-switch,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .atlas-command-trigger {
+  background:var(--palette-base);color:var(--palette-text);border-color:var(--palette-border);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .hero,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .tips-hero {
+  background:linear-gradient(120deg,var(--palette-surface),var(--palette-raised));
+  border:1px solid var(--palette-border);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) :is(button,input,textarea,select,summary):focus-visible{
+  outline-color:var(--palette-accent);
+}
+/* Chat: painéis, composer e destaques acompanham a paleta escolhida. */
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView{
+  --cw-surface:var(--palette-surface);
+  --cw-muted-surface:var(--palette-raised);
+  --cw-tile:var(--palette-raised);
+  --cw-border:var(--palette-border);
+  --cw-border-soft:var(--palette-border);
+  --cw-text:var(--palette-text);
+  --cw-muted:var(--palette-muted);
+  --cw-soft:var(--palette-muted);
+  --cw-accent:var(--palette-accent);
+  --cw-action:var(--palette-accent);
+  --cw-action-hover:var(--palette-accent-hover);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-workspace-top,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-composer-area{
+  background:var(--palette-surface);border-color:var(--palette-border);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-workspace-composer{
+  background:var(--palette-base);border-color:var(--palette-strong);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-workspace-composer:focus-within{
+  border-color:var(--palette-accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--palette-accent) 14%,transparent);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-workspace-messages .message.bot .bubble{
+  background:var(--palette-raised);color:var(--palette-text);border-color:var(--palette-border);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-workspace-messages .message.user .bubble{
+  background:var(--palette-active);color:var(--palette-text);border-color:var(--palette-strong);
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .chat-avatar,
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #chatView .bot-avatar{
+  color:var(--palette-bg-solid);background:var(--palette-accent);box-shadow:none;
+}
+/* Finanças preserva cores de significado (recebido/vencido/pendente).
+   Só muda a família de fundos, bordas e botões primários. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]),
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .workspace,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeView,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .finance-dashboard{
+  background:var(--palette-bg);color:var(--palette-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]){
+  --fin-night-bg:var(--palette-bg);
+  --fin-night-panel:var(--palette-surface);
+  --fin-night-panel-raised:var(--palette-raised);
+  --fin-night-input:var(--palette-base);
+  --fin-night-border:var(--palette-border);
+  --fin-night-border-soft:var(--palette-border);
+  --fin-night-text:var(--palette-text);
+  --fin-night-secondary:var(--palette-muted);
+  --fin-night-muted:var(--palette-muted);
+  --fin-night-accent:var(--palette-accent);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-panel,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-goal-card,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-kpi{
+  background:var(--palette-surface);border-color:var(--palette-border);box-shadow:none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-kpi-balance,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-kpi-pending,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-kpi-coverage {
+  background:var(--palette-kpi);border-color:var(--palette-kpi-border);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-planning,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-planning .finance-summary,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-panel-footer,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-planned-note{
+  background:var(--palette-surface);border-color:var(--palette-border);color:var(--palette-muted);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-table th,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-row-menu summary,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-menu-options{
+  background:var(--palette-raised);border-color:var(--palette-border);color:var(--palette-muted);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-table tbody tr:hover{
+  background:var(--palette-raised);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-month-controls > button,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-sort select,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-month-input input,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-search,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-field input,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-field select,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-field textarea{
+  background:var(--palette-base);border-color:var(--palette-strong);color:var(--palette-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-panel-head .finance-btn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-save{
+  background:var(--palette-accent);border-color:var(--palette-accent);
+  color:var(--palette-bg-solid);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-panel-head .finance-btn:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) #financeRoot .finance-save:hover{
+  background:var(--palette-accent-hover);border-color:var(--palette-accent-hover);
+  color:var(--palette-bg-solid);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .finance-modal,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .finance-payment-modal{
+  background:var(--palette-surface);border-color:var(--palette-strong);color:var(--palette-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .finance-payment-bill,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .finance-payment-impact,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .finance-recurring-check,
+body.finance-mode[data-visual-theme][data-color-mode="dark"][data-dark-palette]:not([data-dark-palette="graphite"]) .finance-recurring-info{
+  background:var(--palette-raised);border-color:var(--palette-border);color:var(--palette-muted);
+}
