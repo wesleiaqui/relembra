@@ -303,7 +303,7 @@ export async function importFinances(env,ownerId,finance) {
       if(found?.owner_id===ownerId || sourceMatch){recurringMap.set(oldId,sourceMatch?.id||oldId);skipped++;continue;}
       const newId=found?crypto.randomUUID():oldId||crypto.randomUUID();
       const time=stamp();
-      await env.DB.prepare('INSERT INTO finance_recurring_rules (id,owner_id,name,amount_cents,day_of_month,priority,essential,active,start_month,last_generated_month,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+      await env.DB.prepare('INSERT INTO finance_recurring_rules (id,owner_id,source_id,name,amount_cents,day_of_month,priority,essential,active,start_month,last_generated_month,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
         .bind(newId,ownerId,oldId||newId,v.name,v.amount_cents,v.day_of_month,v.priority,v.essential,v.active,
           raw.start_month,raw.last_generated_month,time,time).run();
       if(oldId)recurringMap.set(oldId,newId);
@@ -324,9 +324,9 @@ export async function importFinances(env,ownerId,finance) {
         if (collision?.owner_id === ownerId) { skipped++; continue; }
         const id = collision ? crypto.randomUUID() : rawId || crypto.randomUUID();
         const cols = fields[kind];
-        const link=kind==='bills' && typeof raw.recurring_id==='string'
-          ? (recurringMap.get(raw.recurring_id) || (await env.DB.prepare('SELECT id FROM finance_recurring_rules WHERE owner_id=? AND source_id=?')
-              .bind(ownerId,raw.recurring_id).first())?.id || null) : null;
+        const link=kind==='bills' && typeof row.recurring_id==='string'
+          ? (recurringMap.get(row.recurring_id) || (await env.DB.prepare('SELECT id FROM finance_recurring_rules WHERE owner_id=? AND source_id=?')
+              .bind(ownerId,row.recurring_id).first())?.id || null) : null;
         const date = stamp();
         await env.DB.prepare('INSERT INTO ' + tables[kind] +
           ' (id,owner_id,' + cols.join(',') + ',created_at,updated_at) VALUES (' +
@@ -334,7 +334,7 @@ export async function importFinances(env,ownerId,finance) {
           .bind(id,ownerId,...cols.map(c => c==='recurring_id'
             ? link
             : c==='recurring_month'
-              ? (link && monthFormat.test(raw.recurring_month || '') ? raw.recurring_month : null)
+              ? (link && monthFormat.test(row.recurring_month || '') ? row.recurring_month : null)
               : valid[c]),date,date).run();
         imported++;
       } catch { skipped++; }
