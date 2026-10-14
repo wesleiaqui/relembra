@@ -127,7 +127,7 @@ export async function loadHomeRadar(){
 export async function searchMemory(query,includeFinance=false){
   const q=String(query||'').trim();
   if(q.length<2)return [];
-  const result=await api('/api/search/all?q='+encodeURIComponent(q)+'&finance='+(includeFinance?'1':'0'));
+  const result=await api('/api/search/all?q='+encodeURIComponent(q)+'&finance='+(includeFinance?'1':'0')+'&terms=1');
   return Array.isArray(result.results)?result.results:[];
 }
 export async function openSearchItem(type,id){
