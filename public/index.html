@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/companion.css">
   <link rel="stylesheet" href="/visual-lume.css">
   <link rel="stylesheet" href="/visual-atlas.css">
+  <link rel="stylesheet" href="/home-workspace.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -22,11 +23,10 @@
       <nav class="nav-main" id="mainNav">
         <button class="nav-item active" data-view="home"><span class="nav-icon">◫</span> Visão geral</button>
         <button class="nav-item" data-view="library"><span class="nav-icon">▦</span> Minha biblioteca</button>
-        <button class="nav-item" data-view="favorites"><span class="nav-icon">♡</span> Favoritos</button>
-        <button class="nav-item" data-view="unwatched"><span class="nav-icon">◷</span> Para assistir</button>
-        <button class="nav-item" data-view="chat"><span class="nav-icon">✧</span> Chat inteligente <span class="nav-new">IA</span></button>
+
+        <button class="nav-item" data-view="chat"><span class="nav-icon">✧</span> Chat e pesquisa <span class="nav-new">IA</span></button>
         <button class="nav-item" data-view="radar"><span class="nav-icon">◉</span> Radar do dia</button>
-        <button class="nav-item" data-view="search"><span class="nav-icon">⌕</span> Busca universal</button>
+
         <button class="nav-item" data-view="life"><span class="nav-icon">◫</span> Calendário da vida</button>
         <button class="nav-item" data-view="tips"><span class="nav-icon">✦</span> Dicas para o momento <span class="nav-new">NOVO</span></button>
         <button class="nav-item" data-view="finance"><span class="nav-icon">◈</span> Minhas finanças</button>
@@ -61,17 +61,43 @@
       </header>
       <main class="page" id="page">
         <section id="homeView" class="view">
-          <div class="welcome-head"><div><div class="eyebrow"><span class="eyebrow-mark">✧</span> SUA BIBLIOTECA PESSOAL</div><h1>Ideias que valem <em>guardar.</em></h1><p>Tudo que inspira você, organizado para encontrar quando precisar.</p></div><span class="welcome-deco" aria-hidden="true">✳</span></div>
-          <section class="hero"><div class="hero-glow"></div><div class="hero-content"><span class="hero-tag">✦ COM AJUDA DA INTELIGÊNCIA ARTIFICIAL</span><h2>Salvou um vídeo e<br>não lembra onde está?</h2><p>Descreva o que você procura. O Relembra encontra o vídeo e pode responder sobre o conteúdo salvo.</p><button class="button hero-button" data-go="chat">✧ &nbsp; Perguntar à biblioteca <span>↗</span></button></div><div class="hero-art" aria-hidden="true"><div class="floating-card card-back">🍝 <span>Receitas favoritas</span></div><div class="floating-card card-front">✧ <span>Encontrei 3 vídeos para você</span><i>✦</i></div><div class="floating-icon">✦</div></div></section>
-          <section class="motivation-home-cta" aria-label="Lembretes para o momento">
-            <div class="motivation-home-text"><span class="eyebrow">✦ SEU ESPAÇO DE INCENTIVO</span><h2>Precisa de um incentivo agora?</h2><p>Relembre algo que você mesmo salvou, de acordo com o que está enfrentando.</p></div>
-            <button class="button button-primary" type="button" data-open-motivation>🔥 Preciso de motivação →</button>
+          <header class="home-new-heading">
+            <div><div class="eyebrow">✦ SEU ESPAÇO PESSOAL</div><h1 id="homeGreeting">Seu dia, com mais clareza.</h1><p>As próximas ações, o que não pode esperar e seus aprendizados em um só lugar.</p></div>
+            <button type="button" class="button button-outline" data-go="radar">Abrir radar completo <span aria-hidden="true">↗</span></button>
+          </header>
+          <div class="home-focus-grid">
+            <section class="home-work-section home-work-primary" aria-labelledby="homeTodayTitle">
+              <div class="home-work-heading"><div><span class="home-overline">O QUE IMPORTA AGORA</span><h2 id="homeTodayTitle">Prioridades do dia</h2></div><span class="home-date" id="homeDate"></span></div>
+              <div id="homeRadar" class="home-priorities" aria-live="polite"><p class="home-placeholder">Preparando suas prioridades...</p></div>
+              <form id="homeQuickTaskForm" class="home-quick-task">
+                <label for="homeQuickTaskTitle" class="sr-only">Adicionar tarefa rápida</label>
+                <input id="homeQuickTaskTitle" name="title" required maxlength="160" placeholder="+ Uma coisa que preciso resolver...">
+                <label for="homeQuickTaskDate" class="sr-only">Data de vencimento</label>
+                <input id="homeQuickTaskDate" name="due_date" type="date" required>
+                <button type="submit" class="button button-primary">Adicionar</button>
+              </form>
+            </section>
+            <div class="home-support-column">
+              <section class="home-work-section home-bill-section" aria-labelledby="homeBillsTitle">
+                <div class="home-work-heading"><div><span class="home-overline">MINHAS FINANÇAS</span><h2 id="homeBillsTitle">Próximos vencimentos</h2></div><button type="button" class="home-inline-link" data-go="finance">Ver contas ↗</button></div>
+                <div id="homeBills" aria-live="polite"><p class="home-placeholder">Consultando vencimentos...</p></div>
+              </section>
+              <section class="home-work-section home-habit-section" aria-labelledby="homeHabitsTitle">
+                <div class="home-work-heading"><div><span class="home-overline">PEQUENOS PASSOS</span><h2 id="homeHabitsTitle">Meus hábitos de hoje</h2></div><button class="home-inline-link" data-open-motivation type="button">Motivação ↗</button></div>
+                <div id="homeHabits" aria-live="polite"><p class="home-placeholder">Carregando seus hábitos...</p></div>
+              </section>
+            </div>
+          </div>
+          <section class="home-shortcuts" aria-label="Acesso rápido">
+            <button type="button" data-go="chat"><span aria-hidden="true">⌕</span><strong>Pesquisar ou perguntar</strong><small>Encontre o que você salvou</small><b aria-hidden="true">↗</b></button>
+            <button type="button" data-go="life"><span aria-hidden="true">◫</span><strong>Calendário da vida</strong><small>Guarde algo bom de hoje</small><b aria-hidden="true">↗</b></button>
+            <button type="button" data-go="library"><span aria-hidden="true">▣</span><strong>Minha biblioteca</strong><small>Consulte suas referências</small><b aria-hidden="true">↗</b></button>
+            <button type="button" data-open-motivation><span aria-hidden="true">✦</span><strong>Preciso de incentivo</strong><small>Seus próprios lembretes</small><b aria-hidden="true">↗</b></button>
           </section>
-          <section id="homeRadar" class="home-radar" aria-live="polite" hidden></section>
-          <div class="section-title minor"><h2>Sua biblioteca em números</h2><span>Uma coleção de boas ideias</span></div>
-          <div class="stats-grid"><div class="stat-card"><div class="stat-icon blue">▦</div><div><strong id="statTotal">—</strong><span>Vídeos salvos</span></div></div><div class="stat-card"><div class="stat-icon rose">♡</div><div><strong id="statFavorites">—</strong><span>Favoritos</span></div></div><div class="stat-card"><div class="stat-icon mint">◷</div><div><strong id="statUnwatched">—</strong><span>Para assistir</span></div></div><div class="stat-card"><div class="stat-icon orange">⊞</div><div><strong id="statCategories">—</strong><span>Categorias em uso</span></div></div></div>
-          <div class="section-title"><div><h2>Salvos recentemente</h2><p>Continue de onde parou</p></div><button class="text-link" data-go="library">Ver biblioteca <span>→</span></button></div>
-          <div id="homeGrid" class="video-grid"></div>
+          <section class="home-recent-section">
+            <div class="home-work-heading"><div><span class="home-overline">CONTINUE EXPLORANDO</span><h2>Salvos recentemente</h2></div><button type="button" class="home-inline-link" data-go="library">Toda a biblioteca ↗</button></div>
+            <div id="homeGrid" class="video-grid"></div>
+          </section>
         </section>
         <section id="libraryView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">SUAS DESCOBERTAS</div><h1 id="libraryTitle">Minha biblioteca</h1><p id="librarySubtitle">Suas inspirações, sempre por perto.</p></div><button class="button button-ghost" id="newFromLibrary">+ Novo vídeo</button></div>
@@ -92,13 +118,26 @@
           <div id="libraryGrid" class="video-grid" data-mode="standard"></div><div class="load-more-wrap"><button class="button button-outline" id="loadMore" hidden>Carregar mais vídeos</button></div>
         </section>
         <section id="chatView" class="view" hidden>
-          <div class="page-head"><div><div class="eyebrow">BUSCA COM CONTEXTO</div><h1>Chat com sua memória <span class="gradient-star">✧</span></h1><p>Faça perguntas sobre os vídeos que você salvou.</p></div><span class="ai-pill">✦ Inteligência artificial</span></div>
-          <div class="chat-shell"><div class="chat-top"><div class="chat-avatar">✧</div><div><strong>Assistente Relembra</strong><small>Pesquisa transcrições, anotações e imagens analisadas</small></div><span class="online-pill"><span class="status-dot"></span> Sua biblioteca</span></div>
-            <div class="chat-messages" id="chatMessages"><div class="chat-welcome"><div class="big-spark">✧</div><h2>O que você quer relembrar?</h2><p>Eu procuro nas informações dos seus vídeos e mostro de onde tirei cada resposta.</p><div class="prompt-grid"><button class="prompt-chip" data-prompt="Qual receita de macarrão eu salvei?">🍝 Qual receita de macarrão eu salvei? <span>↗</span></button><button class="prompt-chip" data-prompt="Me mostre ideias de decoração para apartamento">🏡 Ideias para meu apartamento <span>↗</span></button><button class="prompt-chip" data-prompt="Quais lugares para viajar eu salvei?">✈️ Lugares para viajar <span>↗</span></button><button class="prompt-chip" data-prompt="Quais dicas de CS2 eu tenho salvas?">🎮 Minhas dicas de CS2 <span>↗</span></button></div></div></div>
-            <form class="chat-compose" id="chatForm"><input id="chatInput" placeholder="Ex.: aquele vídeo de molho branco com queijo..." required minlength="3" maxlength="500" autocomplete="off"><button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Enviar pergunta">➤</button></form><div class="chat-footnote">Respostas baseadas apenas nos vídeos salvos. Confira as fontes.</div>
+          <header class="page-head"><div><div class="eyebrow">SUA SEGUNDA MEMÓRIA</div><h1>Chat e pesquisa <span class="gradient-star">✧</span></h1><p>Uma única área para encontrar qualquer informação salva ou fazer perguntas à IA sobre seus vídeos.</p></div></header>
+          <div class="chat-unified-shell">
+            <div class="chat-unified-heading">
+              <div class="chat-unified-switch" role="group" aria-label="Como deseja consultar sua memória">
+                <button class="chat-mode-button active" type="button" data-chat-mode="search" aria-pressed="true">⌕ Encontrar informações</button>
+                <button class="chat-mode-button" type="button" data-chat-mode="ai" aria-pressed="false">✧ Perguntar à IA</button>
+              </div>
+              <label class="chat-finance-optin" id="chatFinanceOption"><input id="universalFinance" type="checkbox"> Incluir minhas finanças na pesquisa</label>
+            </div>
+            <div class="chat-unified-description" id="chatModeDescription">Busque em vídeos, dicas, tarefas, momentos e reflexões. Seus dados financeiros ficam excluídos por padrão.</div>
+            <div class="chat-shell"><div class="chat-top"><div class="chat-avatar">✧</div><div><strong>Seu espaço de consulta</strong><small id="chatContextLabel">Encontre registros pessoais sem usar IA</small></div><span class="online-pill"><span class="status-dot"></span> Privado</span></div>
+              <div class="chat-messages" id="chatMessages">
+                <div class="chat-welcome"><div class="big-spark">⌕</div><h2>O que você procura?</h2><p>Pesquise assuntos que você guardou. Quando quiser conversar sobre seus vídeos, escolha “Perguntar à IA”.</p></div>
+              </div>
+              <div class="chat-search-results" id="universalResults" aria-live="polite" hidden></div>
+              <form class="chat-compose" id="chatForm"><input id="chatInput" type="search" placeholder="Ex.: financiamento, foco, uma receita..." required minlength="2" maxlength="500" autocomplete="off"><button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Pesquisar ou perguntar">➤</button></form>
+              <div class="chat-footnote" id="chatFootnote">Pesquisa textual dos dados salvos nesta conta. A IA só é chamada no modo Perguntar.</div>
+            </div>
           </div>
         </section>
-
         <section id="thoughtsView" class="view thoughts-view" hidden>
           <div class="thoughts-heading">
             <div class="thoughts-heading-copy">
@@ -206,7 +245,7 @@
             <div class="tips-filter-controls">
               <label class="tips-search"><span aria-hidden="true">⌕</span><input id="tipsSearch" type="search" placeholder="Buscar dica ou frase..." aria-label="Buscar dicas" autocomplete="off"></label>
               <label class="tips-type-label">Tipo <select id="tipsKind" aria-label="Filtrar tipo"><option value="all">Todos</option><option value="dica">Dicas</option><option value="frase">Frases</option></select></label>
-              <label class="tips-only-favs"><input id="tipsFavoritesOnly" type="checkbox"> Só favoritas</label>
+              
             </div>
           </div>
           <div id="tipsGrid" class="tips-grid" aria-live="polite"></div>
@@ -221,12 +260,6 @@
             <label>Prioridade<select name="priority"><option value="1">Alta</option><option value="2" selected>Normal</option><option value="3">Baixa</option></select></label>
             <button class="button button-primary" type="submit">＋ Adicionar</button>
           </form>
-        </section>
-        <section id="searchView" class="view companion-view" hidden>
-          <div class="companion-heading"><span class="eyebrow">✦ ENCONTRE O QUE VOCÊ GUARDOU</span><h1>Busca <em>universal.</em></h1><p>Vídeos, transcrições, dicas, tarefas, momentos e reflexões em um só lugar.</p></div>
-          <div class="universal-controls"><label class="universal-search">⌕ <input id="universalQuery" type="search" minlength="2" maxlength="120" autocomplete="off" placeholder="Ex.: financiamento, foco, uma decisão..."></label><label class="universal-check"><input type="checkbox" id="universalFinance"> Incluir meus dados financeiros</label></div>
-          <div id="universalResults" class="universal-results" aria-live="polite">Digite pelo menos duas letras para pesquisar.</div>
-          <p class="companion-footnote">As finanças ficam fora da pesquisa por padrão e não entram no chat de vídeos.</p>
         </section>
         <section id="lifeView" class="view companion-view" hidden>
           <div class="companion-heading"><span class="eyebrow">✦ VALORIZE SUAS SEMANAS</span><h1>Calendário <em>da vida.</em></h1><p>Um espaço para guardar acontecimentos bons, conquistas e reflexões. Cada quadrado representa uma semana.</p></div>
@@ -286,7 +319,7 @@
       </section>
       <label class="field"><span>URL da imagem de capa <small>(opcional, alternativa externa)</small></span><input name="cover_url" type="url" placeholder="https://...imagem.jpg" maxlength="2048"></label>
       <section id="relatedInfoPanel" class="related-info-panel" hidden></section>
-      <div class="toggle-row"><label class="toggle-label"><input name="favorite" type="checkbox"><span>♡</span> Marcar como favorito</label><label class="toggle-label"><input name="watched" type="checkbox"><span>✓</span> Já assisti</label></div>
+      <div class="legacy-video-flags" hidden aria-hidden="true"><input name="favorite" type="checkbox" tabindex="-1"><input name="watched" type="checkbox" tabindex="-1"></div>
     </div><div class="modal-footer"><button class="button button-danger" type="button" id="deleteVideoBtn" hidden>Excluir</button><button type="button" class="button button-outline" id="videoHistoryBtn" hidden>↶ Histórico</button><div class="modal-footer-right"><button class="button button-outline" type="button" id="cancelVideoBtn">Cancelar</button><button class="button button-primary" type="submit" id="saveVideoBtn">Salvar vídeo →</button></div></div></form></div></div>
 
 
