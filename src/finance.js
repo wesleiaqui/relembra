@@ -18,6 +18,20 @@ const cents = (value, { zero = false } = {}) => {
     throw Error('Informe um valor válido em centavos.');
   return value;
 };
+const paymentMethods = new Set(['pix','debit','credit','transfer','cash','boleto','other']);
+const paymentData = body => {
+  const method = String(body.payment_method ?? '');
+  const source = str(body.payment_source,120);
+  if (!paymentMethods.has(method)) throw Error('Selecione como a conta foi paga.');
+  if (!source) throw Error('Informe de qual conta, cartão ou dinheiro o pagamento saiu.');
+  return {
+    paid_at: validDate(body.paid_at),
+    paid_amount_cents: cents(body.paid_amount_cents),
+    payment_method:method,
+    payment_source:source,
+    payment_notes:str(body.payment_notes,500)
+  };
+};
 const validate = (kind, body) => {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw Error('Registro inválido.');
   if (kind === 'entries') {
@@ -34,7 +48,12 @@ const validate = (kind, body) => {
     if (!name || !Number.isInteger(priority) || priority < 1 || priority > 5)
       throw Error('Informe conta e prioridade válidas.');
     return { name, amount_cents: cents(body.amount_cents), due_date: validDate(body.due_date),
-      priority, essential: body.essential === true || body.essential === 1 ? 1 : 0, paid_at: validDate(body.paid_at, true) };
+      priority, essential: body.essential === true || body.essential === 1 ? 1 : 0,
+      paid_at:validDate(body.paid_at,true),
+      payment_method:body.payment_method || null,
+      payment_source:str(body.payment_source,120),
+      paid_amount_cents:body.paid_at ? cents(body.paid_amount_cents ?? body.amount_cents) : null,
+      payment_notes:str(body.payment_notes,500) };
   }
   if (kind === 'goals') {
     const name = str(body.name, 120);
@@ -44,14 +63,40 @@ const validate = (kind, body) => {
   throw Error('Tipo financeiro desconhecido.');
 };
 const tables = { entries: 'finance_entries', bills: 'finance_bills', goals: 'finance_goals' };
+const bodyPaidChanged = (body, paidAt) => Object.hasOwn(body,'paid_at') && (body.paid_at || null)!==(paidAt || null);
+const pathPayment = path => {
+  const match=path.match(/^\/api\/finance\/bills\/([a-f0-9-]{36})\/payment$/i);
+  return match ? match[1] : null;
+};
 const fields = {
   entries: ['type','description','amount_cents','entry_date','status'],
-  bills: ['name','amount_cents','due_date','priority','essential','paid_at'],
+  bills: ['name','amount_cents','due_date','priority','essential','paid_at','payment_method','payment_source','paid_amount_cents','payment_notes'],
   goals: ['name','target_cents','saved_cents']
 };
 export async function handleFinance(request, env, user) {
   const url = new URL(request.url);
   const route = url.pathname.match(/^\/api\/finance(?:\/(entries|bills|goals))?(?:\/([a-f0-9-]{36}))?$/i);
+  const paymentId = pathPayment(url.pathname);
+  if (paymentId) {
+    const method = request.method;
+    if (method === 'POST') {
+      const raw = await request.text();
+      if (raw.length > 4000) return fail('Pagamento muito grande.',413);
+      let data;
+      try { data=paymentData(JSON.parse(raw)); } catch(e) { return fail(e.message); }
+      const result = await env.DB.prepare(
+        'UPDATE finance_bills SET paid_at=?,paid_amount_cents=?,payment_method=?,payment_source=?,payment_notes=?,updated_at=? WHERE id=? AND owner_id=?'
+      ).bind(data.paid_at,data.paid_amount_cents,data.payment_method,data.payment_source,data.payment_notes,stamp(),paymentId,user.id).run();
+      return result.meta.changes ? json({ok:true,id:paymentId}) : fail('Conta não encontrada.',404);
+    }
+    if (method === 'DELETE') {
+      const result=await env.DB.prepare(
+        "UPDATE finance_bills SET paid_at=NULL,paid_amount_cents=NULL,payment_method=NULL,payment_source='',payment_notes='',updated_at=? WHERE id=? AND owner_id=? AND paid_at IS NOT NULL"
+      ).bind(stamp(),paymentId,user.id).run();
+      return result.meta.changes ? json({ok:true,id:paymentId}) : fail('Pagamento não encontrado.',404);
+    }
+    return fail('Método não permitido.',405);
+  }
   if (!route) return fail('Rota financeira não encontrada.', 404);
   const [, kind, id] = route, method = request.method;
   if (!kind && method === 'GET') {
@@ -60,7 +105,7 @@ export async function handleFinance(request, env, user) {
       "SELECT COALESCE(SUM(CASE WHEN type='income' THEN amount_cents ELSE -amount_cents END),0) AS net_cents FROM finance_entries WHERE owner_id=? AND status='confirmed'"
     ).bind(user.id).first();
     const billsPaid = await env.DB.prepare(
-      'SELECT COALESCE(SUM(amount_cents),0) AS total_cents FROM finance_bills WHERE owner_id=? AND paid_at IS NOT NULL'
+      "SELECT COALESCE(SUM(CASE WHEN payment_method='credit' THEN 0 ELSE COALESCE(paid_amount_cents,amount_cents) END),0) AS total_cents FROM finance_bills WHERE owner_id=? AND paid_at IS NOT NULL"
     ).bind(user.id).first();
     const [entries, bills, goals] = await Promise.all(
       ['entries','bills','goals'].map(k => env.DB.prepare(
@@ -83,6 +128,19 @@ export async function handleFinance(request, env, user) {
     let data;
     try { data = validate(kind, JSON.parse(raw)); }
     catch (e) { return fail(e.message || 'Dados inválidos.'); }
+    // Pagamento só pode ser definido / corrigido na rota /payment.
+    if (kind === 'bills') {
+      if (method === 'POST' && data.paid_at !== null) return fail('Cadastre a conta pendente; depois registre o pagamento.',400);
+      if (method === 'PUT') {
+        const prior=await env.DB.prepare('SELECT paid_at FROM finance_bills WHERE id=? AND owner_id=?').bind(id,user.id).first();
+        if (!prior) return fail('Conta não encontrada.',404);
+        if (bodyPaidChanged(JSON.parse(raw),prior.paid_at)) return fail('Utilize Registrar pagamento para informar data, valor e origem.',400);
+        const result=await env.DB.prepare(
+          'UPDATE finance_bills SET name=?,amount_cents=?,due_date=?,priority=?,essential=?,updated_at=? WHERE id=? AND owner_id=?'
+        ).bind(data.name,data.amount_cents,data.due_date,data.priority,data.essential,stamp(),id,user.id).run();
+        return result.meta.changes ? json({ok:true,id}) : fail('Conta não encontrada.',404);
+      }
+    }
     const values = columns.map(k => data[k]), timestamp = stamp();
     if (method === 'POST') {
       const newId = crypto.randomUUID();
