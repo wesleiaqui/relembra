@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/appearance-modes.css">
   <link rel="stylesheet" href="/chat-radar-refinement.css">
   <link rel="stylesheet" href="/finance-night.css">
+  <link rel="stylesheet" href="/chat-workspace.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -125,20 +126,52 @@
           </div>
           <div id="libraryGrid" class="video-grid" data-mode="standard"></div><div class="load-more-wrap"><button class="button button-outline" id="loadMore" hidden>Carregar mais vídeos</button></div>
         </section>
-        <section id="chatView" class="view" hidden>
-          <header class="page-head"><div><div class="eyebrow">SUA SEGUNDA MEMÓRIA</div><h1>Chat e pesquisa <span class="gradient-star">✧</span></h1><p>Uma única área para encontrar qualquer informação salva ou fazer perguntas à IA sobre seus vídeos.</p></div></header>
+        <section id="chatView" class="view chat-workspace-view" hidden>
+          <header class="chat-page-heading">
+            <div class="chat-page-heading-copy">
+              <div class="eyebrow">SUA SEGUNDA MEMÓRIA</div>
+              <h1>Seu espaço para <span>relembrar.</span></h1>
+              <p>Pesquise o que você guardou, conecte ideias e encontre respostas em uma conversa.</p>
+            </div>
+            <span class="chat-heading-tag"><span aria-hidden="true">✦</span> Sua memória, sempre por perto</span>
+          </header>
           <div class="chat-unified-shell">
-            <div class="chat-shell chat-single-shell">
-              <div class="chat-top"><div class="chat-avatar">✧</div><div><strong>Converse com sua memória</strong><small>Busco suas anotações automaticamente e posso responder sobre vídeos salvos</small></div><span class="online-pill"><span class="status-dot"></span> Privado</span></div>
-              <div class="chat-messages" id="chatMessages" role="log" aria-label="Conversa e resultados encontrados" aria-live="polite">
-                <div class="chat-welcome"><div class="big-spark">✧</div><h2>O que você quer lembrar?</h2><p>Faça uma pergunta ou escreva o que procura. Vou consultar sua biblioteca, suas dicas e suas anotações na mesma conversa.</p>
-                  <div class="chat-starters"><button type="button" data-prompt="Quais coisas importantes eu salvei recentemente?">⌕ Minhas informações</button><button type="button" data-prompt="Quais lugares para viajar eu salvei?">✧ Minhas viagens</button></div>
+            <section class="chat-shell chat-single-shell" aria-label="Chat e pesquisa">
+              <div class="chat-top chat-workspace-top">
+                <span class="chat-avatar" aria-hidden="true">✳</span>
+                <div class="chat-workspace-identity"><strong>Relembra</strong><small>Seu assistente de pesquisa pessoal</small></div>
+                <span class="chat-workspace-private"><span class="status-dot"></span> Espaço privado</span>
+                <button type="button" id="chatNewConversation" class="chat-new-conversation" title="Limpar apenas a conversa desta sessão; os registros salvos permanecem" aria-label="Iniciar nova conversa"><span aria-hidden="true">↺</span> Nova conversa</button>
+              </div>
+              <div class="chat-messages chat-workspace-messages" id="chatMessages" role="log" aria-label="Conversa e resultados encontrados" aria-live="polite"></div>
+              <div class="chat-composer-area">
+                <form class="chat-compose chat-workspace-composer" id="chatForm">
+                  <label class="sr-only" for="chatInput">Digite sua pergunta ou o que deseja encontrar</label>
+                  <textarea id="chatInput" rows="1" placeholder="Escreva uma pergunta ou procure uma lembrança..." required minlength="2" maxlength="500" aria-label="Mensagem para o Relembra"></textarea>
+                  <button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Enviar mensagem" title="Enviar mensagem"><span aria-hidden="true">➤</span></button>
+                </form>
+                <div class="chat-single-footer chat-workspace-footer">
+                  <label class="chat-finance-optin" id="chatFinanceOption"><input id="universalFinance" type="checkbox"><span>Incluir resultados financeiros</span></label>
+                  <small>Enter envia · Shift+Enter quebra linha <span class="chat-footer-divider" aria-hidden="true">·</span> Seus dados financeiros não são enviados à IA</small>
                 </div>
               </div>
-              <form class="chat-compose" id="chatForm"><input id="chatInput" type="text" placeholder="Pergunte ou encontre algo na sua memória..." required minlength="2" maxlength="500" autocomplete="off"><button class="button button-primary send-btn" id="sendChatBtn" type="submit" aria-label="Enviar mensagem">➤</button></form>
-              <div class="chat-single-footer"><label class="chat-finance-optin" id="chatFinanceOption"><input id="universalFinance" type="checkbox"> Incluir resultados financeiros</label><small>Dados financeiros não são enviados à IA. As informações encontradas aparecem na conversa.</small></div>
-            </div>
+            </section>
           </div>
+          <template id="chatWelcomeTemplate">
+            <div class="chat-welcome chat-workspace-welcome">
+              <div class="chat-welcome-emblem" aria-hidden="true"><span>✳</span></div>
+              <div class="chat-welcome-eyebrow">SUA BIBLIOTECA TEM RESPOSTAS</div>
+              <h2>O que vamos descobrir hoje?</h2>
+              <p>Pergunte sobre o que aprendeu, relembre algo importante ou encontre uma referência salva. Basta escrever.</p>
+              <div class="chat-welcome-suggestions" aria-label="Sugestões de perguntas">
+                <button type="button" data-prompt="O que salvei sobre compra de imóvel?"><span class="chat-suggestion-symbol" aria-hidden="true">⌂</span><span class="chat-suggestion-copy"><strong>Compra de imóvel</strong><small>Encontre dicas e cuidados salvos</small></span><span class="chat-suggestion-arrow" aria-hidden="true">↗</span></button>
+                <button type="button" data-prompt="Quais lugares para visitar eu salvei?"><span class="chat-suggestion-symbol" aria-hidden="true">✈</span><span class="chat-suggestion-copy"><strong>Ideias de viagens</strong><small>Relembre seus destinos favoritos</small></span><span class="chat-suggestion-arrow" aria-hidden="true">↗</span></button>
+                <button type="button" data-prompt="Que dicas tenho para melhorar meu foco?"><span class="chat-suggestion-symbol" aria-hidden="true">✧</span><span class="chat-suggestion-copy"><strong>Foco e hábitos</strong><small>Resgate conselhos que guardou</small></span><span class="chat-suggestion-arrow" aria-hidden="true">↗</span></button>
+                <button type="button" data-prompt="Quais são minhas tarefas pendentes?"><span class="chat-suggestion-symbol" aria-hidden="true">✓</span><span class="chat-suggestion-copy"><strong>Minhas pendências</strong><small>Encontre suas tarefas registradas</small></span><span class="chat-suggestion-arrow" aria-hidden="true">↗</span></button>
+              </div>
+              <small class="chat-welcome-disclaimer">A pesquisa usa suas informações salvas. A IA responde com base nos vídeos disponíveis.</small>
+            </div>
+          </template>
         </section>
         <section id="thoughtsView" class="view thoughts-view" hidden>
           <div class="thoughts-heading">

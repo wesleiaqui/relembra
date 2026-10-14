@@ -1,9 +1,9 @@
 {
   "name": "relembra-cloudflare",
   "private": true,
-  "version": "1.18.0",
+  "version": "1.19.0",
   "type": "module",
-  "description": "Relembra — painel financeiro escuro harmonizado, Chat e Radar",
+  "description": "Relembra — Chat unificado com boas-vindas, atalhos de memória e composição aprimorada",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",

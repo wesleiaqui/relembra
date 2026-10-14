@@ -455,6 +455,22 @@ function openImageViewer(id) {
 }
 
 let chatGeneration=0;
+function resizeChatComposer(){
+  const field=$('chatInput');
+  if(!field)return;
+  field.style.height='auto';
+  field.style.height=Math.min(Math.max(field.scrollHeight,44),148)+'px';
+}
+function resetChatConversation(){
+  ++chatGeneration; // invalida respostas em andamento antes de atualizar a interface
+  const area=$('chatMessages'),template=$('chatWelcomeTemplate');
+  area.replaceChildren(template.content.cloneNode(true));
+  area.scrollTop=0;
+  $('chatInput').value='';
+  resizeChatComposer();
+  $('sendChatBtn').disabled=false;
+  $('universalFinance').checked=false;
+}
 async function openUnifiedSearch(q=''){
   await navigate('chat');
   $('chatInput').value=q;
@@ -489,10 +505,11 @@ function appendMessage(kind, content, sources = [], aiUnavailable = false) {
   $('chatMessages').querySelector('.chat-welcome')?.remove();
   const block = document.createElement('div');
   block.className = 'message ' + kind;
+  block.setAttribute('aria-label',kind==='user'?'Você':'Relembra');
   if (kind === 'bot') {
     const ico = document.createElement('span');
     ico.className = 'bot-avatar';
-    ico.textContent = '✧';
+    ico.textContent = '✳';
     block.append(ico);
   }
   const bubble = document.createElement('div');
@@ -523,9 +540,16 @@ async function submitChat(message){
   if(q.length<2||$('sendChatBtn').disabled)return;
   const generation=chatGeneration;
   $('chatInput').value='';
+  resizeChatComposer();
   appendMessage('user',q);
   $('sendChatBtn').disabled=true;
-  const loading=appendMessage('bot','Procurando em suas informações...');
+  const loading=appendMessage('bot','Buscando na sua memória');
+  loading.classList.add('chat-message-loading');
+  const dots=document.createElement('span');
+  dots.className='chat-loading-dots';
+  dots.setAttribute('aria-hidden','true');
+  for(let i=0;i<3;i++)dots.append(document.createElement('i'));
+  loading.querySelector('.bubble').append(dots);
   const includeFinance=$('universalFinance').checked;
   try{
     // A API de pesquisa retorna apenas metadados da conta autenticada.
@@ -1005,6 +1029,17 @@ function bindEvents() {
     e.preventDefault();
     submitChat($('chatInput').value);
   });
+  $('chatInput').addEventListener('input',resizeChatComposer);
+  $('chatInput').addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&!e.repeat){
+      e.preventDefault();
+      if($('chatInput').value.trim().length>=2)submitChat($('chatInput').value);
+    }
+  });
+  $('chatNewConversation').addEventListener('click',()=>{
+    resetChatConversation();
+    $('chatInput').focus();
+  });
   $('chatMessages').addEventListener('click',e=>{
     const item=e.target.closest('[data-memory-type][data-memory-id]');
     if(item)openSearchItem(item.dataset.memoryType,item.dataset.memoryId);
@@ -1074,16 +1109,14 @@ function showAccountMode(mode) {
 function wipePreviousAccount() {
   closeMotivation();
   resetCompanion();
-  ++chatGeneration;
-  $('sendChatBtn').disabled=false;
-  $('chatInput').value='';
+  resetChatConversation();
   resetAtlasUI();
   document.body.classList.remove('finance-mode');
   resetFinance();
   state.videos=[];state.homeVideos=[];state.categories=[];
   state.thoughts=[];state.tips=[];state.total=0;state.offset=0;
   state.editId=null;state.tipEditId=null;state.thoughtEditId=null;
-  for(const id of ['homeGrid','libraryGrid','categoryNav','chatMessages','thoughtList','tipsGrid']) $(id).replaceChildren();
+  for(const id of ['homeGrid','libraryGrid','categoryNav','thoughtList','tipsGrid']) $(id).replaceChildren();
   $('accountLabel').textContent='Sua conta';
   $('inviteBtn').hidden=true;
   closeMediaPlayer();closeImageViewer();closeTipEditor();closeEditor();
@@ -1116,6 +1149,7 @@ async function start() {
   setupVisualTheme();
   setupAtlasUI({api,navigate,editVideo,openTipEditor,editThought,openEditor,openUnifiedSearch});
   bindEvents();
+  resetChatConversation();
   setupFinance({ api, toast });
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
   try {
