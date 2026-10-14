@@ -13,11 +13,11 @@ function brightness(hex){
 function contrast(a,b){const x=brightness(a),y=brightness(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
 
 test('paleta noturna legível, com quatro superfícies separadas por contraste controlado',()=>{
-  const colors=['#101416','#151c1f','#111719','#1b2427','#243034','#314044','#eaf1f0','#b2c2c3','#82c4cc'];
+  const colors=['#111314','#171a1b','#141718','#1d2122','#272c2c','#343b3b','#ecede9','#b9c1bc','#c9b18f'];
   for(const color of colors)assert.ok(palette.includes(color),'Cor ausente: '+color);
-  assert.ok(contrast('#eaf1f0','#1b2427')>=12,'texto deve ter contraste alto');
-  assert.ok(contrast('#b2c2c3','#1b2427')>=7,'texto secundário deve permanecer legível');
-  assert.ok(contrast('#eaf1f0','#243034')>=11,'texto deve permanecer legível em superfícies elevadas');
+  assert.ok(contrast('#ecede9','#1d2122')>=12,'texto deve ter contraste alto');
+  assert.ok(contrast('#b9c1bc','#1d2122')>=7,'texto secundário deve permanecer legível');
+  assert.ok(contrast('#ecede9','#272c2c')>=11,'texto deve permanecer legível em superfícies elevadas');
 });
 
 test('estilo noturno está isolado e é a última folha CSS — sem tocar no modo claro',()=>{
@@ -42,18 +42,20 @@ test('sidebar, cartões, Radar, Chat, Dicas, Calendário e Finanças compartilha
   ]){
     assert.ok(palette.includes(selector),'Faltou componentizar: '+selector);
   }
-  assert.match(palette,/--night-card:\s*#1b2427/);
-  assert.match(palette,/--night-accent:\s*#82c4cc/);
-  assert.match(palette,/--night-green:\s*#66c9a5/);
-  assert.match(palette,/--night-yellow:\s*#e7b975/);
-  assert.match(palette,/--night-red:\s*#e68b90/);
+  assert.match(palette,/--night-card:\s*#1d2122/);
+  assert.match(palette,/--night-accent:\s*#c9b18f/);
+  assert.match(palette,/--night-green:\s*#80b69d/);
+  assert.match(palette,/--night-yellow:\s*#e2b980/);
+  assert.match(palette,/--night-red:\s*#e29a94/);
 });
 
-test('as ações destrutivas continuam sinalizadas em vermelho, mesmo com botões azul-aço',()=>{
+test('as ações destrutivas continuam sinalizadas em vermelho, mesmo com botões areia fosca',()=>{
   const deleteRule=palette.match(/#financeRoot \.finance-delete\s*\{[^}]+\}/);
   assert.ok(deleteRule,'Estilo de excluir deve existir');
-  assert.match(deleteRule[0],/#ffb3bc/);
+  assert.match(deleteRule[0],/#f0b3af/);
   assert.match(palette,/body\.finance-mode\[data-visual-theme\]\[data-color-mode="dark"\] #financeRoot \.finance-btn:hover/);
+  assert.doesNotMatch(palette,/#(?:b9a8ff|82c4cc|8b7fff|307d8c|a295ff)\b/i);
+  assert.ok(contrast('#1a1b19','#c2a77f')>=7,'O CTA areia precisa ter texto escuro legível');
 });
 
 test('Chat redesenhado e paleta noturna coabitam sem perda da interface de pesquisa',()=>{
