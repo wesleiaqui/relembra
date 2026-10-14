@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/finance.css">
   <link rel="stylesheet" href="/companion.css">
   <link rel="stylesheet" href="/visual-lume.css">
+  <link rel="stylesheet" href="/visual-atlas.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -47,10 +48,14 @@
       <header class="topbar">
         <div class="top-left"><button class="mobile-menu icon-button" id="menuBtn" aria-label="Abrir menu">☰</button><span class="breadcrumb">Meu espaço</span><span class="slash">/</span><strong id="breadcrumbActive">Visão geral</strong></div>
         <div class="top-actions">
+          <button class="atlas-command-trigger" type="button" id="atlasCommandTrigger" aria-keyshortcuts="Control+k Meta+k" aria-haspopup="dialog">
+            <span class="atlas-command-icon" aria-hidden="true">⌕</span><span>Buscar ou ir para...</span><kbd>⌘ K</kbd>
+          </button>
           <div class="visual-theme-control" role="group" aria-label="Escolher aparência">
             <span class="visual-theme-label" aria-hidden="true">Aparência</span>
             <button class="visual-theme-option" type="button" data-visual-option="classic" aria-pressed="true" title="Voltar à aparência original">Clássico</button>
-            <button class="visual-theme-option" type="button" data-visual-option="lume" aria-pressed="false" title="Ativar o novo visual Lume">✦ Novo</button>
+            <button class="visual-theme-option" type="button" data-visual-option="lume" aria-pressed="false" title="Visual claro Lume">Lume</button>
+            <button class="visual-theme-option" type="button" data-visual-option="atlas" aria-pressed="false" title="Nova interface Atlas com organização renovada">✦ Atlas</button>
           </div>
           <span class="header-date" id="todayText"></span><button class="button button-primary" id="addVideoBtn"><span class="plus">+</span> <span>Adicionar vídeo</span></button></div>
       </header>
@@ -70,7 +75,9 @@
         </section>
         <section id="libraryView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">SUAS DESCOBERTAS</div><h1 id="libraryTitle">Minha biblioteca</h1><p id="librarySubtitle">Suas inspirações, sempre por perto.</p></div><button class="button button-ghost" id="newFromLibrary">+ Novo vídeo</button></div>
+          <nav class="atlas-collection-bar" id="atlasCollectionBar" aria-label="Coleções para filtrar vídeos"></nav>
           <div class="filter-bar"><label class="search-field"><span>⌕</span><input id="searchInput" type="search" placeholder="Pesquise título, conteúdo, imagem ou transcrição..." autocomplete="off"></label><select id="categoryFilter" class="select-field" aria-label="Filtrar categoria"><option value="all">Todas as categorias</option></select><select id="sortFilter" class="select-field" aria-label="Ordenar"><option value="recent">Mais recentes</option><option value="oldest">Mais antigos</option><option value="title">Título A–Z</option></select></div>
+          <div class="atlas-library-help" aria-hidden="true"><span>EXPLORAR</span><span>Suas ideias, organizadas por assunto.</span></div>
           <div class="result-heading library-results-heading">
             <span id="resultsCount">0 vídeos</span>
             <div class="library-view-actions">
@@ -394,6 +401,25 @@
         </div>
       </div>
     </div>
+  </div>
+  <div id="atlasCommandModal" class="modal-backdrop atlas-command-backdrop" hidden>
+    <section class="atlas-command-dialog" role="dialog" aria-modal="true" aria-labelledby="atlasCommandTitle" tabindex="-1">
+      <div class="atlas-command-input-wrap"><span class="atlas-command-glass" aria-hidden="true">⌕</span><input id="atlasCommandQuery" type="search" autocomplete="off" maxlength="120" placeholder="Pesquise ou escolha uma área..." aria-label="Buscar na memória"><button type="button" id="atlasCommandClose" aria-label="Fechar busca">Esc</button></div>
+      <div class="atlas-command-scroll">
+        <div class="atlas-command-section"><h2 id="atlasCommandTitle">Acesso rápido</h2>
+          <div class="atlas-command-links">
+            <button type="button" data-atlas-route="home"><span>⌂</span> Início</button>
+            <button type="button" data-atlas-route="library"><span>▦</span> Minha biblioteca</button>
+            <button type="button" data-atlas-route="radar"><span>◉</span> Radar do dia</button>
+            <button type="button" data-atlas-route="life"><span>✧</span> Calendário da vida</button>
+            <button type="button" data-atlas-route="tips"><span>✦</span> Minhas dicas</button>
+            <button type="button" data-atlas-route="finance"><span>◇</span> Minhas finanças</button>
+          </div>
+        </div>
+        <div class="atlas-command-section"><div class="atlas-command-result-head">Resultados <small>Somente sua conta · sem dados financeiros</small></div><div id="atlasCommandResults" aria-live="polite"><p>Digite duas ou mais letras para buscar em suas informações salvas.</p></div></div>
+      </div>
+      <footer class="atlas-command-footer"><span><kbd>↑</kbd> <kbd>↓</kbd> para navegar · <kbd>Enter</kbd> abrir</span><button type="button" id="atlasCommandAllSearch">Ver busca completa →</button></footer>
+    </section>
   </div>
   <div id="historyModal" class="modal-backdrop" hidden>
     <div class="small-modal history-dialog" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
