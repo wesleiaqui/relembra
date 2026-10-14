@@ -64,9 +64,10 @@ const monthLabel = () => {
 const normalizeFinance = value => String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
 const matchFinance = text => !financeQuery || normalizeFinance(text).includes(normalizeFinance(financeQuery));
 const summaryRow = (iconText,label,value,emphasis='') => '<div class="finance-summary-row"><span class="finance-summary-symbol">'+iconText+'</span><span>'+label+'</span><strong class="'+emphasis+'">'+value+'</strong></div>';
+const paymentMethodNames = Object.freeze({pix:'Pix',debit:'Cartão de débito',credit:'Cartão de crédito',transfer:'Transferência',cash:'Dinheiro',boleto:'Boleto',other:'Outro'});
 const menu = (kind,id,paid) => '<details class="finance-row-menu"><summary aria-label="Opções do registro" title="Opções">⋮</summary><div class="finance-menu-options">'+
-  button('edit','Editar',kind,id)+
-  (kind==='bills'?button('toggle-paid',paid?'Desfazer pagamento':'Marcar como paga',kind,id):'')+
+  button('edit','Editar '+(kind==='bills'?'conta':'registro'),kind,id)+
+  (kind==='bills'?button('payment',paid?'Ver / editar pagamento':'Registrar pagamento',kind,id):'')+
   '</div></details>';
 function render(){
   if(!snapshot || !node()) return;
@@ -98,7 +99,11 @@ function render(){
   const predictedIncome = sum(received.filter(e=>e.status==='planned'));
   const billRows = shownBills.map(b=>{
     const overdue = !b.paid_at && b.due_date < nowDate();
-    const status = b.paid_at?pill('Pago','ok'):pill(overdue?'Atrasado':'Pendente',overdue?'bad':'warn');
+    const status = b.paid_at
+      ? '<div class="finance-paid-status">'+pill('Pago','ok')+
+          '<small title="'+escapeHtml((paymentMethodNames[b.payment_method]||'Forma não informada')+' · '+(b.payment_source||'Origem não informada'))+'">'+
+          escapeHtml(paymentMethodNames[b.payment_method]||'Forma não informada')+' · '+shortDate(b.paid_at)+'</small></div>'
+      : pill(overdue?'Atrasado':'Pendente',overdue?'bad':'warn');
     return '<tr class="'+(overdue?'finance-overdue':'')+'">'+
       '<td><span class="finance-priority '+(b.priority<=2?'finance-priority-high':'')+'">'+b.priority+'</span></td>'+
       '<td><strong class="finance-item-name">'+escapeHtml(b.name)+'</strong></td>'+
@@ -194,6 +199,91 @@ function render(){
     '</div>';
 }
 
+function openPaymentForm(id){
+  const bill=snapshot?.bills.find(item=>item.id===id);
+  if(!bill)return;
+  const editing=Boolean(bill.paid_at);
+  const initialAmount=(Number(bill.paid_amount_cents || bill.amount_cents)/100).toFixed(2);
+  const methodOptions=[
+    ['pix','Pix'],['debit','Cartão de débito'],['credit','Cartão de crédito'],
+    ['transfer','Transferência bancária'],['cash','Dinheiro em espécie'],['boleto','Boleto'],['other','Outro método']
+  ].map(([value,label])=>'<option value="'+value+'" '+(bill.payment_method===value?'selected':'')+'>'+label+'</option>').join('');
+  const overlay=document.createElement('div');
+  overlay.className='finance-modal-backdrop finance-payment-backdrop';
+  overlay.innerHTML='<section class="finance-modal finance-payment-modal" role="dialog" aria-modal="true" aria-labelledby="financePaymentTitle">'+
+    '<div class="finance-modal-title"><div><span class="finance-modal-eyebrow">CONTROLE DE PAGAMENTOS</span>'+
+      '<h2 id="financePaymentTitle">'+(editing?'Detalhes do pagamento':'Registrar pagamento')+'</h2>'+
+      '<p>Confira os dados antes de atualizar seu saldo.</p></div>'+
+      '<button type="button" data-dismiss aria-label="Fechar">×</button></div>'+
+    '<div class="finance-payment-bill"><div><small>CONTA</small><strong>'+escapeHtml(bill.name)+'</strong>'+
+      '<span>Vencimento: '+shortDate(bill.due_date)+'</span></div>'+
+      '<div class="finance-payment-bill-value"><small>VALOR PLANEJADO</small><strong>'+money(bill.amount_cents)+'</strong></div></div>'+
+    (editing&&!bill.payment_method?'<div class="finance-payment-legacy">Pagamento registrado anteriormente, sem detalhes de origem. Preencha os campos para completar o histórico.</div>':'')+
+    '<form id="financePaymentForm">'+
+      '<div class="finance-payment-grid"><label class="finance-field"><span>Data do pagamento *</span>'+
+        '<input name="paid_at" type="date" required value="'+escapeHtml(bill.paid_at||nowDate())+'"></label>'+
+        '<label class="finance-field"><span>Valor efetivamente pago (R$) *</span>'+
+        '<input name="paid_amount" type="number" min="0.01" step="0.01" max="1000000000" required value="'+initialAmount+'"></label></div>'+
+      '<label class="finance-field"><span>Como foi paga? *</span>'+
+        '<select name="payment_method" required><option value="" '+(!bill.payment_method?'selected':'')+' disabled>Selecione a forma de pagamento</option>'+methodOptions+'</select></label>'+
+      '<label class="finance-field"><span>De onde saiu o dinheiro? *</span>'+
+        '<input name="payment_source" maxlength="120" required placeholder="Ex.: saldo Nubank PJ, Banco do Brasil, cartão Caixa" value="'+escapeHtml(bill.payment_source||'')+'">'+
+        '<small>Informe a conta, cartão ou recurso utilizado no pagamento.</small></label>'+
+      '<label class="finance-field"><span>Observações <em>(opcional)</em></span>'+
+        '<textarea name="payment_notes" rows="3" maxlength="500" placeholder="Comprovante, referência ou outras informações">'+escapeHtml(bill.payment_notes||'')+'</textarea></label>'+
+      '<div class="finance-payment-impact" id="financePaymentImpact" role="status" aria-live="polite"></div>'+
+      '<div class="finance-modal-actions finance-payment-actions">'+
+        (editing?'<button class="finance-delete" type="button" data-unpay>Desfazer pagamento</button>':'')+
+        '<button type="button" class="finance-cancel" data-dismiss>Cancelar</button>'+
+        '<button type="submit" class="finance-save">'+(editing?'Salvar alterações':'Confirmar pagamento')+'</button></div>'+
+    '</form></section>';
+  const refreshImpact=()=>{
+    const method=overlay.querySelector('[name="payment_method"]').value;
+    const amount=Number(overlay.querySelector('[name="paid_amount"]').value);
+    const impact=overlay.querySelector('#financePaymentImpact');
+    const formatted=Number.isFinite(amount)&&amount>0?money(Math.round(amount*100)):'o valor pago';
+    impact.innerHTML=method==='credit'
+      ? '<strong>Pagamento no cartão de crédito</strong><span>Esta conta ficará paga, mas '+formatted+' não será descontado agora do saldo disponível. Registre o pagamento da fatura quando o dinheiro realmente sair.</span>'
+      : '<strong>Impacto no saldo</strong><span>Ao confirmar, '+formatted+' será contabilizado como pagamento. Se esta conta já estava paga, o valor anterior será substituído, sem duplicação.</span>';
+  };
+  node().appendChild(overlay);
+  overlay.querySelector('[name="paid_amount"]').addEventListener('input',refreshImpact);
+  overlay.querySelector('[name="payment_method"]').addEventListener('change',refreshImpact);
+  refreshImpact();
+  const close=()=>overlay.remove();
+  overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('[data-dismiss]'))close();});
+  overlay.querySelector('form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const form=event.currentTarget,submit=form.querySelector('[type="submit"]');
+    const raw=new FormData(form);
+    const amount=Number(raw.get('paid_amount'));
+    const payload={
+      paid_at:String(raw.get('paid_at')||''),
+      paid_amount_cents:Math.round(amount*100),
+      payment_method:String(raw.get('payment_method')||''),
+      payment_source:String(raw.get('payment_source')||'').trim(),
+      payment_notes:String(raw.get('payment_notes')||'').trim()
+    };
+    submit.disabled=true;
+    try{
+      await api('/api/finance/bills/'+id+'/payment',{method:'POST',body:JSON.stringify(payload)});
+      close();toast(editing?'Pagamento atualizado.':'Pagamento registrado com os detalhes.');
+      await loadFinance();
+    }catch(err){toast(err.message,true);submit.disabled=false;}
+  });
+  overlay.querySelector('[data-unpay]')?.addEventListener('click',async event=>{
+    if(!confirm('Desfazer o pagamento de "'+bill.name+'"? A conta voltará a ficar pendente e o saldo será recalculado.'))return;
+    const btn=event.currentTarget;
+    btn.disabled=true;
+    try{
+      await api('/api/finance/bills/'+id+'/payment',{method:'DELETE'});
+      close();toast('Pagamento desfeito; a conta voltou a ficar pendente.');
+      await loadFinance();
+    }catch(err){toast(err.message,true);btn.disabled=false;}
+  });
+  overlay.querySelector('[name="paid_at"]')?.focus();
+}
+
 function openForm(kind,id=null){
   if(!snapshot) return;
   const normalized = kind==='expenses'?'entries':kind;
@@ -216,7 +306,9 @@ function openForm(kind,id=null){
       field('due_date','Vencimento','date',record?.due_date || formDate,'required')+
       select('priority','Prioridade (1 = mais importante)',[[1,'1 · Urgente'],[2,'2 · Alta'],[3,'3 · Média'],[4,'4 · Baixa'],[5,'5 · Opcional']],record?.priority || 3)+
       '<label class="finance-check"><input type="checkbox" name="essential" '+(record?.essential?'checked':'')+'> Conta essencial</label>'+
-      field('paid_at','Data do pagamento (vazio = pendente)','date',record?.paid_at || '');
+      (record?.paid_at
+        ? '<p class="finance-edit-payment-note">Esta conta está paga. Para alterar data, valor ou forma de pagamento, use <b>Ver / editar pagamento</b> no menu da conta.</p>'
+        : '<p class="finance-edit-payment-note">Após salvar a conta, use <b>Registrar pagamento</b> para informar a data, a origem e a forma utilizada.</p>');
   } else {
     fields = field('name','Nome da meta','text',record?.name || '','required maxlength="120"')+
       field('target','Objetivo (R$)','number',record ? (record.target_cents/100).toFixed(2):'','required min="0.01" max="1000000000" step="0.01"')+
@@ -238,7 +330,7 @@ function openForm(kind,id=null){
     const toCents = key => Math.round(Number(get(key))*100);
     let payload;
     if(normalized==='entries') payload={type:get('type'),description:get('description'),amount_cents:toCents('amount'),entry_date:get('entry_date'),status:get('status')};
-    else if(normalized==='bills') payload={name:get('name'),amount_cents:toCents('amount'),due_date:get('due_date'),priority:Number(get('priority')),essential:formData.has('essential'),paid_at:get('paid_at') || null};
+    else if(normalized==='bills') payload={name:get('name'),amount_cents:toCents('amount'),due_date:get('due_date'),priority:Number(get('priority')),essential:formData.has('essential')};
     else payload={name:get('name'),target_cents:toCents('target'),saved_cents:toCents('saved')};
     const submit = form.querySelector('[type="submit"]');
     submit.disabled = true;
@@ -265,18 +357,7 @@ export function setupFinance(deps){
     if(action==='edit')return openForm(kind,id);
     if(action==='prev-month')return shiftMonth(-1);
     if(action==='next-month')return shiftMonth(1);
-    if(action==='toggle-paid'){
-      const bill=snapshot?.bills.find(item=>item.id===id);
-      if(!bill)return;
-      const data={name:bill.name,amount_cents:bill.amount_cents,due_date:bill.due_date,priority:bill.priority,
-        essential:Boolean(bill.essential),paid_at:bill.paid_at?null:nowDate()};
-      btn.disabled=true;
-      try{
-        await api('/api/finance/bills/'+id,{method:'PUT',body:JSON.stringify(data)});
-        toast(bill.paid_at?'Pagamento desfeito.':'Conta marcada como paga.');
-        await loadFinance();
-      }catch(err){toast(err.message,true);btn.disabled=false}
-    }
+    if(action==='payment')return openPaymentForm(id);
   });
   node().addEventListener('change',e=>{
     if(e.target.id==='financeMonth' && /^\d{4}-\d{2}$/.test(e.target.value)){currentMonth=e.target.value;render();}

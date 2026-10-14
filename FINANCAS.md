@@ -6,7 +6,9 @@ Um painel de planejamento com poucos indicadores: saldo confirmado, contas pende
 ## Como funciona
 - **Entradas**: recebimento pontual ou previsto. Somente o status `Confirmado` aumenta o saldo; não exige salário fixo.
 - **Gastos avulsos**: compras e despesas não associadas às contas. Somente gastos confirmados diminuem o saldo.
-- **Contas**: nome, valor, vencimento, prioridade de 1 a 5, essencial e data de pagamento. Quando há data de pagamento, ela abate o saldo, sem precisar lançar o pagamento como gasto outra vez.
+- **Contas**: nome, valor, vencimento, prioridade de 1 a 5 e indicação de essencial.
+- **Pagamento de contas**: abra o menu ⋮ da conta e escolha "Registrar pagamento". O Relembra solicita data, valor realmente pago, forma (Pix, débito, crédito, transferência, dinheiro, boleto ou outro), conta/cartão de origem e observações opcionais. É possível editar esses dados ou desfazer o pagamento.
+- **Saldo**: pagamentos Pix/débito/transferência/dinheiro/boleto/outros descontam o **valor efetivamente pago**, e não o valor planejado. Pagamento com **cartão de crédito** não reduz o dinheiro disponível nesse momento; registre a fatura quando ela for quitada. Evite lançar a mesma saída duas vezes.
 - **Reservas e metas**: objetivo e quanto já foi guardado. São marcadores informativos: não retiram automaticamente dinheiro do saldo.
 - **Ordenação**: pendentes primeiro, depois prioridade e vencimento. Vencidas são destacadas.
 - **Saldo**: soma global de todas as entradas confirmadas menos gastos avulsos confirmados e contas pagas, sem contar promessas de renda futura.
@@ -32,3 +34,7 @@ npm run db:local
 ```
 
 A confirmação em ambiente real precisa ocorrer após a aplicação da migração no ambiente de homologação.
+
+## Atualização de pagamento
+
+A migração aditiva `migrations/0010_bill_payment_details.sql` adiciona dados de pagamento sem apagar contas atuais. Contas já marcadas como pagas continuam pagas, com o valor original preservado e meio de pagamento **não informado**, até serem revisadas. A interface não inventa qual banco/cartão foi usado.

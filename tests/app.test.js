@@ -17,6 +17,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0007_focus_productivity_tips.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0008_motivation_tips.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0009_finances.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0010_bill_payment_details.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -845,7 +846,7 @@ test('finanças: renda prevista, pagamento, validação e privacidade entre usu�
   assert.equal(panel.balance_cents,30000);
   assert.equal(panel.bills.length,1);
   assert.equal(panel.bills[0].paid_at,null);
-  assert.equal((await req('/api/finance/bills/'+created.data.id,'PUT',{name:'Internet',amount_cents:12000,due_date:'2026-10-16',priority:1,essential:true,paid_at:'2026-10-15'})).status,200);
+  assert.equal((await req('/api/finance/bills/'+created.data.id+'/payment','POST',{paid_at:'2026-10-15',paid_amount_cents:12000,payment_method:'pix',payment_source:'Nubank PJ',payment_notes:'Pago via Pix'})).status,200);
   panel = (await req('/api/finance')).data;
   assert.equal(panel.balance_cents,18000,'conta paga abate o saldo');
   const goal = await req('/api/finance/goals','POST',{name:'Reserva de emergência',target_cents:80000,saved_cents:5000});
@@ -864,4 +865,110 @@ test('finanças: renda prevista, pagamento, validação e privacidade entre usu�
   assert.equal(isolated.balance_cents,0);
   assert.equal((await req('/api/finance/bills/'+created.data.id,'DELETE')).status,404);
   assert.equal((await req('/api/finance/bills/'+created.data.id,'PUT',{name:'X',amount_cents:100,due_date:'2026-10-13',priority:1,essential:false,paid_at:null})).status,404);
+});
+
+
+test('pagamento detalhado exige método, fonte e data; usa valor realmente pago sem duplicação', async () => {
+  const { req } = setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const income = await req('/api/finance/entries','POST',{
+    type:'income',description:'Saldo para pagar',amount_cents:30000,entry_date:'2026-10-10',status:'confirmed'
+  });
+  assert.equal(income.status,201);
+  const bill = await req('/api/finance/bills','POST',{
+    name:'Conta de telefone',amount_cents:12000,due_date:'2026-10-14',priority:1,essential:true
+  });
+  assert.equal(bill.status,201);
+  const payment='/api/finance/bills/'+bill.data.id+'/payment';
+  assert.equal((await req('/api/finance/bills/'+bill.data.id,'PUT',{
+    name:'Conta de telefone',amount_cents:12000,due_date:'2026-10-14',
+    priority:1,essential:true,paid_at:'2026-10-14'
+  })).status,400,'edição da conta não deve registrar um pagamento sem dados');
+  assert.equal((await req(payment,'POST',{
+    paid_at:'2026-10-14',paid_amount_cents:11500,payment_method:'pix',payment_source:''
+  })).status,400);
+  assert.equal((await req(payment,'POST',{
+    paid_at:'2026-02-30',paid_amount_cents:11500,payment_method:'pix',payment_source:'Caixa'
+  })).status,400);
+  assert.equal((await req(payment,'POST',{
+    paid_at:'2026-10-14',paid_amount_cents:11500,payment_method:'inventado',payment_source:'Caixa'
+  })).status,400);
+  assert.equal((await req('/api/finance')).data.balance_cents,30000);
+  assert.equal((await req(payment,'POST',{
+    paid_at:'2026-10-14',paid_amount_cents:11500,payment_method:'pix',payment_source:'Banco do Brasil',payment_notes:'Comprovante #1'
+  })).status,200);
+  let panel=(await req('/api/finance')).data;
+  assert.equal(panel.balance_cents,18500);
+  assert.equal(panel.bills[0].amount_cents,12000,'valor planejado não pode mudar com o pagamento');
+  assert.equal(panel.bills[0].paid_amount_cents,11500);
+  assert.equal(panel.bills[0].payment_method,'pix');
+  assert.equal(panel.bills[0].payment_source,'Banco do Brasil');
+  assert.equal(panel.bills[0].payment_notes,'Comprovante #1');
+  assert.equal((await req(payment,'POST',{
+    paid_at:'2026-10-15',paid_amount_cents:11000,payment_method:'debit',payment_source:'Nubank PJ'
+  })).status,200);
+  assert.equal((await req('/api/finance')).data.balance_cents,19000,'edição do pagamento substitui o anterior');
+  assert.equal((await req(payment,'POST',{
+    paid_at:'2026-10-16',paid_amount_cents:11000,payment_method:'credit',payment_source:'Cartão Caixa'
+  })).status,200);
+  assert.equal((await req('/api/finance')).data.balance_cents,30000,'pagamento com crédito não representa saída de saldo ainda');
+  assert.equal((await req(payment,'DELETE')).status,200);
+  panel=(await req('/api/finance')).data;
+  assert.equal(panel.balance_cents,30000);
+  assert.equal(panel.bills[0].paid_at,null);
+  assert.equal(panel.bills[0].paid_amount_cents,null);
+  assert.equal(panel.bills[0].payment_source,'');
+  assert.equal((await req(payment,'DELETE')).status,404);
+  assert.equal((await req('/api/finance/bills/'+bill.data.id,'PUT',{
+    name:'Conta de telefone atualizada',amount_cents:12000,due_date:'2026-10-14',priority:2,essential:true
+  })).status,200,'edição de conta sem campo paid_at deve continuar funcionando');
+});
+
+test('pagamentos entram no backup e não são alterados por outra conta', async () => {
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const created=await req('/api/finance/bills','POST',{
+    name:'Água',amount_cents:7000,due_date:'2026-10-11',priority:2,essential:true
+  });
+  const payment='/api/finance/bills/'+created.data.id+'/payment';
+  await req(payment,'POST',{paid_at:'2026-10-12',paid_amount_cents:7200,
+    payment_method:'transfer',payment_source:'Conta Mercado Pago',payment_notes:'Tarifa incluída'});
+  const backup=(await req('/api/export')).data;
+  assert.equal(backup.finances.bills[0].payment_source,'Conta Mercado Pago');
+  assert.equal(backup.finances.bills[0].paid_amount_cents,7200);
+  const invite=await req('/api/invites','POST',{});
+  await req('/api/register','POST',{username:'finance_extra',password:'uma-senha-diferente-123',invitation:invite.data.invitation});
+  assert.equal((await req(payment,'POST',{paid_at:'2026-10-12',
+    paid_amount_cents:7000,payment_method:'pix',payment_source:'Outro'})).status,404);
+  assert.equal((await req(payment,'DELETE')).status,404);
+  const imported=await req('/api/import','POST',{finances:{bills:backup.finances.bills}});
+  assert.equal(imported.data.financeImported,1);
+  const restored=(await req('/api/finance')).data;
+  assert.equal(restored.bills.length,1);
+  assert.equal(restored.bills[0].payment_source,'Conta Mercado Pago');
+  assert.equal(restored.bills[0].paid_amount_cents,7200);
+  assert.notEqual(restored.bills[0].id,created.data.id,'outro usuário recebe ID diferente');
+});
+
+
+test('migração 0010 preserva pagamentos anteriores sem inventar método',()=>{
+  const db=new DatabaseSync(':memory:');
+  for (let n=1;n<=9;n++){
+    const names=['0001_initial','0002_visual','0003_multiple_records','0004_thought_journal',
+      '0005_situational_tips','0006_private_accounts','0007_focus_productivity_tips',
+      '0008_motivation_tips','0009_finances'];
+    db.exec(readFileSync(new URL('../migrations/'+names[n-1]+'.sql',import.meta.url),'utf8'));
+  }
+  db.prepare("INSERT INTO app_users(id,username,password_salt,password_hash,role,created_at) VALUES (?,?,?,?,?,?)")
+    .run('u1','usuario-teste','sal','hash','owner','2026-10-10');
+  db.prepare("INSERT INTO finance_bills(id,owner_id,name,amount_cents,due_date,priority,essential,paid_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)")
+    .run('bill1','u1','Conta legada',21000,'2026-10-11',2,1,'2026-10-12','2026-10-10','2026-10-12');
+  db.exec(readFileSync(new URL('../migrations/0010_bill_payment_details.sql',import.meta.url),'utf8'));
+  const bill=db.prepare('SELECT * FROM finance_bills WHERE id=?').get('bill1');
+  assert.equal(bill.amount_cents,21000);
+  assert.equal(bill.paid_at,'2026-10-12');
+  assert.equal(bill.paid_amount_cents,21000);
+  assert.equal(bill.payment_method,null);
+  assert.equal(bill.payment_source,'');
+  db.close();
 });
