@@ -819,7 +819,7 @@ test('interface motivação oferece contexto, dica editável e limpa dados no lo
   const css=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
   assert.equal((html.match(/data-tip-context="Motivação e mentalidade"/g)||[]).length,1);
   assert.equal((html.match(/<option value="Motivação e mentalidade"/g)||[]).length,1);
-  assert.equal((html.match(/data-open-motivation/g)||[]).length,2);
+  assert.equal((html.match(/data-open-motivation/g)||[]).length,3);
   for(const id of ['motivationModal','motivationTitle','motivationCloseBtn','motivationResult','motivationSeeAll','motivationAddTip'])
     assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
   for(const context of Object.keys(MOTIVATION_MOMENTS))
