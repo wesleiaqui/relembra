@@ -27,7 +27,7 @@ export async function loadFinance(){
   const localVersion = ++version;
   if (node() && !snapshot) node().innerHTML = '<div class="finance-loading">Carregando suas finanças...</div>';
   try {
-    const loaded = await api('/api/finance');
+    const loaded = await api('/api/finance?month='+encodeURIComponent(currentMonth));
     if (localVersion !== version) return;
     snapshot = loaded;
     render();
@@ -54,7 +54,7 @@ function shiftMonth(shift){
   const [year,month] = currentMonth.split('-').map(Number);
   const date = new Date(year,month-1+shift,1);
   currentMonth = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0');
-  render();
+  void loadFinance();
 }
 const monthLabel = () => {
   const [year, month] = currentMonth.split('-').map(Number);
@@ -106,7 +106,7 @@ function render(){
       : pill(overdue?'Atrasado':'Pendente',overdue?'bad':'warn');
     return '<tr class="'+(overdue?'finance-overdue':'')+'">'+
       '<td><span class="finance-priority '+(b.priority<=2?'finance-priority-high':'')+'">'+b.priority+'</span></td>'+
-      '<td><strong class="finance-item-name">'+escapeHtml(b.name)+'</strong></td>'+
+      '<td><strong class="finance-item-name">'+escapeHtml(b.name)+'</strong>'+(b.recurring_id?'<span class="finance-recurring-tag" title="Conta gerada mensalmente">↻ Mensal</span>':'')+'</td>'+
       '<td>'+shortDate(b.due_date)+'</td>'+
       '<td class="finance-number">'+money(b.amount_cents)+'</td>'+
       '<td>'+(b.essential?pill('Sim','essential'):pill('Não','neutral'))+'</td>'+
@@ -164,7 +164,7 @@ function render(){
               '<option value="priority" '+(financeSort==='priority'?'selected':'')+'>Ordenar por prioridade</option>'+
               '<option value="due" '+(financeSort==='due'?'selected':'')+'>Ordenar por vencimento</option>'+
               '<option value="amount" '+(financeSort==='amount'?'selected':'')+'>Maior valor primeiro</option></select></label>'+
-              button('new','+ Nova conta','bills')+'</div></div>'+
+              button('manage-recurring','↻ Contas fixas ('+(snapshot.recurring||[]).length+')')+button('new','+ Nova conta','bills')+'</div></div>'+
             '<div class="finance-table-wrap"><table class="finance-table finance-bills-table">'+tableHead+'<tbody>'+billRows+'</tbody></table></div>'+(!shownBills.length?'<div class="finance-table-empty">'+emptyAccounts+'</div>':'')+
           '</section>'+
           '<section class="finance-panel finance-goals"><div class="finance-panel-head"><div class="finance-heading-group">'+icon('goal','finance-section-icon')+
@@ -284,6 +284,87 @@ function openPaymentForm(id){
   overlay.querySelector('[name="paid_at"]')?.focus();
 }
 
+
+function openRecurringManager(){
+  if(!snapshot)return;
+  const rules=snapshot.recurring||[];
+  const overlay=document.createElement('div');
+  overlay.className='finance-modal-backdrop';
+  overlay.innerHTML='<section class="finance-modal finance-recurring-modal" role="dialog" aria-modal="true" aria-labelledby="financeRecurringTitle">'+
+    '<div class="finance-modal-title"><div><h2 id="financeRecurringTitle">Contas fixas mensais</h2>'+
+      '<p class="finance-recurring-help">Cadastre uma vez para gerar novas contas a cada mês, sem duplicar vencimentos.</p></div>'+
+      '<button type="button" data-dismiss aria-label="Fechar">×</button></div>'+
+      (rules.length?'<div class="finance-recurring-list">'+rules.map(rule=>
+        '<article class="finance-recurring-row"><div class="finance-recurring-rule-details"><strong>'+escapeHtml(rule.name)+'</strong>'+
+          '<small>Todo dia '+rule.day_of_month+' · '+money(rule.amount_cents)+
+          ' · '+(rule.active?'Ativa':'Pausada')+'</small></div>'+
+          '<div class="finance-recurring-row-actions">'+
+            '<button type="button" data-edit-rule="'+escapeHtml(rule.id)+'">Editar</button>'+
+            '<button type="button" data-toggle-rule="'+escapeHtml(rule.id)+'">'+(rule.active?'Pausar':'Retomar')+'</button></div></article>'
+        ).join('')+'</div>':
+        '<div class="finance-recurring-empty">Nenhuma conta fixa cadastrada. Crie uma conta e ative <b>Repetir todos os meses</b>.</div>')+
+      '<p class="finance-recurring-footnote">Editar uma regra afeta apenas as próximas contas geradas. Contas já lançadas e pagamentos não são alterados. Ao pausar, nenhuma nova conta será criada enquanto a regra estiver inativa.</p>'+
+      '<div class="finance-modal-actions"><button type="button" class="finance-cancel" data-dismiss>Fechar</button></div></section>';
+  node().appendChild(overlay);
+  overlay.addEventListener('click',async e=>{
+    if(e.target===overlay || e.target.closest('[data-dismiss]')){overlay.remove();return;}
+    const edit=e.target.closest('[data-edit-rule]');
+    if(edit){const id=edit.dataset.editRule;overlay.remove();openRecurringEditor(id);return;}
+    const toggle=e.target.closest('[data-toggle-rule]');
+    if(!toggle)return;
+    const rule=rules.find(r=>r.id===toggle.dataset.toggleRule);
+    if(!rule)return;
+    toggle.disabled=true;
+    try{
+      await api('/api/finance/recurring/'+rule.id,{method:'PUT',body:JSON.stringify({
+        name:rule.name,amount_cents:rule.amount_cents,day_of_month:rule.day_of_month,
+        priority:rule.priority,essential:Boolean(rule.essential),active:!Boolean(rule.active)
+      })});
+      overlay.remove();toast(rule.active?'Recorrência pausada.':'Recorrência retomada.');
+      await loadFinance();
+      openRecurringManager();
+    }catch(err){toast(err.message,true);toggle.disabled=false;}
+  });
+}
+function openRecurringEditor(id){
+  const rule=(snapshot?.recurring||[]).find(r=>r.id===id);
+  if(!rule)return;
+  const overlay=document.createElement('div');
+  overlay.className='finance-modal-backdrop';
+  overlay.innerHTML='<section class="finance-modal finance-recurring-modal" role="dialog" aria-modal="true" aria-labelledby="financeRuleEditTitle">'+
+    '<div class="finance-modal-title"><div><h2 id="financeRuleEditTitle">Editar conta fixa</h2>'+
+    '<p class="finance-recurring-help">Mudanças afetam apenas os vencimentos gerados no futuro.</p></div>'+
+    '<button type="button" data-dismiss aria-label="Fechar">×</button></div>'+
+    '<form id="financeRecurringForm">'+
+      '<label class="finance-field"><span>Nome da conta *</span><input name="name" maxlength="160" required value="'+escapeHtml(rule.name)+'"></label>'+
+      '<div class="finance-recurring-grid"><label class="finance-field"><span>Valor mensal (R$) *</span>'+
+        '<input type="number" name="amount" min="0.01" max="1000000000" step="0.01" required value="'+(rule.amount_cents/100).toFixed(2)+'"></label>'+
+      '<label class="finance-field"><span>Dia do vencimento *</span>'+
+        '<input type="number" name="day" min="1" max="31" step="1" required value="'+rule.day_of_month+'"></label></div>'+
+      '<label class="finance-field"><span>Prioridade</span><select name="priority">'+[1,2,3,4,5].map(n=>
+        '<option value="'+n+'" '+(rule.priority===n?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
+      '<label class="finance-check"><input type="checkbox" name="essential" '+(rule.essential?'checked':'')+'> Conta essencial</label>'+
+      '<p class="finance-recurring-info">Se o dia escolhido não existir no mês (como 31 de fevereiro), o vencimento será ajustado para o último dia do mês.</p>'+
+      '<div class="finance-modal-actions"><button class="finance-cancel" type="button" data-dismiss>Cancelar</button>'+
+        '<button class="finance-save" type="submit">Salvar conta fixa</button></div></form></section>';
+  node().appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('[data-dismiss]'))overlay.remove();});
+  const form=overlay.querySelector('form');
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();const values=new FormData(form),button=form.querySelector('[type="submit"]');
+    const amount=Math.round(Number(values.get('amount'))*100),day=Number(values.get('day'));
+    button.disabled=true;
+    try{
+      await api('/api/finance/recurring/'+id,{method:'PUT',body:JSON.stringify({
+        name:String(values.get('name')||''),amount_cents:amount,day_of_month:day,
+        priority:Number(values.get('priority')),essential:values.has('essential'),active:Boolean(rule.active)
+      })});
+      overlay.remove();toast('Conta fixa atualizada; cobranças anteriores foram preservadas.');
+      await loadFinance();openRecurringManager();
+    }catch(err){toast(err.message,true);button.disabled=false;}
+  });
+}
+
 function openForm(kind,id=null){
   if(!snapshot) return;
   const normalized = kind==='expenses'?'entries':kind;
@@ -306,6 +387,9 @@ function openForm(kind,id=null){
       field('due_date','Vencimento','date',record?.due_date || formDate,'required')+
       select('priority','Prioridade (1 = mais importante)',[[1,'1 · Urgente'],[2,'2 · Alta'],[3,'3 · Média'],[4,'4 · Baixa'],[5,'5 · Opcional']],record?.priority || 3)+
       '<label class="finance-check"><input type="checkbox" name="essential" '+(record?.essential?'checked':'')+'> Conta essencial</label>'+
+      (!record?.recurring_id ? '<label class="finance-check finance-recurring-check"><input type="checkbox" name="recurring">'+
+        '<span><strong>Repetir todos os meses</strong><small>Gerar automaticamente uma conta por mês, no mesmo dia de vencimento.</small></span></label>'
+        : '<p class="finance-recurring-info">↻ Conta fixa mensal. Alterações aqui valem apenas para este vencimento; use <b>Contas fixas</b> para mudar os próximos.</p>')+
       (record?.paid_at
         ? '<p class="finance-edit-payment-note">Esta conta está paga. Para alterar data, valor ou forma de pagamento, use <b>Ver / editar pagamento</b> no menu da conta.</p>'
         : '<p class="finance-edit-payment-note">Após salvar a conta, use <b>Registrar pagamento</b> para informar a data, a origem e a forma utilizada.</p>');
@@ -335,8 +419,15 @@ function openForm(kind,id=null){
     const submit = form.querySelector('[type="submit"]');
     submit.disabled = true;
     try {
-      await api('/api/finance/'+normalized+(id?'/'+id:''),{method:id?'PUT':'POST',body:JSON.stringify(payload)});
-      overlay.remove(); toast('Registro financeiro salvo.'); await loadFinance();
+      if(normalized==='bills' && !id && formData.has('recurring')){
+        await api('/api/finance/recurring',{method:'POST',body:JSON.stringify(payload)});
+      }else{
+        await api('/api/finance/'+normalized+(id?'/'+id:''),{method:id?'PUT':'POST',body:JSON.stringify(payload)});
+        if(normalized==='bills' && id && formData.has('recurring')){
+          await api('/api/finance/recurring',{method:'POST',body:JSON.stringify({existing_bill_id:id})});
+        }
+      }
+      overlay.remove(); toast(normalized==='bills'&&formData.has('recurring')?'Conta fixa mensal ativada.':'Registro financeiro salvo.'); await loadFinance();
     }catch(err){toast(err.message,true)}finally{submit.disabled=false}
   });
   overlay.querySelector('[data-remove]')?.addEventListener('click',async ()=>{
@@ -358,9 +449,10 @@ export function setupFinance(deps){
     if(action==='prev-month')return shiftMonth(-1);
     if(action==='next-month')return shiftMonth(1);
     if(action==='payment')return openPaymentForm(id);
+    if(action==='manage-recurring')return openRecurringManager();
   });
   node().addEventListener('change',e=>{
-    if(e.target.id==='financeMonth' && /^\d{4}-\d{2}$/.test(e.target.value)){currentMonth=e.target.value;render();}
+    if(e.target.id==='financeMonth' && /^\d{4}-\d{2}$/.test(e.target.value)){currentMonth=e.target.value;void loadFinance();}
     if(e.target.id==='financeSort'){financeSort=e.target.value;render();}
   });
   node().addEventListener('input',e=>{
