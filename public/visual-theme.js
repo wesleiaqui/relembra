@@ -8,7 +8,7 @@ export const DARK_PALETTES=Object.freeze({
   deepblue:'#101722',
   forest:'#111d18',
   petrol:'#0f1d21',
-  oled:'#080a0b',
+  oled:'#000000',
   wine:'#20161b'
 });
 export function normalizeDarkPalette(value){
