@@ -1,0 +1,332 @@
+/*
+ * Relembra · Finanças · modo escuro refinado (v1.23)
+ * Espelha a hierarquia do modo claro: superfícies neutras, nuances semânticas
+ * pequenas e sem painel azul ou botões beges dominantes.
+ * Carregar após dark-unified.css. NÃO altera modo claro, cálculos nem APIs.
+ */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] {
+  --fin-night-bg: #141718;
+  --fin-night-panel: #1e2324;
+  --fin-night-panel-raised: #262b2c;
+  --fin-night-input: #1b2021;
+  --fin-night-border: #343c3d;
+  --fin-night-border-soft: #303738;
+  --fin-night-text: #f0f2ef;
+  --fin-night-secondary: #bbc7c1;
+  --fin-night-muted: #95aba0;
+  --fin-night-success: #9bd2b5;
+  --fin-night-warning: #e7c18a;
+  --fin-night-danger: #eeaaa4;
+  --fin-night-accent: #b89d78;
+  --fin-night-shadow: none;
+  color-scheme: dark;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"],
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .workspace,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeView,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-dashboard {
+  background: var(--fin-night-bg);
+  color: var(--fin-night-text);
+}
+/* Como no claro, a estrutura é uniforme; só os KPIs têm um leve tom de significado. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-goal-card {
+  background: var(--fin-night-panel);
+  border: 1px solid var(--fin-night-border);
+  box-shadow: none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi-balance {
+  background: linear-gradient(113deg,#1b2924 0%,#1e2324 78%);
+  border-color: #344740;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi-pending {
+  background: linear-gradient(113deg,#292222 0%,#1e2324 78%);
+  border-color: #443839;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi-coverage {
+  background: linear-gradient(113deg,#1c2824 0%,#1e2324 78%);
+  border-color: #34463e;
+}
+/* A faixa lateral e os ícones quadrados eram estranhos ao layout do modo claro. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi::before {
+  content: none;
+  display: none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi > .finance-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-icon-balance,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-icon-coverage {
+  background: #253c32;
+  border-color: #365746;
+  color: #96d7b2;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-icon-pending {
+  background: #40302f;
+  border-color: #5b403e;
+  color: #eda5a1;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi strong,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi-pending strong {
+  color: var(--fin-night-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi-balance strong {
+  color: #a8dcc1;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi-coverage strong.finance-positive {
+  color: #a8dcc1;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi .finance-negative {
+  color: var(--fin-night-danger);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi > div > span,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi small,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-heading-group p,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-title-area p {
+  color: var(--fin-night-secondary);
+}
+/* Correção essencial: o planejamento deixa de ter um retângulo azul interno. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-planning,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-planning .finance-summary {
+  background: var(--fin-night-panel);
+  color: var(--fin-night-secondary);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-planning .finance-panel-head {
+  background: transparent;
+  border-color: var(--fin-night-border-soft);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-summary-row {
+  background: transparent;
+  color: var(--fin-night-secondary);
+  border-bottom: 1px solid var(--fin-night-border-soft);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-summary-row:last-child {
+  border-bottom: 0;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-summary-row strong,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-goal-bottom b {
+  color: var(--fin-night-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-summary-symbol,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-section-icon {
+  color: #99cbb2;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-summary-row strong.finance-positive {
+  color: var(--fin-night-success);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-summary-row strong.finance-negative,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-goal-bottom b.finance-outstanding {
+  color: var(--fin-night-danger);
+}
+/* Cabeçalhos e tabelas consistentes com os cartões, com hover discreto. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table-wrap,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table-empty,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel-head {
+  border-color: var(--fin-night-border-soft);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table th {
+  background: #262c2d;
+  color: #b2c0ba;
+  border-color: var(--fin-night-border-soft);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table td {
+  background: transparent;
+  color: var(--fin-night-secondary);
+  border-color: var(--fin-night-border-soft);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table tbody tr,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table tbody tr:nth-child(even) {
+  background: transparent;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table tbody tr.finance-overdue,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table tbody tr.finance-overdue:nth-child(even) {
+  background: rgb(224 134 134 / 4%);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table tbody tr.finance-overdue td:first-child {
+  box-shadow: none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table tbody tr:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table tbody tr.finance-overdue:hover {
+  background: #272d2d;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table .finance-item-name,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-table .finance-number,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-empty strong {
+  color: var(--fin-night-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-empty p {
+  color: var(--fin-night-muted);
+}
+/* Status semânticos suaves: verde recebido/essencial, âmbar pendente, vermelho vencido. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-pill.finance-ok,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-pill.finance-essential {
+  background: rgb(139 195 160 / 12%);
+  color: #a8dac1;
+  border-color: rgb(139 195 160 / 17%);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-pill.finance-warn {
+  background: rgb(214 176 110 / 12%);
+  color: #e7c18a;
+  border-color: rgb(214 176 110 / 18%);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-pill.finance-bad {
+  background: rgb(229 155 149 / 12%);
+  color: #eeaaa4;
+  border-color: rgb(229 155 149 / 18%);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-priority-high {
+  color: #eba5a5;
+  background: #3b2e32;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-priority,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-neutral,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-planned {
+  color: #bac8c0;
+  background: #2c3232;
+  border-color: #3b4542;
+}
+/* A especificidade da prioridade alta precisa superar a prioridade neutra. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-priority.finance-priority-high {
+  color: #eba5a5;
+  background: #3b2e32;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-row-menu summary,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-menu-options {
+  background: #272d2e;
+  border-color: var(--fin-night-border);
+  color: var(--fin-night-secondary);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-row-menu summary:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-menu-options .finance-btn:hover {
+  background: #343b3b;
+  color: var(--fin-night-text);
+}
+/* Ações em verde contido, mais próximas do modo claro; areia só em detalhes. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel-head .finance-btn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-save,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-payment-actions .finance-save {
+  background: #19735b;
+  border: 1px solid #19735b;
+  color: #fff;
+  box-shadow: none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel-head .finance-btn:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-save:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-payment-actions .finance-save:hover {
+  background: #1c8067;
+  border-color: #1c8067;
+  color: #fff;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-btn[data-fin-action="manage-recurring"] {
+  background: #2b3332;
+  color: #c4d3c9;
+  border-color: #47534e;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-btn[data-fin-action="manage-recurring"]:hover {
+  background: #34403b;
+  color: #f0f2ef;
+  border-color: #5a6c60;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-goal-top .finance-btn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-menu-options .finance-btn {
+  background: transparent;
+  color: var(--fin-night-secondary);
+  border: 1px solid var(--fin-night-border);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-delete,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-delete {
+  background: #3b2929;
+  color: #f1b0ab;
+  border-color: #70504b;
+}
+/* Entradas, filtros e rodapés sem painéis azulados. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-month-controls > button,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-sort select,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-month-input input,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-search,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-field input,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-field select,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-field textarea {
+  background: var(--fin-night-input);
+  border: 1px solid #414b4b;
+  color: var(--fin-night-text);
+  box-shadow: none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-search input {
+  background: transparent;
+  color: var(--fin-night-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-month-controls > button:hover {
+  background: #2a3431;
+  color: #cee9da;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot input::placeholder {
+  color: #9aaaa5;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel-footer,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-planned-note {
+  background: #1b2021;
+  color: var(--fin-night-secondary);
+  border-color: var(--fin-night-border-soft);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-panel-footer strong {
+  color: #a6d9bc;
+}
+/* Modais ficam coerentes com a tela, inclusive pagamento e recorrência. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-modal,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-payment-modal {
+  background: #1e2324;
+  border: 1px solid #424b4a;
+  color: var(--fin-night-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-payment-bill,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-payment-impact,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-recurring-check,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-recurring-info,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-edit-payment-note,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-recurring-row,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-recurring-empty {
+  background: #262d2b;
+  color: var(--fin-night-secondary);
+  border-color: #3a4942;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-field input,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-field select,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-field textarea {
+  background: #1a2020;
+  border-color: #46514e;
+  color: var(--fin-night-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-cancel,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-modal-title > button,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-recurring-row-actions button {
+  background: #2b3332;
+  color: #d7e0da;
+  border-color: #46534c;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-field,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-modal-title h2,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-recurring-rule-details strong,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-payment-bill strong {
+  color: var(--fin-night-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-recurring-rule-details small,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-recurring-footnote,
+body.finance-mode[data-visual-theme][data-color-mode="dark"] .finance-recurring-help {
+  color: var(--fin-night-muted);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot :is(button,input,textarea,select,summary):focus-visible {
+  outline: 2px solid #91b9a2;
+  outline-offset: 2px;
+}
+@media (max-width: 780px) {
+  body.finance-mode[data-visual-theme][data-color-mode="dark"] #financeRoot .finance-kpi > .finance-icon {
+    width: 49px;
+    height: 49px;
+  }
+}
