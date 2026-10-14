@@ -1,4 +1,5 @@
 import { MOTIVATION_MOMENTS, selectMotivationTips } from './motivation.js';
+import { setupVisualTheme } from './visual-theme.js';
 import { embeddedMediaLink } from './media-links.js';
 import { setupFinance, loadFinance, resetFinance } from './finance.js';
 import { setupCompanion, loadRadar, loadHomeRadar, loadUniversalSearch, loadLife, loadHabits, resetCompanion, openHistory } from './companion.js';
@@ -1052,6 +1053,7 @@ async function submitAccountForm(event,endpoint) {
 }
 
 async function start() {
+  setupVisualTheme();
   bindEvents();
   setupFinance({ api, toast });
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });

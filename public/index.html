@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/finance.css">
   <link rel="stylesheet" href="/companion.css">
+  <link rel="stylesheet" href="/visual-lume.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -45,7 +46,13 @@
     <div class="workspace">
       <header class="topbar">
         <div class="top-left"><button class="mobile-menu icon-button" id="menuBtn" aria-label="Abrir menu">☰</button><span class="breadcrumb">Meu espaço</span><span class="slash">/</span><strong id="breadcrumbActive">Visão geral</strong></div>
-        <div class="top-actions"><span class="header-date" id="todayText"></span><button class="button button-primary" id="addVideoBtn"><span class="plus">+</span> <span>Adicionar vídeo</span></button></div>
+        <div class="top-actions">
+          <div class="visual-theme-control" role="group" aria-label="Escolher aparência">
+            <span class="visual-theme-label" aria-hidden="true">Aparência</span>
+            <button class="visual-theme-option" type="button" data-visual-option="classic" aria-pressed="true" title="Voltar à aparência original">Clássico</button>
+            <button class="visual-theme-option" type="button" data-visual-option="lume" aria-pressed="false" title="Ativar o novo visual Lume">✦ Novo</button>
+          </div>
+          <span class="header-date" id="todayText"></span><button class="button button-primary" id="addVideoBtn"><span class="plus">+</span> <span>Adicionar vídeo</span></button></div>
       </header>
       <main class="page" id="page">
         <section id="homeView" class="view">
