@@ -56,30 +56,27 @@ function card(video) {
   const imageUrl = video.has_image ? '/api/videos/' + encodeURIComponent(video.id) + '/image' : video.cover_url;
   const image = imageUrl ? '<img src="' + esc(imageUrl) + '" alt="Imagem salva do vídeo" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest(\'.card-art\').classList.add(\'image-failed\');this.remove()">' : '';
   const zoom = imageUrl ? '<button type="button" class="card-image-hit" data-preview="' + esc(video.id) + '" title="Ampliar imagem" aria-label="Ampliar imagem de ' + esc(video.title) + '"><span aria-hidden="true">⤢ Ampliar</span></button>' : '';
-  const watched = video.watched ? '<span class="badge-watched">✓ Assistido</span>' : '<span class="card-date">' + esc(date(video.created_at)) + '</span>';
+  const savedDate = '<span class="card-date">' + esc(date(video.created_at)) + '</span>';
   const embed = embeddedMediaLink(video.url);
   const play = embed ? '<button type="button" class="card-action card-watch" data-watch="' + esc(video.id) + '" title="Assistir ao vídeo dentro do Relembra">▶ Assistir</button>' : '';
   const open = '<a href="' + esc(video.url) + '" class="card-action" target="_blank" rel="noopener noreferrer" title="Abrir no site original">↗ Original</a>';
   return '<article class="video-card" data-video="' + esc(video.id) + '">' +
     '<div class="card-art" style="--cover1:' + accent[0] + ';--cover2:' + accent[1] + '"><span class="card-emoji">' + esc(c.emoji) + '</span>' + image + zoom +
-    '<span class="card-platform">▣ ' + esc(platform(video.url)) + '</span><button class="card-favorite ' + (video.favorite ? 'favorited' : '') + '" data-fav="' + esc(video.id) + '" aria-label="Favoritar" title="' + (video.favorite ? 'Remover favorito' : 'Favoritar') + '">' + (video.favorite ? '♥' : '♡') + '</button></div>' +
+    '<span class="card-platform">▣ ' + esc(platform(video.url)) + '</span></div>' +
     '<div class="card-body"><div class="card-topline"><i></i>' + esc(c.name) + (video.related_count > 1 ? '<span class="related-count">' + Number(video.related_count) + ' fichas deste link</span>' : '') + '</div>' +
     '<h3 class="card-title" data-edit="' + esc(video.id) + '" title="Abrir vídeo salvo">' + esc(video.title) + '</h3><p class="card-summary">' + esc(video.summary || video.visual_description || video.tags || 'Adicione um resumo, transcrição ou análise visual.') + '</p>' +
-    '<div class="card-bottom">' + watched + '<div class="card-actions">' + play + open + '<button class="card-action" data-newinfo="' + esc(video.id) + '" title="Criar outra ficha">+ Info</button><button class="card-action" data-edit="' + esc(video.id) + '">Editar</button></div></div>' +
+    '<div class="card-bottom">' + savedDate + '<div class="card-actions">' + play + open + '<button class="card-action" data-newinfo="' + esc(video.id) + '" title="Criar outra ficha">+ Info</button><button class="card-action" data-edit="' + esc(video.id) + '">Editar</button></div></div>' +
     '<div class="atlas-card-footer"><button type="button" class="atlas-card-primary" ' + (embed ? 'data-watch="' + esc(video.id) + '">▶ Assistir ao vídeo' : 'data-edit="' + esc(video.id) + '">Abrir ficha') + '</button>' +
     '<details class="atlas-card-more"><summary aria-label="Mais opções deste vídeo" title="Mais opções">•••</summary><div class="atlas-card-menu">' +
     '<button type="button" data-edit="' + esc(video.id) + '">✎ Editar ficha</button><button type="button" data-newinfo="' + esc(video.id) + '">＋ Nova informação</button>' +
     '<a href="' + esc(video.url) + '" target="_blank" rel="noopener noreferrer">↗ Abrir original</a></div></details></div></div></article>';
 }
 
-async function loadStats() {
-  try { const { stats } = await api('/api/stats'); $('statTotal').textContent = Number(stats.total || 0).toLocaleString('pt-BR'); $('statFavorites').textContent = stats.favorites || 0; $('statUnwatched').textContent = stats.unwatched || 0; $('statCategories').textContent = stats.categories || 0; } catch (e) { toast(e.message, true); }
-}
 async function loadHome() {
-  try { const res = await api('/api/videos?limit=6'); state.homeVideos = res.videos; $('homeGrid').innerHTML = res.videos.length ? res.videos.map(card).join('') : skeletonEmpty('Seu espaço começa aqui', 'Salve seu primeiro vídeo e crie uma biblioteca de ideias para consultar quando quiser.'); await loadStats(); }
+  try { const res = await api('/api/videos?limit=3'); state.homeVideos = res.videos; $('homeGrid').innerHTML = res.videos.length ? res.videos.map(card).join('') : skeletonEmpty('Seu espaço começa aqui', 'Salve seu primeiro vídeo e crie uma biblioteca de ideias para consultar quando quiser.'); }
   catch (e) { $('homeGrid').innerHTML = skeletonEmpty('Não foi possível carregar', e.message, '⚠️', false); }
 }
-function listFilters() { return { q: state.search, category: state.category, favorite: state.view === 'favorites', unwatched: state.view === 'unwatched', sort: state.sort }; }
+function listFilters() { return { q: state.search, category: state.category, sort: state.sort }; }
 async function loadList(append = false) {
   if (append && state.busy) return;
   const requestNumber = ++listRequest;
@@ -101,7 +98,7 @@ async function loadList(append = false) {
   } catch(e) { if (requestNumber === listRequest) { box.innerHTML = skeletonEmpty('Erro ao carregar vídeos', e.message, '⚠️', false); toast(e.message, true); } }
   finally { if (requestNumber === listRequest) state.busy = false; }
 }
-const viewNames = { home: 'Visão geral', library: 'Minha biblioteca', favorites: 'Favoritos', unwatched: 'Para assistir', chat: 'Chat inteligente', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', radar: 'Radar do dia', search: 'Busca universal', life: 'Calendário da vida', backup: 'Backup e dados' };
+const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados' };
 async function navigate(view, category = 'all') {
   const known = viewNames[view] ? view : 'home';
   state.view = known;
@@ -118,14 +115,14 @@ async function navigate(view, category = 'all') {
   $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true;
   if (known === 'home') { await loadHome(); await loadHomeRadar(); }
   if (known === 'radar') await loadRadar();
-  if (known === 'search') await loadUniversalSearch();
   if (known === 'life') await loadLife();
   if (known === 'thoughts') await loadThoughts();
   if (known === 'tips') await loadTips();
   if (known === 'finance') await loadFinance();
-  if (['library', 'favorites', 'unwatched'].includes(known)) {
-    $('libraryTitle').textContent = known === 'favorites' ? 'Meus favoritos' : known === 'unwatched' ? 'Para assistir depois' : state.category !== 'all' ? catOf(state.category).name : 'Minha biblioteca';
-    $('librarySubtitle').textContent = known === 'favorites' ? 'Tudo que você mais gostou, num só lugar.' : known === 'unwatched' ? 'Vídeos que ainda merecem sua atenção.' : 'Encontre qualquer ideia pelo assunto, resumo ou transcrição.';
+  if (known === 'chat') setChatMode(chatMode);
+  if (known === 'library') {
+    $('libraryTitle').textContent = state.category !== 'all' ? catOf(state.category).name : 'Minha biblioteca';
+    $('librarySubtitle').textContent = 'Encontre qualquer ideia pelo assunto, resumo ou transcrição.';
     $('categoryFilter').value = state.category; $('searchInput').value = ''; $('sortFilter').value = 'recent';
     renderAtlasCollections(state.categories,state.category);
     await loadList();
@@ -277,16 +274,7 @@ async function deleteVideo() {
   try { await api('/api/videos/' + state.editId, { method: 'DELETE' }); closeEditor(); toast('Vídeo excluído.'); await refreshCurrent(); }
   catch (e) { toast(e.message, true); }
 }
-async function toggleFavorite(id) {
-  try {
-    const { video } = await api('/api/videos/' + id);
-    video.favorite = !video.favorite;
-    await api('/api/videos/' + id, { method: 'PUT', body: JSON.stringify(video) });
-    toast(video.favorite ? 'Adicionado aos favoritos ♡' : 'Removido dos favoritos');
-    await refreshCurrent();
-  } catch (e) { toast(e.message, true); }
-}
-async function refreshCurrent() { if (state.view === 'home') await loadHome(); else if (['library', 'favorites', 'unwatched'].includes(state.view)) await loadList(); }
+async function refreshCurrent() { if (state.view === 'home') await loadHome(); else if (state.view === 'library') await loadList(); }
 function savedChatImageUrl(source) {
   if (source.has_image && /^[0-9a-f-]{36}$/i.test(String(source.id || ''))) {
     return '/api/videos/' + encodeURIComponent(source.id) + '/image';
@@ -429,7 +417,7 @@ function openMediaPlayer(id) {
   $('mediaPlayerClose').focus();
 }
 function collectPreviewItems(id) {
-  const selector = ['library','favorites','unwatched'].includes(state.view) ? '#libraryGrid' : '#homeGrid';
+  const selector = state.view === 'library' ? '#libraryGrid' : '#homeGrid';
   const items = [...document.querySelectorAll(selector + ' .video-card')]
     .filter(card => !card.querySelector('.card-art.image-failed'))
     .map(card => ({
@@ -467,6 +455,38 @@ function openImageViewer(id) {
   $('imageViewerClose').focus();
 }
 
+let chatMode='search';
+function setChatMode(mode){
+  chatMode=mode==='ai'?'ai':'search';
+  document.querySelectorAll('[data-chat-mode]').forEach(btn=>{
+    const active=btn.dataset.chatMode===chatMode;
+    btn.classList.toggle('active',active);
+    btn.setAttribute('aria-pressed',String(active));
+  });
+  $('chatMessages').hidden=chatMode!=='ai';
+  $('universalResults').hidden=chatMode!=='search';
+  $('chatFinanceOption').hidden=chatMode!=='search';
+  $('chatModeDescription').textContent=chatMode==='ai'
+    ? 'Faça perguntas sobre seus vídeos e receba respostas com referências. Dados financeiros nunca são enviados à IA.'
+    : 'Pesquise vídeos, dicas, tarefas, momentos e reflexões. Finanças só entram quando você permitir.';
+  $('chatContextLabel').textContent=chatMode==='ai'
+    ? 'Perguntas respondidas a partir de vídeos salvos'
+    : 'Pesquisa nos seus registros sem chamar IA';
+  $('chatFootnote').textContent=chatMode==='ai'
+    ? 'A IA utiliza somente os vídeos salvos. Confira as fontes antes de tomar decisões.'
+    : 'Pesquisa textual privada, sem custo de IA. Dados financeiros excluídos por padrão.';
+  $('chatInput').placeholder=chatMode==='ai'
+    ? 'Ex.: O que aprendi sobre financiamento?'
+    : 'Ex.: financiamento, foco, uma receita...';
+  $('chatInput').minLength=chatMode==='ai'?3:2;
+}
+async function openUnifiedSearch(q=''){
+  await navigate('chat');
+  setChatMode('search');
+  $('chatInput').value=q;
+  if(q.trim().length>=2) await loadUniversalSearch();
+  else $('chatInput').focus();
+}
 function appendMessage(kind, content, sources = [], aiUnavailable = false) {
   $('chatMessages').querySelector('.chat-welcome')?.remove();
   const block = document.createElement('div');
@@ -959,7 +979,17 @@ function bindEvents() {
   $('sortFilter').addEventListener('change', e => { state.sort = e.target.value; loadList(); });
   $('clearFilters').addEventListener('click', () => { state.search = ''; state.category = 'all'; $('searchInput').value = ''; $('categoryFilter').value = 'all'; renderAtlasCollections(state.categories,state.category); loadList(); });
   $('loadMore').addEventListener('click', () => loadList(true));
-  $('chatForm').addEventListener('submit', e => { e.preventDefault(); submitChat($('chatInput').value); });
+  document.querySelectorAll('[data-chat-mode]').forEach(btn=>btn.addEventListener('click',()=>{
+    setChatMode(btn.dataset.chatMode);
+    $('chatInput').focus();
+    if(chatMode==='search'&&$('chatInput').value.trim().length>=2)loadUniversalSearch();
+  }));
+  $('chatForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const q=$('chatInput').value.trim();
+    if(chatMode==='search') await loadUniversalSearch();
+    else await submitChat(q);
+  });
   $('tipsAddBtn').addEventListener('click', () => openTipEditor());
   $('tipsSearch').addEventListener('input', e => { state.tipsSearch = e.target.value; renderTips(); });
   $('tipsKind').addEventListener('change', e => { state.tipsKind = e.target.value; renderTips(); });
@@ -1062,7 +1092,8 @@ async function submitAccountForm(event,endpoint) {
 
 async function start() {
   setupVisualTheme();
-  setupAtlasUI({api,navigate,editVideo,openTipEditor,editThought,openEditor,loadUniversalSearch});
+  setupAtlasUI({api,navigate,editVideo,openTipEditor,editThought,openEditor,openUnifiedSearch});
+  setChatMode('search');
   bindEvents();
   setupFinance({ api, toast });
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
