@@ -94,6 +94,8 @@ export function setupAtlasUI(options){
   if(initialized)return;
   initialized=true;
   ({api,navigate,editVideo,openTipEditor,editThought,openEditor,loadUniversalSearch}=options);
+  const hint=$('atlasCommandTrigger').querySelector('kbd');
+  if(hint)hint.textContent=/Mac|iPhone|iPad/.test(navigator.platform||'')?'⌘ K':'Ctrl K';
   $('atlasCommandTrigger').addEventListener('click',openAtlasCommand);
   $('atlasCommandClose').addEventListener('click',closeAtlasCommand);
   $('atlasCommandModal').addEventListener('click',e=>{
