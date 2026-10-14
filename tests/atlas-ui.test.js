@@ -80,8 +80,8 @@ test('menu de comando exclui dados financeiros por padrão e respeita login',()=
   const source=readFileSync(new URL('../public/atlas-ui.js',import.meta.url),'utf8');
   assert.match(source,/const canOpen\(\)|function canOpen\(\)/);
   assert.match(source,/loginOverlay.*hidden/);
-  assert.match(source,/api\('\/api\/search\/all\?q='\+encodeURIComponent\(q\)\)/);
-  assert.match(source,/const token=\+\+serial/);
+  assert.doesNotMatch(source,/api\/search\/all/);
+  assert.match(source,/openUnifiedSearch\(q\)/);
   assert.match(source,/e\.key==='Escape'/);
   assert.match(source,/e\.key==='Tab'/);
 });
