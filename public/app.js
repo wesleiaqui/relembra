@@ -1,5 +1,6 @@
 import { MOTIVATION_MOMENTS, selectMotivationTips } from './motivation.js';
 import { setupVisualTheme } from './visual-theme.js';
+import { setupAtlasUI, renderAtlasCollections, resetAtlasUI } from './atlas-ui.js';
 import { embeddedMediaLink } from './media-links.js';
 import { setupFinance, loadFinance, resetFinance } from './finance.js';
 import { setupCompanion, loadRadar, loadHomeRadar, loadUniversalSearch, loadLife, loadHabits, resetCompanion, openHistory } from './companion.js';
@@ -44,6 +45,7 @@ async function syncCategories() {
   $('videoCategory').innerHTML = choices;
   $('categoryFilter').innerHTML = '<option value="all">Todas as categorias</option>' + choices;
   $('categoryFilter').value = state.category;
+  renderAtlasCollections(state.categories,state.category);
 }
 function skeletonEmpty(title, description, icon = '📚', action = true) {
   return `<div class="empty"><div class="empty-icon">${icon}</div><h3>${esc(title)}</h3><p>${esc(description)}</p>${action ? '<button class="button button-primary" data-add="1">+ Adicionar vídeo</button>' : ''}</div>`;
@@ -63,7 +65,11 @@ function card(video) {
     '<span class="card-platform">▣ ' + esc(platform(video.url)) + '</span><button class="card-favorite ' + (video.favorite ? 'favorited' : '') + '" data-fav="' + esc(video.id) + '" aria-label="Favoritar" title="' + (video.favorite ? 'Remover favorito' : 'Favoritar') + '">' + (video.favorite ? '♥' : '♡') + '</button></div>' +
     '<div class="card-body"><div class="card-topline"><i></i>' + esc(c.name) + (video.related_count > 1 ? '<span class="related-count">' + Number(video.related_count) + ' fichas deste link</span>' : '') + '</div>' +
     '<h3 class="card-title" data-edit="' + esc(video.id) + '" title="Abrir vídeo salvo">' + esc(video.title) + '</h3><p class="card-summary">' + esc(video.summary || video.visual_description || video.tags || 'Adicione um resumo, transcrição ou análise visual.') + '</p>' +
-    '<div class="card-bottom">' + watched + '<div class="card-actions">' + play + open + '<button class="card-action" data-newinfo="' + esc(video.id) + '" title="Criar outra ficha">+ Info</button><button class="card-action" data-edit="' + esc(video.id) + '">Editar</button></div></div></div></article>';
+    '<div class="card-bottom">' + watched + '<div class="card-actions">' + play + open + '<button class="card-action" data-newinfo="' + esc(video.id) + '" title="Criar outra ficha">+ Info</button><button class="card-action" data-edit="' + esc(video.id) + '">Editar</button></div></div>' +
+    '<div class="atlas-card-footer"><button type="button" class="atlas-card-primary" ' + (embed ? 'data-watch="' + esc(video.id) + '">▶ Assistir ao vídeo' : 'data-edit="' + esc(video.id) + '">Abrir ficha') + '</button>' +
+    '<details class="atlas-card-more"><summary aria-label="Mais opções deste vídeo" title="Mais opções">•••</summary><div class="atlas-card-menu">' +
+    '<button type="button" data-edit="' + esc(video.id) + '">✎ Editar ficha</button><button type="button" data-newinfo="' + esc(video.id) + '">＋ Nova informação</button>' +
+    '<a href="' + esc(video.url) + '" target="_blank" rel="noopener noreferrer">↗ Abrir original</a></div></details></div></div></article>';
 }
 
 async function loadStats() {
@@ -121,6 +127,7 @@ async function navigate(view, category = 'all') {
     $('libraryTitle').textContent = known === 'favorites' ? 'Meus favoritos' : known === 'unwatched' ? 'Para assistir depois' : state.category !== 'all' ? catOf(state.category).name : 'Minha biblioteca';
     $('librarySubtitle').textContent = known === 'favorites' ? 'Tudo que você mais gostou, num só lugar.' : known === 'unwatched' ? 'Vídeos que ainda merecem sua atenção.' : 'Encontre qualquer ideia pelo assunto, resumo ou transcrição.';
     $('categoryFilter').value = state.category; $('searchInput').value = ''; $('sortFilter').value = 'recent';
+    renderAtlasCollections(state.categories,state.category);
     await loadList();
   }
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -948,9 +955,9 @@ function bindEvents() {
   });
   let searchTimer;
   $('searchInput').addEventListener('input', e => { state.search = e.target.value; clearTimeout(searchTimer); searchTimer = setTimeout(() => loadList(), 320); });
-  $('categoryFilter').addEventListener('change', e => { state.category = e.target.value; loadList(); });
+  $('categoryFilter').addEventListener('change', e => { state.category = e.target.value; renderAtlasCollections(state.categories,state.category); loadList(); });
   $('sortFilter').addEventListener('change', e => { state.sort = e.target.value; loadList(); });
-  $('clearFilters').addEventListener('click', () => { state.search = ''; state.category = 'all'; $('searchInput').value = ''; $('categoryFilter').value = 'all'; loadList(); });
+  $('clearFilters').addEventListener('click', () => { state.search = ''; state.category = 'all'; $('searchInput').value = ''; $('categoryFilter').value = 'all'; renderAtlasCollections(state.categories,state.category); loadList(); });
   $('loadMore').addEventListener('click', () => loadList(true));
   $('chatForm').addEventListener('submit', e => { e.preventDefault(); submitChat($('chatInput').value); });
   $('tipsAddBtn').addEventListener('click', () => openTipEditor());
@@ -1018,6 +1025,7 @@ function showAccountMode(mode) {
 function wipePreviousAccount() {
   closeMotivation();
   resetCompanion();
+  resetAtlasUI();
   document.body.classList.remove('finance-mode');
   resetFinance();
   state.videos=[];state.homeVideos=[];state.categories=[];
@@ -1054,6 +1062,7 @@ async function submitAccountForm(event,endpoint) {
 
 async function start() {
   setupVisualTheme();
+  setupAtlasUI({api,navigate,editVideo,openTipEditor,editThought,openEditor,loadUniversalSearch});
   bindEvents();
   setupFinance({ api, toast });
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
