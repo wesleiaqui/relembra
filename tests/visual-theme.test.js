@@ -9,7 +9,7 @@ function fakeUI(saved='classic') {
     getItem:key=>values.get(key)??null,
     setItem:(key,value)=>values.set(key,value)
   };
-  const controls=['classic','lume'].map(mode=>{
+  const controls=['classic','lume','atlas'].map(mode=>{
     const attrs={};
     const classes=new Set();
     return {
@@ -26,6 +26,7 @@ function fakeUI(saved='classic') {
 
 test('visual Clássico continua sendo o padrão, mesmo com configuração inválida ou storage indisponível',()=>{
   assert.equal(normalizeVisualTheme('lume'),'lume');
+  assert.equal(normalizeVisualTheme('atlas'),'atlas');
   assert.equal(normalizeVisualTheme('classic'),'classic');
   assert.equal(normalizeVisualTheme('foobar'),'classic');
   assert.equal(readVisualTheme({getItem:()=>{throw Error('bloqueado');}}),'classic');
@@ -49,8 +50,12 @@ test('troca Clássico / Lume imediatamente, persiste no dispositivo e sincroniza
   ui.values.set('relembra-visual-theme','lume');
   ui.windowRef.handlers.storage({key:'relembra-visual-theme',newValue:'lume'});
   assert.equal(ui.documentRef.body.dataset.visualTheme,'lume');
+  ui.controls[2].handlers.click();
+  assert.equal(ui.documentRef.body.dataset.visualTheme,'atlas');
+  assert.equal(ui.values.get('relembra-visual-theme'),'atlas');
+  assert.equal(ui.controls[2].attrs['aria-pressed'],'true');
   ui.windowRef.handlers.storage({key:'other',newValue:'classic'});
-  assert.equal(ui.documentRef.body.dataset.visualTheme,'lume');
+  assert.equal(ui.documentRef.body.dataset.visualTheme,'atlas');
 });
 
 test('Lume não depende de permissões de storage e não grava dados pessoais no servidor',()=>{
@@ -68,7 +73,7 @@ test('controle existe no cabeçalho, CSS Lume separado e aparência clássica co
   const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
   const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
   const css=readFileSync(new URL('../public/visual-lume.css',import.meta.url),'utf8');
-  for(const mode of ['classic','lume'])assert.equal((html.match(new RegExp('data-visual-option="'+mode+'"','g'))||[]).length,1);
+  for(const mode of ['classic','lume','atlas'])assert.equal((html.match(new RegExp('data-visual-option="'+mode+'"','g'))||[]).length,1);
   assert.match(html,/aria-label="Escolher aparência"/);
   assert.match(html,/href="\/visual-lume\.css"/);
   assert.match(app,/setupVisualTheme\(\);/);
