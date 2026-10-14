@@ -962,7 +962,6 @@ function bindEvents() {
     if (e.target.closest('[data-add]')) { openEditor(); return; }
     const view = e.target.closest('[data-preview]'); if (view) { openImageViewer(view.dataset.preview); return; }
     const watch = e.target.closest('[data-watch]'); if (watch) { openMediaPlayer(watch.dataset.watch); return; }
-    const favorite = e.target.closest('[data-fav]'); if (favorite) { toggleFavorite(favorite.dataset.fav); return; }
     const edit = e.target.closest('[data-edit]'); if (edit) { editVideo(edit.dataset.edit); return; }
     const moreInfo = e.target.closest('[data-newinfo]'); if (moreInfo) { newInformation(moreInfo.dataset.newinfo); return; }
     const ctx = e.target.closest('[data-tip-context]'); if (ctx) { setTipContext(ctx.dataset.tipContext); return; }
@@ -971,7 +970,7 @@ function bindEvents() {
     if (e.target.closest('#tipsEmptyAdd')) { openTipEditor(); return; }
     const thoughtEdit = e.target.closest('[data-thought-edit]'); if (thoughtEdit) { editThought(thoughtEdit.dataset.thoughtEdit); return; }
     const thoughtDelete = e.target.closest('[data-thought-delete]'); if (thoughtDelete) { deleteThought(thoughtDelete.dataset.thoughtDelete); return; }
-    const prompt = e.target.closest('[data-prompt]'); if (prompt) { submitChat(prompt.dataset.prompt); return; }
+    const prompt = e.target.closest('[data-prompt]'); if (prompt) { setChatMode('ai'); submitChat(prompt.dataset.prompt); return; }
   });
   let searchTimer;
   $('searchInput').addEventListener('input', e => { state.search = e.target.value; clearTimeout(searchTimer); searchTimer = setTimeout(() => loadList(), 320); });
