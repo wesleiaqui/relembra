@@ -51,7 +51,7 @@ test('painel financeiro replica a hierarquia visual e mantém os dados reais', a
     assert.match(html,/Entrada prevista/);
     assert.ok(html.indexOf('Conta essencial')<html.indexOf('Conta prioridade baixa'), 'prioridade controla a ordem');
     assert.equal(calls.length,1);
-    assert.equal(calls[0].path,'/api/finance');
+    assert.match(calls[0].path,/^\/api\/finance\?month=\d{4}-\d{2}$/);
 
     listeners.change({target:{id:'financeSort',value:'due'}});
     assert.ok(root.innerHTML.indexOf('Conta prioridade baixa')<root.innerHTML.indexOf('Conta essencial'), 'ordem por vencimento');
