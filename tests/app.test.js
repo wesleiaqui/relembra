@@ -18,6 +18,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0008_motivation_tips.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0009_finances.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0010_bill_payment_details.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0011_recurring_monthly_bills.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -971,4 +972,117 @@ test('migração 0010 preserva pagamentos anteriores sem inventar método',()=>{
   assert.equal(bill.payment_method,null);
   assert.equal(bill.payment_source,'');
   db.close();
+});
+
+
+test('contas fixas: geração mensal, dia 31 em fevereiro, edição futura e idempotência', async () => {
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const created=await req('/api/finance/recurring','POST',{
+    name:'Internet mensal',amount_cents:14990,due_date:'2026-01-31',priority:1,essential:true
+  });
+  assert.equal(created.status,201);
+  const ruleId=created.data.id;
+  let panel=(await req('/api/finance?month=2026-02')).data;
+  assert.equal(panel.recurring.length,1);
+  assert.equal(panel.recurring[0].id,ruleId);
+  assert.equal(panel.bills.filter(b=>b.recurring_month==='2026-01').length,1);
+  assert.equal(panel.bills.filter(b=>b.recurring_month==='2026-02').length,1);
+  assert.equal(panel.bills.find(b=>b.recurring_month==='2026-02').due_date,'2026-02-28');
+  assert.equal(panel.bills.find(b=>b.recurring_month==='2026-03').due_date,'2026-03-31');
+  assert.ok(panel.bills.every(b=>!b.paid_at));
+  const firstCount=panel.bills.length;
+  panel=(await req('/api/finance?month=2026-02')).data;
+  assert.equal(panel.bills.length,firstCount,'reabrir não duplica contas');
+  assert.equal(panel.bills.filter(b=>b.recurring_month==='2026-02').length,1);
+  const febBill=panel.bills.find(b=>b.recurring_month==='2026-02');
+  const pay=await req('/api/finance/bills/'+febBill.id+'/payment','POST',{
+    paid_at:'2026-02-28',paid_amount_cents:14990,payment_method:'pix',payment_source:'Conta pessoal'
+  });
+  assert.equal(pay.status,200);
+  const updated=await req('/api/finance/recurring/'+ruleId,'PUT',{
+    name:'Internet melhorada',amount_cents:19990,day_of_month:15,priority:2,essential:true,active:true
+  });
+  assert.equal(updated.status,200);
+  panel=(await req('/api/finance?month=2027-01')).data;
+  const future=panel.bills.find(b=>b.recurring_month==='2027-01');
+  assert.equal(future.amount_cents,19990);
+  assert.equal(future.due_date,'2027-01-15');
+  assert.equal(panel.bills.find(b=>b.recurring_month==='2026-02').name,'Internet mensal','mês já existente não muda');
+  assert.equal(panel.bills.find(b=>b.recurring_month==='2026-02').paid_at,'2026-02-28','pagamento anterior preservado');
+  assert.equal((await req('/api/finance/recurring/'+ruleId,'PUT',{
+    name:'Internet melhorada',amount_cents:19990,day_of_month:15,priority:2,essential:true,active:false
+  })).status,200);
+  await req('/api/finance?month=2027-03');
+  panel=(await req('/api/finance')).data;
+  assert.equal(panel.bills.filter(b=>b.recurring_month==='2027-03').length,0,'pausa impede mês futuro');
+  assert.equal((await req('/api/finance/recurring/'+ruleId,'PUT',{
+    name:'Internet melhorada',amount_cents:19990,day_of_month:15,priority:2,essential:true,active:true
+  })).status,200);
+  panel=(await req('/api/finance?month=2027-03')).data;
+  assert.equal(panel.bills.filter(b=>b.recurring_month==='2027-03').length,1,'retomar volta a gerar cobranças');
+});
+
+test('contas fixas: transformar conta existente preserva pagamento e evita duplicação',async()=>{
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const bill=await req('/api/finance/bills','POST',{
+    name:'SABESP',amount_cents:10930,due_date:'2026-10-13',priority:1,essential:true
+  });
+  assert.equal(bill.status,201);
+  const payment='/api/finance/bills/'+bill.data.id+'/payment';
+  assert.equal((await req(payment,'POST',{
+    paid_at:'2026-10-13',paid_amount_cents:11000,payment_method:'debit',payment_source:'Nubank'
+  })).status,200);
+  const rule=await req('/api/finance/recurring','POST',{existing_bill_id:bill.data.id});
+  assert.equal(rule.status,201);
+  assert.equal((await req('/api/finance/recurring','POST',{existing_bill_id:bill.data.id})).status,409);
+  let panel=(await req('/api/finance')).data;
+  const oct=panel.bills.filter(b=>b.recurring_id===rule.data.id&&b.recurring_month==='2026-10');
+  assert.equal(oct.length,1);
+  assert.equal(oct[0].id,bill.data.id);
+  assert.equal(oct[0].paid_amount_cents,11000);
+  assert.equal(oct[0].payment_source,'Nubank');
+  const nov=(await req('/api/finance?month=2026-11')).data.bills.filter(b=>b.recurring_month==='2026-11');
+  assert.equal(nov.length,1);
+  assert.equal(nov[0].paid_at,null);
+});
+
+test('contas fixas: validação, privacidade e backup com vínculos entre usuários',async()=>{
+  const {req}=setup();
+  assert.equal((await req('/api/finance/recurring','POST',{})).status,401);
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  assert.equal((await req('/api/finance/recurring','POST',{
+    name:'Dia inválido',amount_cents:1500,due_date:'2026-02-30',priority:1,essential:true
+  })).status,400);
+  const created=await req('/api/finance/recurring','POST',{
+    name:'Luz',amount_cents:19000,due_date:'2026-10-20',priority:1,essential:true
+  });
+  assert.equal(created.status,201);
+  const backup=(await req('/api/export')).data;
+  assert.equal(backup.finances.recurring.length,1);
+  assert.equal(backup.finances.bills[0].recurring_id,created.data.id);
+  const invite=await req('/api/invites','POST',{});
+  const registered=await req('/api/register','POST',{
+    username:'recurring_guest',password:'senha-de-convidado-123',invitation:invite.data.invitation
+  });
+  assert.equal(registered.status,201);
+  assert.equal((await req('/api/finance')).data.recurring.length,0);
+  assert.equal((await req('/api/finance/recurring/'+created.data.id,'PUT',{
+    name:'Hack',amount_cents:1,day_of_month:1,priority:1,essential:true,active:false
+  })).status,404);
+  const firstImport=await req('/api/import','POST',{finances:{recurring:backup.finances.recurring}});
+  assert.equal(firstImport.status,200);
+  assert.equal(firstImport.data.financeImported,1);
+  const secondImport=await req('/api/import','POST',{finances:{bills:backup.finances.bills}});
+  assert.equal(secondImport.data.financeImported,1);
+  let panel=(await req('/api/finance')).data;
+  assert.equal(panel.recurring.length,1);
+  assert.equal(panel.bills.length,1);
+  assert.equal(panel.bills[0].recurring_id,panel.recurring[0].id,'vínculo restaurado mesmo em lotes separados');
+  assert.notEqual(panel.recurring[0].id,created.data.id,'nova conta recebe ID diferente');
+  const repeated=await req('/api/import','POST',{finances:{recurring:backup.finances.recurring,bills:backup.finances.bills}});
+  assert.equal(repeated.data.financeImported,0,'importação repetida não cria mais contas');
+  panel=(await req('/api/finance')).data;
+  assert.equal(panel.recurring.length,1);
 });
