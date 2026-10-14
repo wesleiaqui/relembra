@@ -79,3 +79,17 @@ test('a interface financeira não interfere nas outras telas do Relembra',()=>{
   assert.match(css,/\.finance-layout\{display:grid/);
   assert.match(css,/@media\(max-width:780px\)/);
 });
+
+
+test('ação de pagamento sempre abre formulário com data, valor, método e origem',()=>{
+  const src=readFileSync(new URL('../public/finance.js',import.meta.url),'utf8');
+  const styles=readFileSync(new URL('../public/finance.css',import.meta.url),'utf8');
+  assert.match(src,/if\(action==='payment'\)return openPaymentForm\(id\)/);
+  assert.doesNotMatch(src,/if\(action==='toggle-paid'\)/);
+  assert.match(src,/id="financePaymentForm"/);
+  for (const term of ['Data do pagamento','Valor efetivamente pago','Como foi paga','De onde saiu o dinheiro','Confirmar pagamento']) {
+    assert.ok(src.includes(term),term);
+  }
+  assert.match(src,/\/api\/finance\/bills\/'\+id\+'\/payment'/);
+  assert.match(styles,/\.finance-payment-modal/);
+});
