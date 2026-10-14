@@ -1273,3 +1273,31 @@ test('Radar não cria painéis vazios altos; separa atrasos e mantém ações pr
   assert.match(css,/\.radar-bills-more/);
   assert.match(css,/body\[data-color-mode="light"\] \.radar-bill-row/);
 });
+
+
+test('modo financeiro escuro usa seletores reais e mantém rodapés, estados e tabela em paleta uniforme',()=>{
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const original=readFileSync(new URL('../public/finance.css',import.meta.url),'utf8');
+  const night=readFileSync(new URL('../public/finance-night.css',import.meta.url),'utf8');
+  const appearance=readFileSync(new URL('../public/appearance-modes.css',import.meta.url),'utf8');
+  assert.match(html,/href="\/finance-night\.css"/);
+  assert.ok(html.indexOf('/finance-night.css')>html.indexOf('/appearance-modes.css'),
+    'CSS noturno deve vir depois dos estilos anteriores');
+  for(const selector of [
+    '.finance-kpi','.finance-kpi-balance','.finance-kpi-pending','.finance-kpi-coverage',
+    '.finance-panel','.finance-table','.finance-table-empty','.finance-panel-footer',
+    '.finance-empty','.finance-overdue','.finance-pill','.finance-bad',
+    '.finance-warn','.finance-ok','.finance-menu-options','.finance-payment-modal',
+    '.finance-goal-card','.finance-planned-note','.finance-summary-row'
+  ]) {
+    assert.ok(original.includes(selector),'O seletor deve existir no financeiro: '+selector);
+    assert.ok(night.includes(selector),'Faltou harmonizar '+selector);
+  }
+  assert.match(night,/body\.finance-mode\[data-color-mode="dark"\] #financeRoot \.finance-panel-footer[\s\S]{0,240}background:\s*#162131/);
+  assert.match(night,/body\.finance-mode\[data-color-mode="dark"\] #financeRoot \.finance-empty strong/);
+  assert.match(night,/body\.finance-mode\[data-color-mode="dark"\] #financeRoot \.finance-table tbody tr\.finance-overdue/);
+  assert.match(night,/body\.finance-mode\[data-color-mode="dark"\] #financeRoot \.finance-kpi-balance::before/);
+  assert.match(night,/body\.finance-mode\[data-color-mode="dark"\] #financeRoot \.finance-menu-options \.finance-btn/);
+  assert.match(appearance,/body\.finance-mode\[data-color-mode="dark"\] \.finance-dashboard/);
+  assert.doesNotMatch(night,/CREATE TABLE|ALTER TABLE|DROP TABLE|DELETE FROM|fetch\(/i);
+});
