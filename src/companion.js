@@ -199,7 +199,12 @@ export async function handleCompanion(request,env,user){
     if(path==='/api/search/all'&&method==='GET'){
       const q=clamp(u.searchParams.get('q'),120);
       if(q.length<2)return respond({results:[],query:q});
-      const pattern='%'+escLike(q.toLowerCase())+'%',results=[];
+      // No Chat, perguntas naturais procuram seus termos úteis; outras buscas permanecem literais.
+      const ask=u.searchParams.get('terms')==='1';
+      const stop=new Set(['a','as','o','os','de','do','da','dos','das','um','uma','em','na','no','nas','nos','que','qual','quais','como','onde','para','por','sobre','com','meu','minha','meus','minhas','eu','voce','você','tem','tenho','tinha','salvei','salvo','estao','estão','mais','algum','alguma','me','se','the','what','and']);
+      const words=ask?[...new Set(q.toLocaleLowerCase('pt-BR').split(/[^a-zA-ZÀ-ž0-9]+/).filter(w=>w.length>=3&&!stop.has(w)))].slice(0,5):[];
+      const needles=ask&&words.length?words:[q.toLowerCase()];
+      const patterns=needles.map(w=>'%'+escLike(w)+'%'),results=[];
       const sources=[
         ['video','videos','id,title,substr(summary,1,180) AS detail,created_at AS stamp',['title','summary','transcript','notes','tags','visual_description']],
         ['tip','situational_tips','id,title,substr(content,1,180) AS detail,created_at AS stamp',['title','content','situation']],
@@ -212,8 +217,8 @@ export async function handleCompanion(request,env,user){
           ['income','finance_entries','id,description AS title,entry_date AS detail,entry_date AS stamp',['description']]);
       }
       for(const [type,table,cols,fields]of sources){
-        const filter=fields.map(col=>'LOWER('+col+') LIKE ? ESCAPE \'\\\'').join(' OR ');
-        const params=[owner,...fields.map(()=>pattern)];
+        const filter=fields.flatMap(col=>needles.map(()=>'LOWER('+col+') LIKE ? ESCAPE \'\\\'')).join(' OR ');
+        const params=[owner,...fields.flatMap(()=>patterns)];
         const rows=await fromDB(env.DB.prepare('SELECT '+cols+' FROM '+table+' WHERE owner_id=? AND ('+filter+') ORDER BY stamp DESC LIMIT 12'),...params);
         for(const r of rows)results.push({type,id:r.id,title:r.title,detail:r.detail||'',date:r.stamp||''});
       }

@@ -1,0 +1,122 @@
+/* Relembra v1.17 — Chat sem modos e Radar compacto, acessível em todos os temas. */
+#chatView .chat-single-shell{max-width:980px;margin-inline:auto;min-height:505px;border-radius:20px}
+#chatView .chat-unified-shell{max-width:980px}
+#chatView .chat-single-shell .chat-messages{min-height:270px;max-height:55vh;overflow:auto;padding:26px clamp(16px,3vw,30px);scrollbar-width:thin}
+#chatView .chat-single-shell .chat-welcome{padding:8px 0 10px}
+#chatView .chat-single-shell .chat-welcome h2{font-size:clamp(20px,2.3vw,27px);letter-spacing:-.6px}
+#chatView .chat-single-shell .chat-welcome p{max-width:510px;line-height:1.8}
+.chat-starters{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:17px auto 0}
+.chat-starters button{border:1px solid #3c4b66;background:#1c2b44;color:#d6e0f7;border-radius:999px;padding:11px 15px;cursor:pointer;font-size:11px;font-weight:750}
+.chat-starters button:hover{background:#354366;border-color:#8975d6;color:#fff}
+.chat-single-footer{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;padding:4px 27px 16px}
+.chat-single-footer small{color:#91a2be;font-size:10px;line-height:1.6}
+.chat-single-footer .chat-finance-optin{color:#bfcae0;font-size:10.5px}
+.chat-single-shell .chat-compose{margin-top:auto}
+.chat-single-shell .chat-compose input{font-size:13px}
+.chat-memory-results{margin-top:17px;padding-top:14px;border-top:1px solid #45546f;display:grid;gap:10px}
+.chat-memory-caption{font-size:11px;color:#bec8f6;line-height:1.4}
+.chat-memory-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:8px}
+.chat-memory-result{display:grid;gap:6px;min-width:0;background:#202e47;border:1px solid #42536e;border-radius:11px;text-align:left;padding:12px 13px;color:#e9f0fb;cursor:pointer}
+.chat-memory-result:hover{background:#2a3c5c;border-color:#8578cb}
+.chat-memory-result small{font-size:9px;font-weight:800;letter-spacing:.5px;color:#a5a2f8;text-transform:uppercase}
+.chat-memory-result strong{font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.chat-memory-result>span{font-size:10.5px;color:#b8c7dc;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+body[data-color-mode="light"] .chat-starters button{background:#f7f5ff;border-color:#d8d2ec;color:#5c51ab}
+body[data-color-mode="light"] .chat-starters button:hover{background:#eeebfb}
+body[data-color-mode="light"] .chat-single-footer small{color:#8691a3}
+body[data-color-mode="light"] .chat-single-footer .chat-finance-optin{color:#5d6c87}
+body[data-color-mode="light"] .chat-memory-results{border-color:#e2e4eb}
+body[data-color-mode="light"] .chat-memory-caption{color:#6e65ac}
+body[data-color-mode="light"] .chat-memory-result{background:#fafafe;border-color:#e3e4ed;color:#2c344a}
+body[data-color-mode="light"] .chat-memory-result:hover{background:#f0ecfc;border-color:#b7ade8}
+body[data-color-mode="light"] .chat-memory-result small{color:#7664bc}
+body[data-color-mode="light"] .chat-memory-result>span{color:#738197}
+
+/* Radar: não esticar a coluna de tarefas até a altura de todas as contas. */
+.radar-workspace{display:block;min-height:0;max-width:100%}
+.radar-quick-form{margin:0 0 17px;padding:17px 19px;align-items:end}
+.radar-form-intro{display:grid;gap:7px;flex:1 1 190px;padding-bottom:6px}
+.radar-form-intro strong{color:#eaf0fe;font-size:13px}
+.radar-quick-form label:first-of-type{flex:2 1 240px}
+.radar-quick-form label:nth-of-type(2){flex:0 1 170px;min-width:135px}
+.radar-quick-form label:nth-of-type(3){flex:0 1 145px;min-width:115px}
+.radar-snapshot{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:17px;background:#19263c;border:1px solid #2c405b;border-radius:15px;padding:16px 20px}
+.radar-snapshot>div{display:grid;gap:5px}
+.radar-snapshot strong{font:800 17px Manrope,sans-serif;color:#f0f4ff}
+.radar-snapshot small{font-size:10.5px;color:#9eafca}
+.radar-count-alert{color:#f7beae;font-size:12px;font-weight:800}
+.radar-count-good{color:#91d3bd;font-size:12px;font-weight:800}
+.radar-main-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.92fr);gap:16px;align-items:start}
+.radar-main-grid .radar-panel{min-height:0;height:auto;padding:21px}
+.radar-panel-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:11px}
+.radar-panel-top h2{font:800 18px Manrope,sans-serif;margin:6px 0 0;letter-spacing:-.3px}
+.radar-soft-count{background:#293b55;border:1px solid #35496a;padding:6px 10px;border-radius:999px;color:#b8c6df;font-size:10px;font-weight:800;white-space:nowrap}
+.radar-main-grid .radar-panel>p{font-size:11px;line-height:1.7;margin-bottom:15px}
+.radar-list-label{font-size:10px;color:#b2bcd2;display:flex;justify-content:space-between;gap:8px;text-transform:uppercase;font-weight:800;letter-spacing:1px;padding:5px 0}
+.radar-list-label span{color:#9e96ef}
+.radar-main-grid .radar-list{display:grid;gap:9px}
+.radar-main-grid .radar-item{margin-bottom:0}
+.radar-empty-state{display:grid;justify-items:center;gap:10px;text-align:center;padding:27px 15px;min-height:180px;border:1px dashed #445575;border-radius:13px;background:#1c2a42}
+.radar-empty-icon{width:39px;height:39px;display:grid;place-items:center;border-radius:12px;background:#224a4a;color:#a5e8c7;font-size:25px}
+.radar-empty-state strong{font-size:13px;color:#e9effd}
+.radar-empty-state p{font-size:11px;color:#9db1c9;max-width:320px;line-height:1.7;margin:0}
+.radar-empty-state .button{font-size:10.5px;padding:9px 13px}
+.radar-bills-panel{border-top:3px solid #dcaa74}
+.radar-bills-list{display:grid;gap:6px}
+.radar-bill-row{display:flex;align-items:center;gap:10px;padding:11px 9px;border-radius:10px;border:1px solid transparent;background:transparent;text-align:left;color:#dfe8f6;width:100%;cursor:pointer}
+.radar-bill-row:hover{border-color:#405878;background:#243652}
+.radar-bill-mark{width:26px;height:26px;flex:none;display:grid;place-items:center;background:#243b47;color:#9ccdc6;border-radius:9px;font-weight:900}
+.radar-bill-late .radar-bill-mark{color:#ffb59f;background:#503642}
+.radar-bill-today .radar-bill-mark{color:#f5d29d;background:#4f443c}
+.radar-bill-info{display:grid;gap:3px;min-width:0;flex:1}
+.radar-bill-info strong{font-size:11.5px;line-height:1.4;overflow-wrap:anywhere}
+.radar-bill-info small{font-size:10px;color:#93a7c3}
+.radar-bill-late .radar-bill-info small{color:#edb5a5}
+.radar-bill-row>b{font-size:11.5px;white-space:nowrap;margin-left:auto}
+.radar-row-arrow{font-size:11px;color:#8292b4}
+.radar-collapsed{margin-top:10px;border-top:1px solid #364760;padding-top:10px}
+.radar-bills-more{margin-top:6px;padding-top:7px}
+.radar-bills-more[open]{padding-bottom:5px}
+.radar-collapsed summary{list-style:none;color:#b8bcfa;font-size:11px;font-weight:800;cursor:pointer;padding:8px 2px;display:flex;justify-content:space-between;gap:8px}
+.radar-collapsed summary::-webkit-details-marker{display:none}
+.radar-collapsed summary:hover{text-decoration:underline}
+.radar-collapsed .radar-list{margin-top:9px}
+.radar-finance-link{border:0;background:transparent;color:#c4b8ff;padding:14px 3px 0;font-size:11px;font-weight:850;cursor:pointer}
+.radar-finance-link:hover{text-decoration:underline}
+.radar-bills-empty{padding:20px;font-size:11px;color:#9daec6}
+.radar-reflection{display:flex;align-items:center;justify-content:space-between;gap:25px;margin-top:16px;padding:20px 24px;border:1px solid #354664;border-radius:15px;background:linear-gradient(110deg,#202a48,#1b2940)}
+.radar-reflection h2{margin:8px 0;font:800 17px Manrope,sans-serif;color:#e8efff}
+.radar-reflection p{margin:0;max-width:800px;color:#aebfdb;font-size:12px;line-height:1.7;white-space:pre-wrap}
+.radar-reflection small{display:block;color:#a1b9d2;font-size:10px;margin-top:9px}
+.radar-reflection .button{flex:none;font-size:11px}
+body[data-color-mode="light"] .radar-form-intro strong{color:#303954}
+body[data-color-mode="light"] .radar-snapshot{background:#fff;border-color:#e5e7ed}
+body[data-color-mode="light"] .radar-snapshot strong{color:#2c344b}
+body[data-color-mode="light"] .radar-snapshot small{color:#798599}
+body[data-color-mode="light"] .radar-count-alert{color:#bf584c}
+body[data-color-mode="light"] .radar-count-good{color:#328769}
+body[data-color-mode="light"] .radar-soft-count{background:#f5f4fa;border-color:#e4e1ed;color:#77738b}
+body[data-color-mode="light"] .radar-panel-top h2,
+body[data-color-mode="light"] .radar-empty-state strong,
+body[data-color-mode="light"] .radar-reflection h2{color:#313c54}
+body[data-color-mode="light"] .radar-list-label{color:#8491a3}
+body[data-color-mode="light"] .radar-empty-state{background:#f8f8fd;border-color:#d4d6e6}
+body[data-color-mode="light"] .radar-empty-state p{color:#7a8799}
+body[data-color-mode="light"] .radar-bill-row{color:#2f3c51}
+body[data-color-mode="light"] .radar-bill-row:hover{background:#f5f2ff;border-color:#e0d8fa}
+body[data-color-mode="light"] .radar-bill-mark{background:#ebf5f1;color:#529b7d}
+body[data-color-mode="light"] .radar-bill-late .radar-bill-mark{background:#fff0e9;color:#bc6e50}
+body[data-color-mode="light"] .radar-bill-today .radar-bill-mark{background:#fff3df;color:#ae8245}
+body[data-color-mode="light"] .radar-bill-info small{color:#8593a5}
+body[data-color-mode="light"] .radar-bill-late .radar-bill-info small{color:#b76c58}
+body[data-color-mode="light"] .radar-row-arrow{color:#9a9db1}
+body[data-color-mode="light"] .radar-collapsed{border-color:#e4e6eb}
+body[data-color-mode="light"] .radar-collapsed summary,
+body[data-color-mode="light"] .radar-finance-link{color:#695abb}
+body[data-color-mode="light"] .radar-reflection{background:linear-gradient(110deg,#f4f0ff,#fff);border-color:#e4def3}
+body[data-color-mode="light"] .radar-reflection p{color:#72829a}
+body[data-color-mode="light"] .radar-reflection small{color:#7888a1}
+body[data-color-mode="light"] .radar-bills-empty{color:#7b899c}
+@media(max-width:1050px){.radar-main-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.radar-main-grid{grid-template-columns:1fr}.radar-quick-form{gap:11px}.radar-form-intro{flex-basis:100%}}
+@media(max-width:620px){#chatView .chat-single-shell .chat-messages{min-height:235px;padding:19px 14px}.chat-single-footer{padding:7px 17px 16px}.chat-memory-list{grid-template-columns:1fr}.radar-snapshot{padding:14px}.radar-quick-form{padding:15px}.radar-quick-form label{min-width:100%;flex-basis:100%!important}.radar-reflection{flex-direction:column;align-items:flex-start;gap:13px;padding:17px}.radar-panel-top{align-items:flex-start}.radar-main-grid .radar-panel{padding:17px}}
