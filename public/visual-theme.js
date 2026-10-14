@@ -40,7 +40,7 @@ function paint(layout,mode,documentRef){
     btn.classList.toggle('selected',active);
   }
   const meta=documentRef.querySelector?.('meta[name="theme-color"]');
-  if(meta?.setAttribute)meta.setAttribute('content',mode==='light'?'#f7f8fc':'#101416');
+  if(meta?.setAttribute)meta.setAttribute('content',mode==='light'?'#f7f8fc':'#111314');
   if(typeof CustomEvent!=='undefined'&&typeof documentRef.dispatchEvent==='function')
     documentRef.dispatchEvent(new CustomEvent('relembra:theme-change',{detail:{theme:layout,colorMode:mode}}));
 }
