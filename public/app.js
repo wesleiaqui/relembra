@@ -3,7 +3,7 @@ import { setupVisualTheme } from './visual-theme.js';
 import { setupAtlasUI, renderAtlasCollections, resetAtlasUI } from './atlas-ui.js';
 import { embeddedMediaLink } from './media-links.js';
 import { setupFinance, loadFinance, resetFinance } from './finance.js';
-import { setupCompanion, loadRadar, loadHomeRadar, loadUniversalSearch, loadLife, loadHabits, resetCompanion, openHistory } from './companion.js';
+import { setupCompanion, loadRadar, loadHomeRadar, searchMemory, openSearchItem, loadLife, loadHabits, resetCompanion, openHistory } from './companion.js';
 const $ = id => document.getElementById(id);
 const state = { thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
 let toastTimer;
@@ -119,7 +119,6 @@ async function navigate(view, category = 'all') {
   if (known === 'thoughts') await loadThoughts();
   if (known === 'tips') await loadTips();
   if (known === 'finance') await loadFinance();
-  if (known === 'chat') setChatMode(chatMode);
   if (known === 'library') {
     $('libraryTitle').textContent = state.category !== 'all' ? catOf(state.category).name : 'Minha biblioteca';
     $('librarySubtitle').textContent = 'Encontre qualquer ideia pelo assunto, resumo ou transcrição.';
@@ -455,37 +454,36 @@ function openImageViewer(id) {
   $('imageViewerClose').focus();
 }
 
-let chatMode='search';
-function setChatMode(mode){
-  chatMode=mode==='ai'?'ai':'search';
-  document.querySelectorAll('[data-chat-mode]').forEach(btn=>{
-    const active=btn.dataset.chatMode===chatMode;
-    btn.classList.toggle('active',active);
-    btn.setAttribute('aria-pressed',String(active));
-  });
-  $('chatMessages').hidden=chatMode!=='ai';
-  $('universalResults').hidden=chatMode!=='search';
-  $('chatFinanceOption').hidden=chatMode!=='search';
-  $('chatModeDescription').textContent=chatMode==='ai'
-    ? 'Faça perguntas sobre seus vídeos e receba respostas com referências. Dados financeiros nunca são enviados à IA.'
-    : 'Pesquise vídeos, dicas, tarefas, momentos e reflexões. Finanças só entram quando você permitir.';
-  $('chatContextLabel').textContent=chatMode==='ai'
-    ? 'Perguntas respondidas a partir de vídeos salvos'
-    : 'Pesquisa nos seus registros sem chamar IA';
-  $('chatFootnote').textContent=chatMode==='ai'
-    ? 'A IA utiliza somente os vídeos salvos. Confira as fontes antes de tomar decisões.'
-    : 'Pesquisa textual privada, sem custo de IA. Dados financeiros excluídos por padrão.';
-  $('chatInput').placeholder=chatMode==='ai'
-    ? 'Ex.: O que aprendi sobre financiamento?'
-    : 'Ex.: financiamento, foco, uma receita...';
-  $('chatInput').minLength=chatMode==='ai'?3:2;
-}
+let chatGeneration=0;
 async function openUnifiedSearch(q=''){
   await navigate('chat');
-  setChatMode('search');
   $('chatInput').value=q;
-  if(q.trim().length>=2) await loadUniversalSearch();
+  if(q.trim().length>=2)await submitChat(q);
   else $('chatInput').focus();
+}
+const resultLabels={video:'Vídeo',tip:'Dica',moment:'Momento',task:'Tarefa',reflection:'Reflexão',bill:'Conta',income:'Lançamento financeiro'};
+function appendMemoryResults(block,results,videoSources=[]){
+  if(!results.length)return;
+  const seen=new Set(videoSources.map(source=>'video:'+source.id));
+  const items=results.filter(item=>!seen.has(item.type+':'+item.id)).slice(0,8);
+  if(!items.length)return;
+  const bubble=block.querySelector('.bubble');
+  const wrap=document.createElement('section');wrap.className='chat-memory-results';
+  const title=document.createElement('strong');title.className='chat-memory-caption';
+  title.textContent='Também encontrei na sua memória';
+  wrap.append(title);
+  const list=document.createElement('div');list.className='chat-memory-list';
+  for(const item of items){
+    const btn=document.createElement('button');btn.type='button';btn.className='chat-memory-result';
+    btn.dataset.memoryType=item.type;btn.dataset.memoryId=item.id;
+    const category=document.createElement('small');category.textContent=resultLabels[item.type]||item.type;
+    const name=document.createElement('strong');name.textContent=item.title||'Sem título';
+    const detail=document.createElement('span');detail.textContent=String(item.detail||'').slice(0,150);
+    btn.append(category,name,detail);list.append(btn);
+  }
+  wrap.append(list);
+  bubble.append(wrap);
+  $('chatMessages').scrollTop=$('chatMessages').scrollHeight;
 }
 function appendMessage(kind, content, sources = [], aiUnavailable = false) {
   $('chatMessages').querySelector('.chat-welcome')?.remove();
@@ -520,18 +518,43 @@ function appendMessage(kind, content, sources = [], aiUnavailable = false) {
   return block;
 }
 
-async function submitChat(message) {
-  if (!message || message.trim().length < 3) return;
-  $('chatInput').value = ''; appendMessage('user', message);
-  $('sendChatBtn').disabled = true;
-  const loading = appendMessage('bot', 'Consultando seus vídeos...');
-  try {
-    const res = await api('/api/chat', { method: 'POST', body: JSON.stringify({ message }) });
-    loading.remove(); appendMessage('bot', res.answer, res.sources || [], res.aiUnavailable);
-  } catch(e) { loading.remove(); appendMessage('bot', 'Não consegui buscar agora: ' + e.message); }
-  finally { $('sendChatBtn').disabled = false; $('chatInput').focus(); }
+async function submitChat(message){
+  const q=String(message||'').trim();
+  if(q.length<2||$('sendChatBtn').disabled)return;
+  const generation=chatGeneration;
+  $('chatInput').value='';
+  appendMessage('user',q);
+  $('sendChatBtn').disabled=true;
+  const loading=appendMessage('bot','Procurando em suas informações...');
+  const includeFinance=$('universalFinance').checked;
+  try{
+    // A API de pesquisa retorna apenas metadados da conta autenticada.
+    // Em nenhum momento esses resultados financeiros são enviados ao endpoint de IA.
+    const [search,assistant]=await Promise.allSettled([
+      searchMemory(q,includeFinance),
+      q.length>=3?api('/api/chat',{method:'POST',body:JSON.stringify({message:q})}):Promise.resolve(null)
+    ]);
+    if(generation!==chatGeneration)return;
+    const results=search.status==='fulfilled'?search.value:[];
+    const chat=assistant.status==='fulfilled'?assistant.value:null;
+    const videos=(chat?.sources||[]);
+    // Se a pesquisa encontrou apenas conteúdos não-vídeo, destaque os próprios registros;
+    // a IA atual tem contexto exclusivamente de vídeos e não deve parecer conhecer finanças.
+    const foundOther=results.length>0&&!videos.length;
+    const headline=foundOther
+      ?'Encontrei '+results.length+' registro(s) relacionado(s) nas suas informações salvas.'
+      :chat?.answer||(results.length?'Encontrei informações relacionadas na sua memória.':'Ainda não encontrei esse assunto na sua memória. Tente outra palavra.');
+    loading.remove();
+    const block=appendMessage('bot',headline,foundOther?[]:videos,Boolean(chat?.aiUnavailable&&!results.length));
+    appendMemoryResults(block,results,foundOther?[]:videos);
+    if(search.status==='rejected'&&assistant.status==='rejected')
+      appendMessage('bot','A consulta falhou. Tente novamente em instantes.');
+  }catch(e){
+    if(generation===chatGeneration){loading.remove();appendMessage('bot','Não foi possível consultar sua memória agora. Tente novamente.');}
+  }finally{
+    if(generation===chatGeneration){$('sendChatBtn').disabled=false;$('chatInput').focus();}
+  }
 }
-
 
 /* Motivação contextual — só usa dicas salvas na conta autenticada. */
 let motivationMoment = null;
@@ -970,7 +993,7 @@ function bindEvents() {
     if (e.target.closest('#tipsEmptyAdd')) { openTipEditor(); return; }
     const thoughtEdit = e.target.closest('[data-thought-edit]'); if (thoughtEdit) { editThought(thoughtEdit.dataset.thoughtEdit); return; }
     const thoughtDelete = e.target.closest('[data-thought-delete]'); if (thoughtDelete) { deleteThought(thoughtDelete.dataset.thoughtDelete); return; }
-    const prompt = e.target.closest('[data-prompt]'); if (prompt) { setChatMode('ai'); submitChat(prompt.dataset.prompt); return; }
+    const prompt = e.target.closest('[data-prompt]'); if (prompt) { submitChat(prompt.dataset.prompt); return; }
   });
   let searchTimer;
   $('searchInput').addEventListener('input', e => { state.search = e.target.value; clearTimeout(searchTimer); searchTimer = setTimeout(() => loadList(), 320); });
@@ -978,16 +1001,13 @@ function bindEvents() {
   $('sortFilter').addEventListener('change', e => { state.sort = e.target.value; loadList(); });
   $('clearFilters').addEventListener('click', () => { state.search = ''; state.category = 'all'; $('searchInput').value = ''; $('categoryFilter').value = 'all'; renderAtlasCollections(state.categories,state.category); loadList(); });
   $('loadMore').addEventListener('click', () => loadList(true));
-  document.querySelectorAll('[data-chat-mode]').forEach(btn=>btn.addEventListener('click',()=>{
-    setChatMode(btn.dataset.chatMode);
-    $('chatInput').focus();
-    if(chatMode==='search'&&$('chatInput').value.trim().length>=2)loadUniversalSearch();
-  }));
-  $('chatForm').addEventListener('submit', async e=>{
+  $('chatForm').addEventListener('submit',e=>{
     e.preventDefault();
-    const q=$('chatInput').value.trim();
-    if(chatMode==='search') await loadUniversalSearch();
-    else await submitChat(q);
+    submitChat($('chatInput').value);
+  });
+  $('chatMessages').addEventListener('click',e=>{
+    const item=e.target.closest('[data-memory-type][data-memory-id]');
+    if(item)openSearchItem(item.dataset.memoryType,item.dataset.memoryId);
   });
   $('tipsAddBtn').addEventListener('click', () => openTipEditor());
   $('tipsSearch').addEventListener('input', e => { state.tipsSearch = e.target.value; renderTips(); });
@@ -1054,6 +1074,9 @@ function showAccountMode(mode) {
 function wipePreviousAccount() {
   closeMotivation();
   resetCompanion();
+  ++chatGeneration;
+  $('sendChatBtn').disabled=false;
+  $('chatInput').value='';
   resetAtlasUI();
   document.body.classList.remove('finance-mode');
   resetFinance();
@@ -1092,7 +1115,6 @@ async function submitAccountForm(event,endpoint) {
 async function start() {
   setupVisualTheme();
   setupAtlasUI({api,navigate,editVideo,openTipEditor,editThought,openEditor,openUnifiedSearch});
-  setChatMode('search');
   bindEvents();
   setupFinance({ api, toast });
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
