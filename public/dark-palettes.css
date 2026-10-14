@@ -28,7 +28,7 @@
 .dark-palette-swatch[data-palette="deepblue"]{background:#101722}
 .dark-palette-swatch[data-palette="forest"]{background:#111d18}
 .dark-palette-swatch[data-palette="petrol"]{background:#0f1d21}
-.dark-palette-swatch[data-palette="oled"]{background:#080a0b}
+.dark-palette-swatch[data-palette="oled"]{background:#000000}
 .dark-palette-swatch[data-palette="wine"]{background:#20161b}
 .dark-palette-menu{
   position:absolute;z-index:60;right:0;top:calc(100% + 12px);
