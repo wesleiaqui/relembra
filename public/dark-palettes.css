@@ -140,18 +140,18 @@ body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"]{
   --palette-bg-solid:#000000;
   --palette-sidebar:#050505;
   --palette-top:#080808;
-  --palette-surface:#111111;
-  --palette-raised:#1b1b1b;
-  --palette-base:#0c0c0c;
-  --palette-border:#303030;
-  --palette-strong:#494949;
+  --palette-surface:#0b0b0b;
+  --palette-raised:#141414;
+  --palette-base:#080808;
+  --palette-border:#282828;
+  --palette-strong:#383838;
   --palette-text:#f2f2f2;
   --palette-muted:#bfbfbf;
   --palette-accent:#dddddd;
   --palette-accent-hover:#f2f2f2;
-  --palette-active:#252525;
-  --palette-kpi:#151515;
-  --palette-kpi-border:#363636;
+  --palette-active:#1a1a1a;
+  --palette-kpi:#0b0b0b;
+  --palette-kpi-border:#282828;
 }
 body[data-visual-theme][data-color-mode="dark"][data-dark-palette="wine"]{
   --palette-bg:#20161b;
