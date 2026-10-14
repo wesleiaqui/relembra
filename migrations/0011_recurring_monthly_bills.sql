@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS finance_recurring_rules (
   id TEXT PRIMARY KEY,
   owner_id TEXT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+  source_id TEXT NOT NULL,
   name TEXT NOT NULL,
   amount_cents INTEGER NOT NULL CHECK(amount_cents > 0),
   day_of_month INTEGER NOT NULL CHECK(day_of_month BETWEEN 1 AND 31),
@@ -13,6 +14,7 @@ CREATE TABLE IF NOT EXISTS finance_recurring_rules (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_finance_recurring_source ON finance_recurring_rules(owner_id,source_id);
 CREATE INDEX IF NOT EXISTS idx_finance_recurring_owner ON finance_recurring_rules(owner_id,active);
 ALTER TABLE finance_bills ADD COLUMN recurring_id TEXT REFERENCES finance_recurring_rules(id) ON DELETE SET NULL;
 ALTER TABLE finance_bills ADD COLUMN recurring_month TEXT;
