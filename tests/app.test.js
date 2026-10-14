@@ -1301,3 +1301,34 @@ test('modo financeiro escuro usa seletores reais e mantém rodapés, estados e t
   assert.match(appearance,/body\.finance-mode\[data-color-mode="dark"\] \.finance-dashboard/);
   assert.doesNotMatch(night,/CREATE TABLE|ALTER TABLE|DROP TABLE|DELETE FROM|fetch\(/i);
 });
+
+
+test('Chat redesenhado apresenta boas-vindas após login, sugere ações úteis e preserva conversa única',()=>{
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  const css=readFileSync(new URL('../public/chat-workspace.css',import.meta.url),'utf8');
+  for(const id of ['chatMessages','chatForm','chatInput','sendChatBtn','chatWelcomeTemplate','chatNewConversation','universalFinance']){
+    assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
+  }
+  assert.ok(html.indexOf('id="chatWelcomeTemplate"')>html.indexOf('id="chatMessages"'));
+  assert.match(html,/<textarea id="chatInput" rows="1"[^>]*maxlength="500"/);
+  assert.equal((html.match(/data-prompt="/g)||[]).length,4);
+  assert.doesNotMatch(html,/data-chat-mode="search"|data-chat-mode="ai"|id="universalResults"/);
+  assert.ok(html.indexOf('/chat-workspace.css')>html.indexOf('/chat-radar-refinement.css'),
+    'O visual novo deve ser carregado depois dos estilos antigos');
+  assert.match(app,/function resetChatConversation\(\)/);
+  assert.match(app,/area\.replaceChildren\(template\.content\.cloneNode\(true\)\)/);
+  assert.match(app,/resetChatConversation\(\);\s*setupFinance/);
+  assert.match(app,/resetChatConversation\(\);\s*resetAtlasUI/);
+  assert.match(app,/chatNewConversation'\)\.addEventListener\('click'/);
+  assert.match(app,/if\(e\.key==='Enter'&&!e\.shiftKey&&!e\.isComposing&&!e\.repeat\)/);
+  assert.match(app,/if\(generation!==chatGeneration\)return/);
+  assert.match(app,/searchMemory\(q,includeFinance\)/);
+  assert.match(app,/api\('\/api\/chat'/);
+  assert.match(css,/#chatView \.chat-welcome-suggestions/);
+  assert.match(css,/#chatView \.chat-workspace-composer textarea/);
+  assert.match(css,/body\[data-color-mode="light"\] #chatView/);
+  assert.match(css,/@media\(max-width:700px\)/);
+  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+  assert.doesNotMatch(css,/body\.finance-mode|#financeRoot|\.finance-dashboard/);
+});
