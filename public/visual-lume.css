@@ -424,6 +424,7 @@ body.finance-mode[data-visual-theme="lume"] .nav-item:hover{background:#eeedff;c
 body.finance-mode[data-visual-theme="lume"] .nav-icon{color:#8588ab}
 body.finance-mode[data-visual-theme="lume"] .top-left strong{color:#3b4261}
 body.finance-mode[data-visual-theme="lume"] .finance-dashboard{background:#f7f8fc}
+body.finance-mode[data-visual-theme="lume"] .page{width:100%;max-width:none;margin:0;padding:0}
 
 /* Adaptação para telas menores e respeito ao movimento reduzido */
 @media(max-width:1180px){
