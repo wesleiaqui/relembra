@@ -19,6 +19,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0009_finances.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0010_bill_payment_details.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0011_recurring_monthly_bills.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0012_companion.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -1085,4 +1086,128 @@ test('contas fixas: validação, privacidade e backup com vínculos entre usuár
   assert.equal(repeated.data.financeImported,0,'importação repetida não cria mais contas');
   panel=(await req('/api/finance')).data;
   assert.equal(panel.recurring.length,1);
+});
+
+
+test('radar privado cria e conclui tarefas e inclui contas próximas sem renda futura',async()=>{
+  const {req,env}=setup();
+  assert.equal((await req('/api/radar')).status,401);
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const due='2026-10-14';
+  const task=await req('/api/radar/tasks','POST',{title:'Resolver conta importante',due_date:due,priority:1});
+  assert.equal(task.status,201);
+  const today=new Date().toISOString().slice(0,10);
+  const next=new Date(new Date(today+'T00:00:00Z').getTime()+86400000).toISOString().slice(0,10);
+  const bill=await req('/api/finance/bills','POST',{name:'Internet teste',amount_cents:15000,due_date:next,priority:1,essential:true,paid_at:null});
+  assert.equal(bill.status,201);
+  const radar=(await req('/api/radar')).data;
+  assert.equal(radar.bills.some(b=>b.name==='Internet teste'),true);
+  // A tarefa de outubro aparece na busca, mesmo fora da janela de 14 dias.
+  assert.equal((await req('/api/search/all?q=Resolver')).data.results.some(x=>x.type==='task'),true);
+  assert.equal((await req('/api/radar/tasks/'+task.data.id,'PATCH',{done:true})).status,200);
+  assert.equal((await req('/api/radar/tasks/'+task.data.id,'DELETE')).status,200);
+  assert.equal((await req('/api/radar/tasks/'+task.data.id,'DELETE')).status,404);
+});
+test('calendário da vida preserva nascimento, conquistas e anotação editável, sem data futura inventada',async()=>{
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  assert.equal((await req('/api/life')).data.profile,null);
+  assert.equal((await req('/api/life/profile','PUT',{birth_date:'2026-02-30',reference_age:90})).status,400);
+  assert.equal((await req('/api/life/profile','PUT',{birth_date:'2020-04-07',reference_age:90})).status,200);
+  const response=await req('/api/life/moments','POST',{moment_date:'2026-10-13',title:'Meu dia bom',note:'Fiz uma caminhada',kind:'good'});
+  assert.equal(response.status,201);
+  assert.equal((await req('/api/life/moments/'+response.data.id,'PUT',{moment_date:'2026-10-13',title:'Uma conquista',note:'Terminei um projeto',kind:'milestone'})).status,200);
+  const loaded=(await req('/api/life')).data;
+  assert.equal(loaded.profile.birth_date,'2020-04-07');
+  assert.equal(loaded.moments[0].note,'Terminei um projeto');
+  assert.equal((await req('/api/search/all?q=conquista')).data.results.some(x=>x.type==='moment'),true);
+  assert.equal((await req('/api/export')).data.extras.moments.length,1);
+  assert.equal((await req('/api/life/moments/'+response.data.id,'DELETE')).status,200);
+  assert.equal((await req('/api/life')).data.moments.length,0);
+});
+test('busca universal exclui finanças por padrão e nunca cruza usuários',async()=>{
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const income=await req('/api/finance/entries','POST',{type:'income',description:'Projeto secretonuvem',amount_cents:7777,entry_date:'2026-10-13',status:'confirmed'});
+  assert.equal(income.status,201);
+  assert.equal((await req('/api/search/all?q=secretonuvem')).data.results.length,0);
+  assert.equal((await req('/api/search/all?q=secretonuvem&finance=1')).data.results[0].type,'income');
+  const tip=await req('/api/tips','POST',{title:'Valor da verdade',content:'Uma ideia só minha uniquepessoal',situation:'Para mim',kind:'dica'});
+  assert.equal(tip.status,201);
+  assert.equal((await req('/api/search/all?q=uniquepessoal')).data.results.length,1);
+  const invite=await req('/api/invites','POST',{});
+  await req('/api/register','POST',{username:'convidado_search',password:'senha-convidado-bastante-segura',invitation:invite.data.invitation});
+  assert.equal((await req('/api/search/all?q=secretonuvem&finance=1')).data.results.length,0);
+  assert.equal((await req('/api/search/all?q=uniquepessoal')).data.results.length,0);
+  assert.equal((await req('/api/history?type=tip&id='+tip.data.tip.id)).status,404);
+});
+test('hábitos motivacionais são opcionais, editáveis e não exigem sequência perfeita',async()=>{
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  let data=(await req('/api/habits')).data;
+  assert.equal(data.habits.length,4);
+  const id=data.habits[0].id;
+  assert.equal((await req('/api/habits/'+id+'/check','PATCH',{done:true})).status,200);
+  assert.equal((await req('/api/habits')).data.habits[0].done,1);
+  assert.equal((await req('/api/habits/'+id+'/check','PATCH',{done:false})).status,200);
+  assert.equal((await req('/api/habits')).data.habits[0].done,0);
+  assert.equal((await req('/api/habits','POST',{title:'Meu hábito pessoal'})).status,201);
+  assert.equal((await req('/api/habits')).data.habits.length,5);
+  for(const habit of (await req('/api/habits')).data.habits)
+    assert.equal((await req('/api/habits/'+habit.id,'DELETE')).status,200);
+  assert.equal((await req('/api/habits')).data.habits.length,0,'remoção dos hábitos não deve recriar padrões');
+  assert.equal((await req('/api/export')).data.extras.habitsConfigured,true);
+});
+test('backup completo de textos inclui itens pessoais e exportação de prints é privada',async()=>{
+  const {req,env}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const v=await req('/api/videos','POST',vid);
+  assert.equal(v.status,201);
+  const owner=(await env.DB.prepare("SELECT id FROM app_users WHERE role='owner'").first()).id;
+  const raw='aW1hZ2VfZGF0YQ==';
+  await env.DB.prepare('INSERT INTO video_images(video_id,media_type,data_base64,bytes,updated_at) VALUES(?,?,?,?,?)').bind(v.data.video.id,'image/png',raw,10,new Date().toISOString()).run();
+  const images=(await req('/api/backup/images')).data;
+  assert.equal(images.total,1);
+  assert.equal(images.items[0].data_base64,raw);
+  await req('/api/life/profile','PUT',{birth_date:'1990-05-05',reference_age:95});
+  const backup=(await req('/api/export')).data;
+  assert.equal(backup.extras.profile.reference_age,95);
+  assert.ok(backup.finances);
+  assert.equal((await req('/api/import','POST',backup)).status,200);
+  const invite=await req('/api/invites','POST',{});
+  await req('/api/register','POST',{username:'convidado_backup',password:'senha-de-convidado-diferente',invitation:invite.data.invitation});
+  assert.equal((await req('/api/backup/images')).data.total,0);
+  assert.equal((await req('/api/life')).data.profile,null);
+  assert.equal((await req('/api/radar')).data.bills.length,0);
+  assert.equal(owner.length,36);
+});
+test('histórico de versões arquiva alterações e respeita a conta dona',async()=>{
+  const {req,env}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const item={title:'Meu conselho importante',content:'Versão original',situation:'Para mim',kind:'dica',favorite:false,source_url:''};
+  const created=await req('/api/tips','POST',item);
+  const id=created.data.tip.id;
+  assert.equal((await req('/api/tips/'+id,'PUT',{...item,content:'Versão nova'})).status,200);
+  const prior=(await req('/api/history?type=tip&id='+id)).data.versions;
+  assert.equal(prior.length,1);
+  assert.equal(prior[0].data.content,'Versão original');
+  const version=await req('/api/tips/'+id,'PUT',prior[0].data);
+  assert.equal(version.status,200);
+  assert.equal((await req('/api/history?type=tip&id='+id)).data.versions.length,2);
+  assert.equal((await req('/api/tips/'+id)).data.tip.content,'Versão original');
+  assert.equal((await req('/api/tips/'+id,'DELETE')).status,200);
+  const versionCount=(await env.DB.prepare("SELECT COUNT(*) AS n FROM saved_versions WHERE entity_id=?").bind(id).first()).n;
+  assert.equal(versionCount,0);
+});
+test('novos componentes existem sem substituir ou excluir os dados do diário antigo',()=>{
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  const client=readFileSync(new URL('../public/companion.js',import.meta.url),'utf8');
+  for(const id of ['radarView','searchView','lifeView','lifeWeeks','lifeOverview','lifeMomentForm','universalQuery','universalFinance','radarContent','backupImagesBtn','restoreImagesFile','historyModal','motivationHabits'])
+    assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
+  assert.match(html,/id="thoughtsView"/);
+  assert.match(html,/lifeOldDiary/);
+  assert.match(app,/setupCompanion/);
+  assert.match(client,/function renderLife/);
+  assert.match(html,/idade de referência.*não é uma previsão/i);
 });

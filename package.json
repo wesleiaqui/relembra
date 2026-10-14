@@ -1,15 +1,15 @@
 {
   "name": "relembra-cloudflare",
   "private": true,
-  "version": "1.9.3",
+  "version": "1.12.0",
   "type": "module",
-  "description": "Biblioteca de vídeos, diário de pensamentos e dicas situacionais com Cloudflare D1 e IA",
+  "description": "Biblioteca pessoal com Radar do dia, Calendário da vida, busca, finanças privadas e IA",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:remote": "wrangler d1 migrations apply DB --remote",
-    "test": "node --check public/app.js && node --check public/finance.js && node --check src/finance.js && node --check src/worker.js && node --experimental-sqlite --test tests/*.test.js",
+    "test": "node --check public/companion.js && node --check src/companion.js && node --check public/app.js && node --check public/finance.js && node --check src/finance.js && node --check src/worker.js && node --experimental-sqlite --test tests/*.test.js",
     "configurar:db": "node scripts/configure-db.mjs",
     "atualizar:publicar": "bash ATUALIZAR-E-PUBLICAR.sh"
   },

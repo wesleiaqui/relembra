@@ -9,6 +9,7 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/finance.css">
+  <link rel="stylesheet" href="/companion.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -22,7 +23,9 @@
         <button class="nav-item" data-view="favorites"><span class="nav-icon">♡</span> Favoritos</button>
         <button class="nav-item" data-view="unwatched"><span class="nav-icon">◷</span> Para assistir</button>
         <button class="nav-item" data-view="chat"><span class="nav-icon">✧</span> Chat inteligente <span class="nav-new">IA</span></button>
-        <button class="nav-item" data-view="thoughts"><span class="nav-icon">☼</span> Diário de pensamentos <span class="nav-new">NOVO</span></button>
+        <button class="nav-item" data-view="radar"><span class="nav-icon">◉</span> Radar do dia</button>
+        <button class="nav-item" data-view="search"><span class="nav-icon">⌕</span> Busca universal</button>
+        <button class="nav-item" data-view="life"><span class="nav-icon">◫</span> Calendário da vida</button>
         <button class="nav-item" data-view="tips"><span class="nav-icon">✦</span> Dicas para o momento <span class="nav-new">NOVO</span></button>
         <button class="nav-item" data-view="finance"><span class="nav-icon">◈</span> Minhas finanças</button>
       </nav>
@@ -52,6 +55,7 @@
             <div class="motivation-home-text"><span class="eyebrow">✦ SEU ESPAÇO DE INCENTIVO</span><h2>Precisa de um incentivo agora?</h2><p>Relembre algo que você mesmo salvou, de acordo com o que está enfrentando.</p></div>
             <button class="button button-primary" type="button" data-open-motivation>🔥 Preciso de motivação →</button>
           </section>
+          <section id="homeRadar" class="home-radar" aria-live="polite" hidden></section>
           <div class="section-title minor"><h2>Sua biblioteca em números</h2><span>Uma coleção de boas ideias</span></div>
           <div class="stats-grid"><div class="stat-card"><div class="stat-icon blue">▦</div><div><strong id="statTotal">—</strong><span>Vídeos salvos</span></div></div><div class="stat-card"><div class="stat-icon rose">♡</div><div><strong id="statFavorites">—</strong><span>Favoritos</span></div></div><div class="stat-card"><div class="stat-icon mint">◷</div><div><strong id="statUnwatched">—</strong><span>Para assistir</span></div></div><div class="stat-card"><div class="stat-icon orange">⊞</div><div><strong id="statCategories">—</strong><span>Categorias em uso</span></div></div></div>
           <div class="section-title"><div><h2>Salvos recentemente</h2><p>Continue de onde parou</p></div><button class="text-link" data-go="library">Ver biblioteca <span>→</span></button></div>
@@ -194,11 +198,53 @@
           <div id="tipsGrid" class="tips-grid" aria-live="polite"></div>
           <div class="tips-bottom-note">✦ Essas dicas são suas anotações. Você pode editar, complementar ou excluir qualquer uma delas.</div>
         </section>
+        <section id="radarView" class="view companion-view" hidden>
+          <div class="companion-heading"><span class="eyebrow">✦ PRIORIDADES SEM POLUIÇÃO</span><h1>Radar <em>do dia.</em></h1><p>O que precisa da sua atenção agora? Contas, tarefas e seus próprios lembretes, sem cobranças automáticas.</p></div>
+          <div id="radarContent" class="radar-content" aria-live="polite">Carregando...</div>
+          <form id="radarTaskForm" class="companion-form">
+            <label>Nova tarefa<input name="title" required maxlength="160" placeholder="Algo importante que preciso resolver"></label>
+            <label>Até quando<input name="due_date" type="date" required></label>
+            <label>Prioridade<select name="priority"><option value="1">Alta</option><option value="2" selected>Normal</option><option value="3">Baixa</option></select></label>
+            <button class="button button-primary" type="submit">＋ Adicionar</button>
+          </form>
+        </section>
+        <section id="searchView" class="view companion-view" hidden>
+          <div class="companion-heading"><span class="eyebrow">✦ ENCONTRE O QUE VOCÊ GUARDOU</span><h1>Busca <em>universal.</em></h1><p>Vídeos, transcrições, dicas, tarefas, momentos e reflexões em um só lugar.</p></div>
+          <div class="universal-controls"><label class="universal-search">⌕ <input id="universalQuery" type="search" minlength="2" maxlength="120" autocomplete="off" placeholder="Ex.: financiamento, foco, uma decisão..."></label><label class="universal-check"><input type="checkbox" id="universalFinance"> Incluir meus dados financeiros</label></div>
+          <div id="universalResults" class="universal-results" aria-live="polite">Digite pelo menos duas letras para pesquisar.</div>
+          <p class="companion-footnote">As finanças ficam fora da pesquisa por padrão e não entram no chat de vídeos.</p>
+        </section>
+        <section id="lifeView" class="view companion-view" hidden>
+          <div class="companion-heading"><span class="eyebrow">✦ VALORIZE SUAS SEMANAS</span><h1>Calendário <em>da vida.</em></h1><p>Um espaço para guardar acontecimentos bons, conquistas e reflexões. Cada quadrado representa uma semana.</p></div>
+          <form id="lifeProfileForm" class="companion-form">
+            <label>Sua data de nascimento<input name="birth_date" type="date" required></label>
+            <label>Idade de referência<input name="reference_age" type="number" min="1" max="120" value="90" required></label>
+            <button type="submit" class="button button-outline">Salvar referência</button>
+          </form>
+          <p class="companion-footnote">A idade de referência é apenas uma escolha visual para planejamento. Não é uma previsão de longevidade.</p>
+          <div id="lifeOverview" class="life-overview"></div>
+          <div class="life-layout">
+            <div class="life-calendar-panel"><div class="life-legend"><span><i class="life-dot lived"></i> Vividas</span><span><i class="life-dot present"></i> Atual</span><span><i class="life-dot saved"></i> Com lembranças</span><span><i class="life-dot future"></i> Referência futura</span></div><div id="lifeWeeks" class="life-weeks" aria-label="Semanas da vida"></div></div>
+            <div class="life-moment-panel"><h2 id="lifeMomentHeading">Guarde um momento</h2><p>Você pode registrar algo de bom que aconteceu, uma conquista ou o que aprendeu.</p>
+              <form id="lifeMomentForm" class="life-moment-form">
+                <input name="id" type="hidden">
+                <label>Quando aconteceu<input name="moment_date" type="date" required></label>
+                <label>O que aconteceu?<input name="title" maxlength="150" placeholder="Uma coisa boa do dia" required></label>
+                <label>Tipo<select name="kind"><option value="good">Algo bom</option><option value="milestone">Conquista</option><option value="reflection">Reflexão</option></select></label>
+                <label>Minha anotação<textarea name="note" rows="4" maxlength="4000" placeholder="Quero me lembrar de..."></textarea></label>
+                <div class="life-actions"><button class="button button-primary" type="submit">Salvar momento</button><button id="lifeMomentClear" class="button button-outline" type="button">Novo</button><button id="lifeMomentDelete" type="button" class="button button-outline" hidden>Excluir</button></div>
+              </form>
+              <h3>Momentos registrados</h3><div id="lifeMomentsList" class="life-moments-list"></div>
+            </div>
+          </div>
+          <div class="life-old-journal"><div><strong>Suas reflexões antigas continuam guardadas</strong><p>O diário anterior não foi apagado. Você pode consultá-lo sempre que quiser.</p></div><button type="button" class="button button-outline" id="lifeOldDiary">Abrir diário anterior</button></div>
+        </section>
         <section id="financeView" class="view" hidden><div id="financeRoot" aria-live="polite"></div></section>
         <section id="backupView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">CONTROLE DOS SEUS DADOS</div><h1>Backup e restauração</h1><p>Leve sua biblioteca com você. Seus dados são seus.</p></div></div>
-          <div class="settings-grid"><article class="setting-card"><div class="settings-icon blue">↓</div><h2>Exportar biblioteca</h2><p>Faça download de um arquivo JSON com vídeos, transcrições, categorias, reflexões, dicas e seus registros financeiros privados.</p><button class="button button-primary" id="exportBtn">↓ &nbsp; Baixar backup</button><small>O backup JSON inclui as descrições visuais, mas não os arquivos de imagem. Guarde seus screenshots originais separadamente.</small></article>
+          <div class="settings-grid"><article class="setting-card"><div class="settings-icon blue">↓</div><h2>Exportar biblioteca</h2><p>Faça download de um arquivo JSON com vídeos, transcrições, categorias, reflexões, dicas e seus registros financeiros privados.</p><button class="button button-primary" id="exportBtn">↓ &nbsp; Baixar backup</button><small>Para um backup completo, baixe também o arquivo de imagens abaixo.</small></article>
           <article class="setting-card"><div class="settings-icon mint">↑</div><h2>Restaurar backup</h2><p>Importe um backup do Relembra. O aplicativo mantém as fichas existentes, evita duplicar registros com o mesmo ID e também importa reflexões, contas, entradas, gastos e metas financeiras.</p><label class="button button-outline file-label" for="importFile">↑ &nbsp; Escolher arquivo JSON</label><input id="importFile" type="file" accept="application/json,.json" hidden><small>Restaura vídeos, reflexões e dicas em lotes; arquivos de até 25 MB.</small></article></div>
+          <section class="image-backup-panel" aria-label="Backup dos screenshots"><div><h2>Backup das imagens</h2><p>Salve e restaure os screenshots separadamente do JSON principal (até 5.000 por exportação).</p><small>Guarde ambos os arquivos em local protegido: seus backups contêm informações pessoais.</small></div><div class="image-backup-actions"><button id="backupImagesBtn" type="button" class="button button-outline">↓ Baixar imagens</button><label class="button button-outline" for="restoreImagesFile">↑ Restaurar imagens</label><input id="restoreImagesFile" type="file" accept="application/json,.json" hidden></div></section>
           <div class="tip-panel"><span>🔒</span><div><strong>Seus dados são privados</strong><p>O aplicativo tem login por senha e salva sua biblioteca no banco de dados D1 da sua conta Cloudflare. Não compartilhe sua senha nem arquivos de backup.</p></div></div>
         </section>
       </main>
@@ -227,7 +273,7 @@
       <label class="field"><span>URL da imagem de capa <small>(opcional, alternativa externa)</small></span><input name="cover_url" type="url" placeholder="https://...imagem.jpg" maxlength="2048"></label>
       <section id="relatedInfoPanel" class="related-info-panel" hidden></section>
       <div class="toggle-row"><label class="toggle-label"><input name="favorite" type="checkbox"><span>♡</span> Marcar como favorito</label><label class="toggle-label"><input name="watched" type="checkbox"><span>✓</span> Já assisti</label></div>
-    </div><div class="modal-footer"><button class="button button-danger" type="button" id="deleteVideoBtn" hidden>Excluir</button><div class="modal-footer-right"><button class="button button-outline" type="button" id="cancelVideoBtn">Cancelar</button><button class="button button-primary" type="submit" id="saveVideoBtn">Salvar vídeo →</button></div></div></form></div></div>
+    </div><div class="modal-footer"><button class="button button-danger" type="button" id="deleteVideoBtn" hidden>Excluir</button><button type="button" class="button button-outline" id="videoHistoryBtn" hidden>↶ Histórico</button><div class="modal-footer-right"><button class="button button-outline" type="button" id="cancelVideoBtn">Cancelar</button><button class="button button-primary" type="submit" id="saveVideoBtn">Salvar vídeo →</button></div></div></form></div></div>
 
 
   <div class="modal-backdrop" id="mediaPlayerModal" hidden>
@@ -264,6 +310,7 @@
         <section class="motivation-result" id="motivationResult" aria-live="polite">
           <p>Selecione uma situação para encontrar seus lembretes.</p>
         </section>
+        <div class="motivation-habit-area"><h3>Pequenos passos de hoje</h3><p>Sem contadores de dias consecutivos. Marque o que conseguiu fazer hoje.</p><div id="motivationHabits" aria-live="polite"></div><form id="motivationHabitAddForm"><input name="title" maxlength="150" placeholder="Adicionar um hábito pessoal" aria-label="Novo hábito"><button type="submit">＋</button></form></div>
       </div>
       <div class="motivation-footer"><button type="button" id="motivationSeeAll" class="button button-outline">Ver minhas dicas</button><button type="button" id="motivationAddTip" class="button button-primary">+ Guardar nova dica</button></div>
     </div>
@@ -283,7 +330,7 @@
           <label class="field"><span>Link de origem <small>(opcional)</small></span><input name="source_url" maxlength="2048" type="url" placeholder="https://www.instagram.com/..."></label>
           <label class="toggle-label"><input name="favorite" type="checkbox"><span>★</span> Destacar nos favoritos</label>
         </div>
-        <div class="modal-footer"><button type="button" class="button button-danger" id="tipDeleteBtn" hidden>Excluir</button><div class="modal-footer-right"><button type="button" class="button button-outline" id="tipCancelBtn">Cancelar</button><button type="submit" class="button button-primary" id="tipSaveBtn">Salvar dica</button></div></div>
+        <div class="modal-footer"><button type="button" class="button button-danger" id="tipDeleteBtn" hidden>Excluir</button><button type="button" class="button button-outline" id="tipHistoryBtn" hidden>↶ Histórico</button><div class="modal-footer-right"><button type="button" class="button button-outline" id="tipCancelBtn">Cancelar</button><button type="submit" class="button button-primary" id="tipSaveBtn">Salvar dica</button></div></div>
       </form>
     </div>
   </div>
@@ -339,6 +386,12 @@
           <button type="button" class="button button-outline" id="copyInviteBtn">Copiar instruções e código</button>
         </div>
       </div>
+    </div>
+  </div>
+  <div id="historyModal" class="modal-backdrop" hidden>
+    <div class="small-modal history-dialog" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <div class="modal-head"><div><span class="eyebrow">VERSÕES ANTERIORES</span><h2 id="historyTitle">Histórico de edições</h2></div><button id="historyClose" type="button" class="close-btn" aria-label="Fechar histórico">×</button></div>
+      <div id="historyContent" class="history-content" aria-live="polite"></div>
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
