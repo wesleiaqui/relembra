@@ -1,0 +1,290 @@
+/*
+ * RELEMBRA · Preto neutro
+ * Grafite deixa de ter reflexos bege e o Preto OLED usa preto absoluto.
+ * Somente modo escuro e apenas as paletas Grafite/Preto OLED.
+ * Carregar DEPOIS de dark-palettes.css; não modifica dados nem o modo claro.
+ */
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="graphite"]{
+  --neutral-bg:#0e1012;
+  --neutral-sidebar:#101214;
+  --neutral-top:#111315;
+  --neutral-card:#1b1e21;
+  --neutral-elevated:#25292d;
+  --neutral-input:#171b1e;
+  --neutral-border:#373d42;
+  --neutral-strong:#4d565c;
+  --neutral-text:#f0f2f4;
+  --neutral-muted:#bac4ca;
+  --neutral-accent:#c1ccd3;
+  --neutral-hover:#dbe2e6;
+  --neutral-active:#2a3035;
+  --neutral-fin-btn:#19735b;
+  --neutral-fin-hover:#1c8067;
+  --neutral-fin-text:#ffffff;
+}
+body[data-visual-theme][data-color-mode="dark"][data-dark-palette="oled"]{
+  --neutral-bg:#000000;
+  --neutral-sidebar:#050505;
+  --neutral-top:#080808;
+  --neutral-card:#111111;
+  --neutral-elevated:#1b1b1b;
+  --neutral-input:#0c0c0c;
+  --neutral-border:#303030;
+  --neutral-strong:#494949;
+  --neutral-text:#f2f2f2;
+  --neutral-muted:#bfbfbf;
+  --neutral-accent:#dddddd;
+  --neutral-hover:#f2f2f2;
+  --neutral-active:#252525;
+  --neutral-fin-btn:#dddddd;
+  --neutral-fin-hover:#f2f2f2;
+  --neutral-fin-text:#101010;
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]){
+  --bg:var(--neutral-bg);
+  --sidebar:var(--neutral-sidebar);
+  --panel:var(--neutral-card);
+  --panel2:var(--neutral-elevated);
+  --stroke:var(--neutral-border);
+  --text:var(--neutral-text);
+  --muted:var(--neutral-muted);
+  --primary:var(--neutral-accent);
+  --primary2:var(--neutral-hover);
+  --night-bg:var(--neutral-bg);
+  --night-base:var(--neutral-input);
+  --night-sidebar:var(--neutral-sidebar);
+  --night-card:var(--neutral-card);
+  --night-elevated:var(--neutral-elevated);
+  --night-border:var(--neutral-border);
+  --night-strong-border:var(--neutral-strong);
+  --night-text:var(--neutral-text);
+  --night-secondary:var(--neutral-muted);
+  --night-accent:var(--neutral-accent);
+  background:var(--neutral-bg);
+  color:var(--neutral-text);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .workspace,
+body[data-visual-theme="atlas"][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .workspace{
+  background:var(--neutral-bg);
+  color:var(--neutral-text);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .topbar,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .topbar{
+  background:var(--neutral-top);
+  border-color:var(--neutral-border);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .sidebar,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .sidebar{
+  background:var(--neutral-sidebar);
+  border-color:var(--neutral-border);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .nav-item.active,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .nav-item.active{
+  background:var(--neutral-active);
+  color:var(--neutral-text);
+  box-shadow:inset 3px 0 0 var(--neutral-accent);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .nav-item.active .nav-icon,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .brand-dot,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .eyebrow,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .gradient-star,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .text-link,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-page-heading h1 span{
+  color:var(--neutral-accent);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .brand-icon{
+  background:var(--neutral-elevated);
+  color:var(--neutral-text);
+  box-shadow:none;
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .appearance-settings .visual-theme-control,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .appearance-settings .visual-color-control,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .dark-palette-trigger{
+  background:var(--neutral-input);
+  border-color:var(--neutral-border);
+  color:var(--neutral-text);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .appearance-settings .visual-theme-option.selected,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .appearance-settings .visual-color-option.selected{
+  background:var(--neutral-active);
+  color:var(--neutral-text);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .dark-palette-menu{
+  background:var(--neutral-card);
+  color:var(--neutral-text);
+  border-color:var(--neutral-strong);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .dark-palette-option.selected,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .dark-palette-option:hover{
+  background:var(--neutral-active);
+  border-color:var(--neutral-strong);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .button-primary,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .send-btn,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-workspace-composer .send-btn{
+  background:var(--neutral-accent);
+  border:1px solid var(--neutral-accent);
+  color:var(--neutral-bg);
+  box-shadow:none;
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .button-primary:hover,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .send-btn:hover:not(:disabled),
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-workspace-composer .send-btn:hover:not(:disabled){
+  background:var(--neutral-hover);
+  border-color:var(--neutral-hover);
+  color:var(--neutral-bg);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .home-work-section,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .video-card,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .stat-card,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .radar-panel,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .radar-snapshot,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .radar-reflection,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-single-shell{
+  background:var(--neutral-card);
+  border-color:var(--neutral-border);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView{
+  --cw-surface:var(--neutral-card);
+  --cw-muted-surface:var(--neutral-elevated);
+  --cw-tile:var(--neutral-elevated);
+  --cw-border:var(--neutral-border);
+  --cw-border-soft:var(--neutral-border);
+  --cw-text:var(--neutral-text);
+  --cw-muted:var(--neutral-muted);
+  --cw-accent:var(--neutral-accent);
+  --cw-action:var(--neutral-accent);
+  --cw-action-hover:var(--neutral-hover);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-composer-area,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-workspace-top{
+  background:var(--neutral-card);
+  border-color:var(--neutral-border);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-workspace-composer{
+  background:var(--neutral-input);
+  border-color:var(--neutral-strong);
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-avatar,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .bot-avatar,
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-welcome-emblem{
+  background:var(--neutral-elevated);
+  color:var(--neutral-accent);
+  border-color:var(--neutral-border);
+  box-shadow:none;
+}
+body[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #chatView .chat-workspace-messages .message.user .bubble{
+  background:var(--neutral-active);
+  color:var(--neutral-text);
+  border-color:var(--neutral-strong);
+}
+/* FINANÇAS: remover os grandes fundos vinho/marrom, sem apagar alertas semânticos. */
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]){
+  --fin-night-bg:var(--neutral-bg);
+  --fin-night-panel:var(--neutral-card);
+  --fin-night-input:var(--neutral-input);
+  --fin-night-panel-raised:var(--neutral-elevated);
+  --fin-night-border:var(--neutral-border);
+  --fin-night-border-soft:var(--neutral-border);
+  --fin-night-text:var(--neutral-text);
+  --fin-night-secondary:var(--neutral-muted);
+  --fin-night-muted:var(--neutral-muted);
+  --fin-night-accent:var(--neutral-accent);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]),
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .workspace,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeView,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .finance-dashboard{
+  background:var(--neutral-bg);
+  color:var(--neutral-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-panel,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-goal-card,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-kpi,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-kpi-balance,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-kpi-pending,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-kpi-coverage{
+  background:var(--neutral-card);
+  border-color:var(--neutral-border);
+  box-shadow:none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-planning,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-planning .finance-summary,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-panel-footer,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-planned-note{
+  background:var(--neutral-card);
+  color:var(--neutral-muted);
+  border-color:var(--neutral-border);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-table th{
+  background:var(--neutral-elevated);
+  color:var(--neutral-muted);
+  border-color:var(--neutral-border);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-table tbody tr,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-table tbody tr:nth-child(even),
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-table tbody tr.finance-overdue,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-table tbody tr.finance-overdue:nth-child(even){
+  background:transparent;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-table tbody tr:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-table tbody tr.finance-overdue:hover{
+  background:var(--neutral-elevated);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-priority.finance-priority-high,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-priority{
+  background:var(--neutral-elevated);
+  color:var(--neutral-muted);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-row-menu summary,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-menu-options{
+  background:var(--neutral-elevated);
+  color:var(--neutral-text);
+  border-color:var(--neutral-border);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-panel-head .finance-btn,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-save{
+  background:var(--neutral-fin-btn);
+  color:var(--neutral-fin-text);
+  border:1px solid var(--neutral-fin-btn);
+  box-shadow:none;
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-panel-head .finance-btn:hover,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-save:hover{
+  background:var(--neutral-fin-hover);
+  color:var(--neutral-fin-text);
+  border-color:var(--neutral-fin-hover);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-panel-head .finance-btn[data-fin-action="manage-recurring"]{
+  background:var(--neutral-elevated);
+  border:1px solid var(--neutral-strong);
+  color:var(--neutral-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-panel-head .finance-btn[data-fin-action="manage-recurring"]:hover{
+  background:var(--neutral-active);
+  border-color:var(--neutral-accent);
+  color:var(--neutral-text);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-month-controls > button,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-sort select,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-month-input input,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) #financeRoot .finance-search{
+  background:var(--neutral-input);
+  color:var(--neutral-text);
+  border-color:var(--neutral-strong);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .finance-modal,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .finance-payment-modal{
+  background:var(--neutral-card);
+  border-color:var(--neutral-strong);
+}
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .finance-payment-bill,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .finance-payment-impact,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .finance-recurring-check,
+body.finance-mode[data-visual-theme][data-color-mode="dark"]:is([data-dark-palette="graphite"],[data-dark-palette="oled"]) .finance-recurring-info{
+  background:var(--neutral-elevated);
+  border-color:var(--neutral-border);
+}
+/* Vencimentos em vermelho, pendências em âmbar e recebimentos em verde
+   permanecem em indicadores pequenos (.finance-pill), não em grandes fundos. */
