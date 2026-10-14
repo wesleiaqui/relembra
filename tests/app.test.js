@@ -1355,7 +1355,7 @@ test('modo escuro não contém violeta ou lilás e mantém cores semânticas',()
   assert.ok(!css.includes('--night-purple'));
   assert.ok(!css.includes('#b9a8ff')&&!oldAtlas.includes('#b9a8ff'));
   assert.ok(!/rgb\(139 127 255/.test(css));
-  assert.match(theme,/mode==='light'\?'#f7f8fc':'#111314'/);
+  assert.match(theme,/mode==='light'\?'#f7f8fc':DARK_PALETTES\[palette\]\.slice\(0,7\)/);
   for(const match of css.matchAll(/#([a-f0-9]{6})\b/gi)){
     const hex=match[1];
     const [r,g,b]=[0,2,4].map(i=>parseInt(hex.slice(i,i+2),16)/255);
