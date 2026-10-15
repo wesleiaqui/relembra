@@ -32,7 +32,7 @@ export const exampleCanvas=()=>({
 let api,toast,guest,gate,openVideo;
 let board=null,boards=[],links=new Map(),selected=null,selectedEdge=null,connectFrom=null,zoom=1,offset={x:90,y:64};
 let quickPosition=null,connectDraft=null;
-let saveTimer=null,saving=false,editEpoch=0,savedEpoch=0,conflicted=false,initialized=false;
+let saveTimer=null,saving=false,editEpoch=0,savedEpoch=0,conflicted=false,initialized=false,retryCount=0;
 const viewer=()=>$('canvasViewport');
 const snap=()=>board?.snapshot;
 const nodeById=id=>snap()?.nodes.find(n=>n.id===id);
@@ -153,6 +153,7 @@ function setStatus(message,kind=''){
 function dirty(){
   if(guest())return;
   editEpoch++;
+  retryCount=0;
   setStatus('Alterações pendentes');
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{void saveNow()},850);
@@ -166,26 +167,41 @@ async function saveNow(){
   });
   if(savedEpoch===editEpoch)return true;
   saving=true;
-  const targetEpoch=editEpoch;
+  const targetBoard=board,targetEpoch=editEpoch;
+  let canRetry=false;
   setStatus('Salvando…');
   try{
-    const result=await api(apiPath(board.id),{method:'PUT',body:JSON.stringify({title:board.title,revision:board.revision,snapshot:snap()})});
-    board.revision=result.revision;
+    // Copia o snapshot antes do envio. Um arrasto em andamento não deve
+    // alterar os dados de uma requisição que já saiu.
+    const snapshot=structuredClone(snap());
+    const result=await api(apiPath(targetBoard.id),{
+      method:'PUT',body:JSON.stringify({title:targetBoard.title,revision:targetBoard.revision,snapshot})
+    });
+    if(board!==targetBoard)return false; // Logout/troca de conta durante o POST.
+    targetBoard.revision=result.revision;
     savedEpoch=targetEpoch;
-    board.updated_at=result.updated_at;
+    targetBoard.updated_at=result.updated_at;
+    retryCount=0;
     setStatus(editEpoch===savedEpoch?'Salvo':'Alterações pendentes',editEpoch===savedEpoch?'ok':'');
     return true;
   }catch(e){
+    if(board!==targetBoard)return false;
     if(/outra aba|recarregue|alterado/i.test(e.message)){
-      conflicted=true;setStatus('Conflito de edição — recarregue o quadro','error');
-      toast('Outra aba modificou este quadro. Seu rascunho não será sobrescrito; copie o texto antes de recarregar.',true);
-    }else{setStatus('Erro ao salvar — tentar novamente','error');toast(e.message,true);}
+      conflicted=true;setStatus('Conflito de edição — recarregue o mapa','error');
+      toast('Outra aba modificou este mapa. Suas alterações locais não serão sobrescritas.',true);
+    }else{
+      retryCount++;
+      canRetry=retryCount<=3&&/rede|network|fetch|conexão|servidor|processar|tempor|timeout|503|502|500/i.test(e.message);
+      setStatus(canRetry?'Falha temporária — tentando novamente':'Falha ao salvar — revise o mapa e tente novamente','error');
+      if(retryCount===1 || !canRetry)toast('Não foi possível salvar o mapa: '+e.message,true);
+    }
     return false;
   }finally{
     saving=false;
-    if(!conflicted && savedEpoch!==editEpoch){
+    if(board===targetBoard&&!conflicted&&savedEpoch!==editEpoch &&
+      (editEpoch!==targetEpoch||canRetry)){
       clearTimeout(saveTimer);
-      saveTimer=setTimeout(()=>{void saveNow()},1000);
+      saveTimer=setTimeout(()=>{void saveNow()},canRetry?Math.min(9000,1000*2**retryCount):900);
     }
   }
 }
@@ -923,7 +939,7 @@ export async function loadCanvas(){
 }
 export function resetCanvas(){
   clearTimeout(saveTimer);saveTimer=null;board=null;boards=[];links=new Map();selected=null;
-  saving=false;editEpoch=0;savedEpoch=0;conflicted=false;
+  saving=false;editEpoch=0;savedEpoch=0;conflicted=false;retryCount=0;
   selectedEdge=null;connectFrom=null;connectDraft=null;
   if(initialized){
     $('canvasWorkspaceBar').dataset.hasMap='false';
