@@ -1,7 +1,7 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
 import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
 import { handleCanvas, exportCanvases, importCanvases } from './canvas.js';
-import { handleAdministration, updateAccountActivity, listOwnAdminAccess, handleAdminViewConsent } from './admin.js';
+import { handleAdministration, updateAccountActivity, listOwnAdminAccess, handleAdminViewConsent, cleanupExpiredAdminAudits } from './admin.js';
 import { reserveAIQuota, secureResponse, readLimitedJSON, turnstileConfig, verifyRegistrationTurnstile } from './security.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
