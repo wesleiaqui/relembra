@@ -29,7 +29,7 @@ export const exampleCanvas=()=>({
     {id:'66666666-6666-4666-8666-666666666666',from:'33333333-3333-4333-8333-333333333333',to:'44444444-4444-4444-8444-444444444444',label:''}
   ]
 });
-let api,toast,guest,gate;
+let api,toast,guest,gate,openVideo;
 let board=null,boards=[],links=new Map(),selected=null,selectedEdge=null,connectFrom=null,zoom=1,offset={x:90,y:64};
 let quickPosition=null,connectDraft=null;
 let saveTimer=null,saving=false,editEpoch=0,savedEpoch=0,conflicted=false,initialized=false;
@@ -400,7 +400,7 @@ async function listBoards(){
   const result=await api('/api/canvas');boards=result.boards;
   paintBoardNames();
   if(!boards.length){
-    board=null;selected=null;$('canvasBoardTitle').value='';draw();setStatus('Crie seu primeiro quadro');
+    board=null;selected=null;$('canvasBoardTitle').value='';draw();setStatus('Crie seu primeiro mapa mental');
     $('canvasEmpty').hidden=false;return;
   }
   $('canvasEmpty').hidden=true;
@@ -582,11 +582,12 @@ async function changeBoard(id){
 }
 async function removeBoard(){
   if(!board||!ensureWrite())return;
-  if(!confirm('Excluir este quadro visual? As tarefas já enviadas ao Radar continuarão lá.'))return;
+  if(!confirm('Excluir este mapa mental? As tarefas já enviadas ao Radar continuarão lá.'))return;
   try{
     await api(apiPath(board.id),{method:'DELETE'});
     board=null;await listBoards();
-    toast('Quadro excluído. Tarefas do Radar preservadas.');
+    $('canvasMapOptions').open=false;
+    toast('Mapa excluído. Tarefas do Radar preservadas.');
   }catch(e){toast(e.message,true);}
 }
 function adjustZoom(delta,point){
@@ -598,8 +599,47 @@ function adjustZoom(delta,point){
 }
 function bindCanvasEvents(){
   $('canvasBoardSelect').addEventListener('change',e=>void changeBoard(e.target.value));
-  $('canvasCreateBoard').addEventListener('click',()=>void createBoard());
-  $('canvasEmptyCreate').addEventListener('click',()=>void createBoard());
+  $('canvasCreateBoard').addEventListener('click',()=>openCreateDialog());
+  $('canvasEmptyCreate').addEventListener('click',()=>openCreateDialog());
+  $('canvasOpenGallery').addEventListener('click',()=>openCreateDialog('mind'));
+  $('canvasAIGenerate').addEventListener('click',openAIDialog);
+  $('canvasOpenLibrary').addEventListener('click',openVideoDialog);
+  $('canvasCreateClose').addEventListener('click',closeCreateDialog);
+  $('canvasCreateCancel').addEventListener('click',closeCreateDialog);
+  $('canvasCreateConfirm').addEventListener('click',()=>void confirmCreateMap());
+  $('mentalNewName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();void confirmCreateMap();}});
+  $('canvasTemplateGallery').addEventListener('keydown',e=>{
+    if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
+    e.preventDefault();
+    const index=MAP_TEMPLATES.findIndex(t=>t.id===chosenTemplate);
+    const next=MAP_TEMPLATES[(index+(e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1)+MAP_TEMPLATES.length)%MAP_TEMPLATES.length];
+    pickTemplate(next.id);
+    $('canvasTemplateGallery').querySelector('[data-template="'+next.id+'"]')?.focus();
+  });
+  $('canvasEmptyTemplates').addEventListener('click',e=>{
+    const selected=e.target.closest('[data-mental-template]')?.dataset.mentalTemplate;
+    if(selected)openCreateDialog(selected);
+  });
+  $('canvasAIClose').addEventListener('click',closeAIDialog);
+  $('canvasAICancel').addEventListener('click',closeAIDialog);
+  $('canvasAIConfirm').addEventListener('click',()=>void confirmAIMap());
+  $('canvasVideoClose').addEventListener('click',closeVideoDialog);
+  $('mentalVideoSearch').addEventListener('input',()=>{
+    clearTimeout(videoSearchTimer);
+    videoSearchTimer=setTimeout(()=>void searchLibraryVideos(),250);
+  });
+  $('canvasVideoOpen').addEventListener('click',()=>{
+    const node=selectedNode();
+    if(node?.type==='video'&&node.video_id&&typeof openVideo==='function')void openVideo(node.video_id);
+  });
+  for(const id of ['canvasCreateOverlay','canvasAIDialog','canvasVideoDialog']){
+    $(id).addEventListener('pointerdown',e=>{
+      if(e.target!==$(id))return;
+      if(id==='canvasCreateOverlay')closeCreateDialog();
+      if(id==='canvasAIDialog')closeAIDialog();
+      if(id==='canvasVideoDialog')closeVideoDialog();
+    });
+  }
   $('canvasRemoveBoard').addEventListener('click',()=>void removeBoard());
   $('canvasBoardTitle').addEventListener('change',e=>{
     if(!board||!ensureWrite())return;
@@ -789,6 +829,9 @@ function bindCanvasEvents(){
   document.addEventListener('keydown',e=>{
     if($('canvasView').hidden)return;
     if(e.key==='Escape'){
+      if(!$('canvasCreateOverlay').hidden){e.preventDefault();closeCreateDialog();return;}
+      if(!$('canvasAIDialog').hidden){e.preventDefault();closeAIDialog();return;}
+      if(!$('canvasVideoDialog').hidden){e.preventDefault();closeVideoDialog();return;}
       if(!$('canvasQuickCreate').hidden){closeQuickCreate();return;}
       if(connectFrom||connectDraft){closeConnection();return;}
       selectedEdge=null;positionEdgeEditor();return;
@@ -816,7 +859,7 @@ function bindCanvasEvents(){
 export function setupCanvas(deps){
   if(initialized)return;
   initialized=true;
-  ({api,toast,isGuest:guest,requireAccount:gate}=deps);
+  ({api,toast,isGuest:guest,requireAccount:gate,openVideo}=deps);
   bindCanvasEvents();
 }
 export async function loadCanvas(){
@@ -841,6 +884,9 @@ export function resetCanvas(){
   saving=false;editEpoch=0;savedEpoch=0;conflicted=false;
   selectedEdge=null;connectFrom=null;connectDraft=null;
   if(initialized){
+    $('canvasCreateOverlay').hidden=true;
+    $('canvasAIDialog').hidden=true;
+    closeVideoDialog();
     closeQuickCreate();
     viewer().classList.remove('is-connecting');
     $('canvasNodes').replaceChildren();$('canvasEdges').replaceChildren();
