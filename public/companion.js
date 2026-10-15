@@ -82,16 +82,21 @@ function homePriorities(data){
 function homeBills(data){
   const target=$('homeBills'),bills=(data.bills||[]).slice(0,4);
   target.replaceChildren();
+  const meta=$('homeBillsMeta');
+  if(meta)meta.textContent=bills.length?bills.length+(bills.length===1?' pagamento próximo':' pagamentos próximos'):'Nenhum vencimento próximo';
   if(!bills.length){target.innerHTML='<p class="home-placeholder">Nenhuma conta pendente nos próximos 14 dias.</p>';return;}
   const list=document.createElement('div');list.className='home-bills-list';
   for(const item of bills){
     const line=document.createElement('button');line.type='button';line.className='home-bill-item';line.dataset.go='finance';
+    line.classList.add(item.due_date<today()?'is-overdue':item.due_date===today()?'is-today':'is-upcoming');
     const text=document.createElement('span');
     const title=document.createElement('strong');title.textContent=item.name;
     const date=document.createElement('small');date.textContent=(item.due_date<today()?'Vencida · ':item.due_date===today()?'Hoje · ':'')+human(item.due_date);
     if(item.due_date<=today())date.classList.add('home-warning');
     const amount=document.createElement('b');amount.textContent=money(item.amount_cents);
-    text.append(title,date);line.append(text,amount);list.append(line);
+    const amountInfo=document.createElement('span');amountInfo.className='home-bill-amount';
+    amountInfo.append(amount);
+    text.append(title,date);line.append(text,amountInfo);list.append(line);
   }
   target.append(list);
 }
@@ -118,6 +123,10 @@ function renderHomeSummary(data,habitsData){
   txt('homeSummaryTasks',tasks);
   txt('homeSummaryBills',bills);
   txt('homeSummaryHabits',finished+' / '+allHabits.length);
+  const percent=allHabits.length?Math.round(finished/allHabits.length*100):0;
+  txt('homeHabitProgressLabel',finished+' de '+allHabits.length);
+  const meter=$('homeHabitMeter');if(meter)meter.setAttribute('aria-valuenow',String(percent));
+  const fill=$('homeHabitMeterFill');if(fill)fill.style.width=percent+'%';
 }
 export async function loadHomeRadar(){
   const serial=++radarSerial;
@@ -134,6 +143,10 @@ export async function loadHomeRadar(){
     if(serial!==radarSerial)return;
     for(const id of ['homeRadar','homeBills','homeHabits']) $(id).textContent='Não foi possível carregar agora. Tente abrir o Radar.';
     for(const id of ['homeSummaryTasks','homeSummaryBills','homeSummaryHabits']) $(id).textContent='—';
+    const progress=$('homeHabitProgressLabel');if(progress)progress.textContent='—';
+    const meter=$('homeHabitMeter');if(meter)meter.setAttribute('aria-valuenow','0');
+    const fill=$('homeHabitMeterFill');if(fill)fill.style.width='0%';
+    const meta=$('homeBillsMeta');if(meta)meta.textContent='Vencimentos indisponíveis';
   }
 }
 // A pesquisa agora faz parte do fluxo do Chat, não possui tela ou caixa de resultados próprias.
