@@ -1,7 +1,7 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
 import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
 import { handleCanvas, exportCanvases, importCanvases } from './canvas.js';
-import { reserveAIQuota, secureResponse } from './security.js';
+import { reserveAIQuota, secureResponse, readLimitedJSON } from './security.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
@@ -117,10 +117,7 @@ function hasSameOrigin(request) {
   return request.headers.get('sec-fetch-site') !== 'cross-site';
 }
 async function getBody(request, max = 900000) {
-  if (Number(request.headers.get('content-length') || 0) > max) throw new Error('O arquivo ou texto é muito grande.');
-  const body = await request.text();
-  if (new TextEncoder().encode(body).length > max) throw new Error('O arquivo ou texto é muito grande.');
-  try { return JSON.parse(body); } catch { throw new Error('JSON inválido.'); }
+  return readLimitedJSON(request,max);
 }
 function validUrl(raw) {
   const str = clean(raw, 2048);
