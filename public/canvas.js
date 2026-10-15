@@ -291,19 +291,70 @@ function ensureWrite(){
   gate();
   return false;
 }
-function addNode(type){
+function addNode(type,at=null,title='',linkedFrom=null){
   if(!ensureWrite()||!board)return;
+  if(snap().nodes.length>=250){toast('Limite de 250 cartões por quadro.',true);return;}
   const rect=viewer().getBoundingClientRect();
-  const x=(rect.width*.45-offset.x)/zoom,y=(rect.height*.35-offset.y)/zoom;
-  const n=makeNode(type,bounds(x,-8000,8000),bounds(y,-8000,8000));
-  snap().nodes.push(n);selected=n.id;dirty();draw();
-  $('canvasNodeTitle').focus();$('canvasNodeTitle').select();
+  const point=at||{x:(rect.width*.45-offset.x)/zoom,y:(rect.height*.35-offset.y)/zoom};
+  const n=makeNode(type,bounds(point.x,-8000,8000),bounds(point.y,-8000,8000));
+  if(title.trim())n.title=title.trim().slice(0,120);
+  snap().nodes.push(n);
+  if(linkedFrom && snap().edges.length<400 && canvasCanConnect(snap().nodes,snap().edges,linkedFrom,n.id)){
+    snap().edges.push({id:crypto.randomUUID(),from:linkedFrom,to:n.id,label:''});
+  }
+  selected=n.id;selectedEdge=null;
+  closeQuickCreate();closeConnection();
+  dirty();draw();
+  // O cartão é criado pronto para escrever; não é preciso abrir outro formulário.
+  if(!title.trim())beginInlineEdit(n.id,'title');
+  else $('canvasNodeBody').focus();
+  return n;
+}
+function quickAdd(type){
+  const position=quickPosition;
+  if(!position)return;
+  addNode(type,{x:position.x,y:position.y},$('canvasQuickTitle').value,position.from);
+}
+function beginInlineEdit(id,field){
+  if(!ensureWrite())return;
+  const n=nodeById(id),card=$('canvasNodes').querySelector('[data-canvas-node="'+id+'"]');
+  if(!n||!card)return;
+  selected=id;selectedEdge=null;drawInspector();
+  const target=card.querySelector(field==='title'?'.canvas-node-title':'.canvas-node-body');
+  if(!target)return;
+  if(target.querySelector('input,textarea'))return;
+  const edit=document.createElement(field==='title'?'input':'textarea');
+  edit.className='canvas-inline-editor';
+  edit.value=n[field]||'';
+  edit.maxLength=field==='title'?120:2200;
+  edit.setAttribute('aria-label',field==='title'?'Editar título diretamente':'Editar descrição diretamente');
+  if(field==='body')edit.rows=4;
+  target.replaceChildren(edit);edit.focus();edit.select();
+  let finished=false;
+  const finish=cancel=>{
+    if(finished)return;
+    finished=true;
+    if(!cancel){
+      const value=edit.value.trim().slice(0,field==='title'?120:2200);
+      if(field!=='title'||value){
+        if(n[field]!==value){n[field]=value;dirty();}
+      }
+    }
+    // Recria o cartão de modo seguro, sem inserir HTML digitado pelo usuário.
+    draw();
+  };
+  edit.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.stopPropagation();e.preventDefault();finish(true);}
+    if(e.key==='Enter'&&field==='title'){e.preventDefault();finish(false);}
+    if(e.key==='Enter'&&e.ctrlKey&&field==='body'){e.preventDefault();finish(false);}
+  });
+  edit.addEventListener('blur',()=>finish(false),{once:true});
 }
 function removeSelected(){
   if(!ensureWrite()||!selectedNode())return;
   const id=selected;snap().nodes=snap().nodes.filter(x=>x.id!==id);
   snap().edges=snap().edges.filter(e=>e.from!==id&&e.to!==id);
-  selected=null;dirty();draw();
+  selected=null;selectedEdge=null;dirty();draw();
 }
 async function sendTask(){
   if(!ensureWrite())return;
