@@ -1543,3 +1543,39 @@ test('Mapas mentais: esboço IA exige login, valida entrada e limita consumo por
   assert.equal((await req('/api/canvas/outline','POST',{prompt:'organizar estudos e minhas matérias'})).status,429);
   assert.equal(count,6);
 });
+
+
+test('login usa reserva atômica para conter várias tentativas simultâneas',async()=>{
+  const {req}=setup();
+  const owner=await req('/api/setup-owner','POST',{setup_key:'um-passphrase-longo-de-verdade',username:'principal',password:'senha-do-dono-de-teste-123'});
+  assert.equal(owner.status,201);
+  for(let i=0;i<8;i++)assert.equal((await req('/api/login','POST',{username:'principal',password:'senha-incorreta-123'})).status,401);
+  assert.equal((await req('/api/login','POST',{username:'principal',password:'senha-do-dono-de-teste-123'})).status,429);
+});
+
+test('sessões podem ser invalidadas simultaneamente sem excluir conteúdo da conta',async()=>{
+  const {req}=setup();
+  const owner=await req('/api/setup-owner','POST',{setup_key:'um-passphrase-longo-de-verdade',username:'principal',password:'senha-do-dono-de-teste-123'});
+  assert.equal(owner.status,201);
+  const saved=await req('/api/videos','POST',vid);
+  assert.equal(saved.status,201);
+  assert.equal((await req('/api/session')).data.authenticated,true);
+  assert.equal((await req('/api/sessions/revoke-all','POST')).status,200);
+  assert.equal((await req('/api/session')).data.authenticated,false);
+  assert.equal((await req('/api/export')).status,401);
+  assert.equal((await req('/api/login','POST',{username:'principal',password:'senha-do-dono-de-teste-123'})).status,200);
+  assert.equal((await req('/api/videos')).data.videos.length,1);
+});
+
+test('Turnstile configurado bloqueia cadastro sem token e com configuração parcial',async()=>{
+  const {req,env}=setup();
+  assert.equal((await req('/api/setup-owner','POST',{setup_key:'um-passphrase-longo-de-verdade',username:'principal',password:'senha-do-dono-de-teste-123'})).status,201);
+  env.TURNSTILE_SITE_KEY='example-sitekey';
+  env.TURNSTILE_SECRET='example-secret';
+  const settings=(await req('/api/session')).data.turnstile;
+  assert.deepEqual(settings,{enabled:true,configured:true,siteKey:'example-sitekey'});
+  const payload={username:'cadastroseguro',password:'senha-forte-de-teste-123'};
+  assert.equal((await req('/api/register','POST',payload)).status,403);
+  env.TURNSTILE_SECRET=undefined;
+  assert.equal((await req('/api/register','POST',payload)).status,503);
+});
