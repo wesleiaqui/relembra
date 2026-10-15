@@ -8,14 +8,24 @@ const $=id=>document.getElementById(id);
 const note=(title,detail,action='Criar minha conta')=>'<div class="guest-demo-empty"><span class="guest-demo-symbol" aria-hidden="true">✦</span><strong>'+title+'</strong><p>'+detail+'</p><button type="button" class="button button-primary" data-guest-action>'+action+' ↗</button></div>';
 const sample=(icon,title,subtitle)=>'<article class="guest-showcase-card"><div class="guest-showcase-cover"><span aria-hidden="true">'+icon+'</span><span>EXEMPLO</span></div><div class="guest-showcase-body"><strong>'+title+'</strong><p>'+subtitle+'</p><button type="button" class="button button-outline" data-guest-action>Guardar na minha biblioteca →</button></div></article>';
 
-const instagramExample=(title,description,emoji)=>{
-  return '<article class="guest-reel-card"><div class="guest-reel-screen" aria-label="Prévia fictícia de vídeo do Instagram">'+
-    '<div class="guest-reel-head"><span class="guest-ig-glyph" aria-hidden="true">◎</span><span>INSTAGRAM · REEL</span></div>'+
-    '<span class="guest-reel-visual" aria-hidden="true">'+emoji+'</span>'+
-    '<span class="guest-reel-play" aria-hidden="true">▶</span>'+
-    '<div class="guest-reel-caption">EXEMPLO FICTÍCIO</div></div>'+
-    '<div class="guest-reel-meta"><strong>'+title+'</strong><p>'+description+'</p>'+
-    '<button class="button button-outline" type="button" data-guest-action>Salvar vídeo do Instagram ↗</button></div></article>';
+// Reel real indicado pelo proprietário. Incorporação oficial com saída acessível
+// caso o autor/Instagram não permita reprodução dentro de outro site.
+export const EXAMPLE_INSTAGRAM_REEL='https://www.instagram.com/reel/Dboi557ocop/';
+const instagramExample=()=>{
+  const embed='https://www.instagram.com/reel/Dboi557ocop/embed/';
+  return '<article class="guest-reel-card guest-reel-real">'+
+    '<div class="guest-reel-embed">'+
+      '<iframe class="guest-reel-frame" loading="lazy" title="Reel de exemplo do Instagram" src="'+embed+'" '+
+        'referrerpolicy="strict-origin-when-cross-origin" '+
+        'sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" '+
+        'allow="encrypted-media; picture-in-picture" allowfullscreen></iframe>'+
+    '</div>'+
+    '<div class="guest-reel-meta"><span class="guest-reel-source">◎ INSTAGRAM · EXEMPLO REAL</span>'+
+    '<strong>Veja como um Reel pode ficar na sua biblioteca</strong>'+
+    '<p>Este é um vídeo real do Instagram. Se a incorporação não funcionar, abra o conteúdo na plataforma original.</p>'+
+    '<div class="guest-reel-actions"><a href="'+EXAMPLE_INSTAGRAM_REEL+'" target="_blank" rel="noopener noreferrer" class="button button-outline">↗ Assistir no Instagram</a>'+
+    '<button class="button button-primary" type="button" data-guest-action>Salvar na minha biblioteca</button></div>'+
+    '</div></article>';
 };
 export function renderGuestLifeCalendar(){
   const sampleBirth='1998-02-14',years=90,weeksPerRow=53,liveYear=28;
@@ -59,17 +69,17 @@ export function renderGuestPreview(view){
     $('homeGrid').innerHTML='<div class="guest-showcase-grid">'+
       sample('🍝','Uma receita que vale guardar','Salve links, resumos e descobertas para consultar depois.')+
       sample('✈️','Ideias para sua próxima viagem','Organize referências com imagens e anotações.')+
-      instagramExample('Receita rápida no Instagram','Guarde Reels e organize as dicas em suas coleções.','🍝')+'</div>';
+      instagramExample()+'</div>';
   }
   if(view==='library'){
     $('libraryTitle').textContent='Minha biblioteca';
     $('librarySubtitle').textContent='Explore como seus vídeos e referências ficam organizados.';
-    $('resultsCount').textContent='3 exemplos ilustrativos';
+    $('resultsCount').textContent='2 exemplos ilustrativos e 1 Reel real';
     $('loadMore').hidden=true;
     $('libraryGrid').innerHTML='<div class="guest-showcase-grid">'+
       sample('📚','Aprendizado em um só lugar','Guarde vídeo, link, resumo, transcrição e imagens.')+
       sample('🧠','Referências para lembrar','Categorize o que aprendeu e encontre por pesquisa.')+
-      instagramExample('Roteiro de viagem · Instagram','Imagine salvar um Reel e voltar à ideia na hora certa.','✈️')+'</div>';
+      instagramExample()+'</div>';
   }
   if(view==='chat'){
     // A tela já inclui sua demonstração visual nativa de boas-vindas.

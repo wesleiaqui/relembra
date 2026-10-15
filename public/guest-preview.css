@@ -116,18 +116,28 @@ body[data-guest="true"] #lifeView .life-moment-form select,
 body[data-guest="true"] #lifeView .life-moment-form textarea{background:var(--panel,#fff);border-color:var(--stroke,#e1e6ee);color:var(--text,#25304a)}
 body[data-guest="true"] #lifeView .life-legend{color:var(--muted,#7b899e)}
 /* Instagram: vídeos ilustrativos, sem usar contas, imagens ou links de pessoas reais. */
-.guest-reel-card{min-width:0;overflow:hidden;border:1px solid var(--stroke,#e0e6ef);border-radius:15px;background:var(--panel,#fff);display:grid;grid-template-rows:150px 1fr}
-.guest-reel-screen{position:relative;display:grid;place-items:center;overflow:hidden;background:linear-gradient(140deg,#28192e,#563144 53%,#a64b72);color:#fff}
-.guest-reel-card:nth-child(even) .guest-reel-screen{background:linear-gradient(140deg,#12373f,#386478 55%,#91829a)}
-.guest-reel-head{position:absolute;top:12px;left:12px;display:flex;gap:6px;align-items:center;font-size:10px;font-weight:850;letter-spacing:.8px;z-index:2}
-.guest-ig-glyph{display:grid;place-items:center;width:23px;height:23px;border:1.5px solid #ffffffad;border-radius:8px;font-size:20px}
-.guest-reel-visual{font-size:61px;opacity:.86;filter:drop-shadow(0 5px 15px #150d183b)}
-.guest-reel-play{position:absolute;z-index:2;left:calc(50% - 18px);top:calc(50% - 18px);width:37px;height:37px;display:grid;place-items:center;padding-left:3px;background:#ffffff40;border:1px solid #ffffff86;border-radius:50%;font-size:15px;backdrop-filter:blur(5px)}
-.guest-reel-caption{position:absolute;right:10px;bottom:10px;padding:5px 7px;background:#0009;border-radius:5px;font-size:9px;letter-spacing:.6px}
-.guest-reel-meta{padding:15px;display:grid;align-content:start;gap:9px}
-.guest-reel-meta strong{font-size:13px;color:var(--text,#243044)}
-.guest-reel-meta p{font-size:12px;color:var(--muted,#7b899e);line-height:1.6;margin:0;min-height:60px}
-.guest-reel-meta button{justify-self:start}
-body[data-color-mode="dark"] .guest-reel-card{background:var(--night-card,#1d2324);border-color:var(--night-border,#363e40)}
-body[data-color-mode="dark"] .guest-reel-meta strong{color:var(--night-text,#f1f3ef)}
-@media(max-width:740px){.guest-reel-card{grid-template-rows:180px 1fr}}
+/* Reel real: player original preserva proporção vertical e não simula playback. */
+.guest-reel-card.guest-reel-real{
+  min-width:0;overflow:hidden;border:1px solid var(--stroke,#e0e6ef);border-radius:15px;
+  background:var(--panel,#fff);display:flex;flex-direction:column;
+}
+.guest-reel-embed{
+  position:relative;overflow:hidden;max-width:100%;height:420px;
+  background:#fff;color:#253047;border-bottom:1px solid var(--stroke,#e0e6ef);
+}
+.guest-reel-frame{border:0;display:block;width:100%;height:100%;min-height:420px;background:#fff;}
+.guest-reel-meta{display:grid;align-content:start;gap:10px;padding:17px;}
+.guest-reel-source{color:var(--muted,#7b899e);font-size:10px;font-weight:800;letter-spacing:.08em;}
+.guest-reel-meta strong{color:var(--text,#243044);font-size:14px;line-height:1.4;}
+.guest-reel-meta p{font-size:12px;color:var(--muted,#7b899e);line-height:1.6;margin:0;}
+.guest-reel-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+.guest-reel-actions a,.guest-reel-actions button{
+  min-height:37px;box-sizing:border-box;padding:9px 12px;display:inline-flex;align-items:center;
+  justify-content:center;text-decoration:none;font-size:11px;white-space:normal;
+}
+body[data-color-mode="dark"] .guest-reel-card{
+  background:var(--night-card,#1d2324);border-color:var(--night-border,#363e40);
+}
+body[data-color-mode="dark"] .guest-reel-meta strong{color:var(--night-text,#f1f3ef);}
+@media(max-width:740px){.guest-reel-embed,.guest-reel-frame{height:390px;min-height:390px;}}
+

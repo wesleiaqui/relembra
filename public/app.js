@@ -3,6 +3,7 @@ import { setupVisualTheme,setVisualTheme,setColorMode,readVisualTheme } from './
 import { setupAtlasUI, renderAtlasCollections, resetAtlasUI } from './atlas-ui.js';
 import { embeddedMediaLink } from './media-links.js';
 import { guestCategories, renderGuestPreview } from './guest-preview.js';
+import { configureRegistrationProtection, showRegistrationProtection, registrationChallengeToken, resetRegistrationProtection } from './register-protection.js';
 import { setupFinance, loadFinance, resetFinance } from './finance.js';
 import { setupCanvas, loadCanvas, resetCanvas } from './canvas.js';
 import { setupCompanion, loadRadar, loadHomeRadar, searchMemory, openSearchItem, loadLife, loadHabits, resetCompanion, openHistory } from './companion.js';
@@ -64,6 +65,7 @@ async function showGuestMode(){
   setColorMode('light',{persist:false});
   $('loginOverlay').hidden=true;
   $('guestBanner').hidden=false;
+  $('accountSessionPanel').hidden=true;
   $('accountLabel').textContent='✦ Modo visitante';
   $('logoutBtn').innerHTML='<span class="nav-icon">↪</span> Entrar / Criar conta';
   renderGuestCategories();
@@ -1180,6 +1182,14 @@ function bindEvents() {
   $('showRegisterBtn').addEventListener('click',()=>showAccountMode('register'));
   $('showRecoverBtn').addEventListener('click',()=>showAccountMode('recover'));
   $('exploreGuestBtn').addEventListener('click',showGuestMode);
+  $('revokeAllSessionsBtn').addEventListener('click',async()=>{
+    if(state.guest)return showAccountGate('login');
+    if(!confirm('Encerrar todas as sessões da sua conta, incluindo este dispositivo? Você precisará entrar novamente.'))return;
+    const button=$('revokeAllSessionsBtn');button.disabled=true;
+    try{await api('/api/sessions/revoke-all',{method:'POST'});await showGuestMode();toast('Todas as sessões anteriores foram encerradas.');}
+    catch(e){toast('Não foi possível encerrar as sessões: '+e.message,true);}
+    finally{button.disabled=false;}
+  });
   $('guestLoginBtn').addEventListener('click',()=>showAccountGate('login'));
   $('guestRegisterBtn').addEventListener('click',()=>showAccountGate('register'));
 
@@ -1198,6 +1208,7 @@ function showAccountMode(mode) {
   $('loginLinks').hidden=mode==='setup';
   $('exploreGuestBtn').hidden=mode==='setup';
   $('loginError').textContent='';
+  if(mode==='register')void showRegistrationProtection();
 }
 function wipePreviousAccount() {
   closeMotivation();
@@ -1223,6 +1234,7 @@ async function finishAccountLogin(result) {
   // Ao autenticar, recupera a aparência anteriormente salva pelo usuário.
   setVisualTheme(readVisualTheme(localStorage),{persist:false});
   $('guestBanner').hidden=true;
+  $('accountSessionPanel').hidden=false;
   wipePreviousAccount();
   $('logoutBtn').innerHTML='<span class="nav-icon">↪</span> Sair da conta';
   $('loginOverlay').hidden=true;
@@ -1237,9 +1249,18 @@ async function submitAccountForm(event,endpoint) {
   const form=event.currentTarget,button=form.querySelector('button[type=submit]');
   button.disabled=true;
   try {
-    const result=await api(endpoint,{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(form).entries()))});
+    const data=Object.fromEntries(new FormData(form).entries());
+    if(endpoint==='/api/register'){
+      const challenge=registrationChallengeToken();
+      if(challenge.error)throw new Error(challenge.error);
+      if(challenge.enabled)data.turnstile_token=challenge.token;
+    }
+    const result=await api(endpoint,{method:'POST',body:JSON.stringify(data)});
     await finishAccountLogin(result);
-  }catch(e){$('loginError').textContent=e.message;}finally{button.disabled=false;}
+  }catch(e){$('loginError').textContent=e.message;}finally{
+    if(endpoint==='/api/register')resetRegistrationProtection();
+    button.disabled=false;
+  }
 }
 
 async function start() {
@@ -1252,6 +1273,7 @@ async function start() {
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
   try {
     const session=await api('/api/session');
+    configureRegistrationProtection(session.turnstile);
     if(!session.configured){$('loginError').textContent='Configure a senha administrativa e o D1 na Cloudflare.';return;}
     if(session.setupRequired){showAccountMode('setup');return;}
     if(session.authenticated){await finishAccountLogin({user:session.user});return;}
