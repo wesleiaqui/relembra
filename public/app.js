@@ -4,6 +4,7 @@ import { setupAtlasUI, renderAtlasCollections, resetAtlasUI } from './atlas-ui.j
 import { embeddedMediaLink } from './media-links.js';
 import { guestCategories, renderGuestPreview } from './guest-preview.js';
 import { setupFinance, loadFinance, resetFinance } from './finance.js';
+import { setupCanvas, loadCanvas, resetCanvas } from './canvas.js';
 import { setupCompanion, loadRadar, loadHomeRadar, searchMemory, openSearchItem, loadLife, loadHabits, resetCompanion, openHistory } from './companion.js';
 const $ = id => document.getElementById(id);
 const state = { guest: false, thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
@@ -128,7 +129,7 @@ async function loadList(append = false) {
   } catch(e) { if (requestNumber === listRequest) { box.innerHTML = skeletonEmpty('Erro ao carregar vídeos', e.message, '⚠️', false); toast(e.message, true); } }
   finally { if (requestNumber === listRequest) state.busy = false; }
 }
-const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados' };
+const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', canvas: 'Canvas Visual', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados' };
 async function navigate(view, category = 'all') {
   const known = viewNames[view] ? view : 'home';
   state.view = known;
@@ -137,14 +138,15 @@ async function navigate(view, category = 'all') {
   else state.category = 'all';
   state.search = ''; state.sort = 'recent'; state.videos = [];
   document.querySelectorAll('.view').forEach(el => el.hidden = true);
-  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'radar' ? 'radarView' : known === 'life' ? 'lifeView' : known === 'finance' ? 'financeView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
-  $('addVideoBtn').hidden = known === 'finance';
+  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'radar' ? 'radarView' : known === 'life' ? 'lifeView' : known === 'finance' ? 'financeView' : known === 'canvas' ? 'canvasView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
+  $('addVideoBtn').hidden = known === 'finance' || known === 'canvas';
   $('breadcrumbActive').textContent = known === 'library' && state.category !== 'all' ? catOf(state.category).name : viewNames[known];
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === known && (known !== 'library' || state.category === 'all')));
   document.querySelectorAll('[data-cat]').forEach(el => el.classList.toggle('active', known === 'library' && el.dataset.cat === category));
   $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true;
   if(state.guest){
     if(known==='finance') await loadFinance();
+    if(known==='canvas')await loadCanvas();
     else if(known==='chat')resetChatConversation();
     renderGuestPreview(known);
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -156,6 +158,7 @@ async function navigate(view, category = 'all') {
   if (known === 'thoughts') await loadThoughts();
   if (known === 'tips') await loadTips();
   if (known === 'finance') await loadFinance();
+  if (known === 'canvas') await loadCanvas();
   if (known === 'library') {
     $('libraryTitle').textContent = state.category !== 'all' ? catOf(state.category).name : 'Minha biblioteca';
     $('librarySubtitle').textContent = 'Encontre qualquer ideia pelo assunto, resumo ou transcrição.';
@@ -917,11 +920,11 @@ async function importData(file) {
   if (file.size > 25_000_000) { toast('Arquivo muito grande. Limite: 25 MB.', true); return; }
   try {
     const data = JSON.parse(await file.text());
-    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts) && !Array.isArray(data.tips) && !data.finances && !data.extras) throw new Error('Esse arquivo não contém um backup válido.');
+    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts) && !Array.isArray(data.tips) && !data.finances && !data.extras && !Array.isArray(data.canvases)) throw new Error('Esse arquivo não contém um backup válido.');
     const videos = Array.isArray(data.videos) ? data.videos : [];
     const thoughts = Array.isArray(data.thoughts) ? data.thoughts : [];
     const tips = Array.isArray(data.tips) ? data.tips : [];
-    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0, tipsImported = 0, tipsSkipped = 0, financeImported = 0, financeSkipped = 0, extrasImported = 0, extrasSkipped = 0;
+    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0, tipsImported = 0, tipsSkipped = 0, financeImported = 0, financeSkipped = 0, extrasImported = 0, extrasSkipped = 0, canvasImported = 0, canvasSkipped = 0;
     const videoGroups = []; let group = [], groupBytes = 0;
     for (const video of videos) {
       const size = new TextEncoder().encode(JSON.stringify(video)).length + 50;
@@ -957,15 +960,25 @@ async function importData(file) {
       extraGroups[kind] = [];
       for (let i = 0; i < rows.length; i += 200) extraGroups[kind].push(rows.slice(i, i + 200));
     }
-    const total = Math.max(videoGroups.length, thoughtGroups.length, tipGroups.length, ...Object.values(financeGroups).map(g => g.length), ...Object.values(extraGroups).map(g => g.length), 1);
+    const canvasGroups=[];group=[];groupBytes=0;
+    for(const item of Array.isArray(data.canvases)?data.canvases:[]){
+      const size=new TextEncoder().encode(JSON.stringify(item)).length+60;
+      if(group.length&&(group.length>=12||groupBytes+size>2_000_000)){
+        canvasGroups.push(group);group=[];groupBytes=0;
+      }
+      group.push(item);groupBytes+=size;
+    }
+    if(group.length)canvasGroups.push(group);
+    const total = Math.max(videoGroups.length, thoughtGroups.length, tipGroups.length,canvasGroups.length, ...Object.values(financeGroups).map(g => g.length), ...Object.values(extraGroups).map(g => g.length), 1);
     for (let index = 0; index < total; index++) {
       toast(`Restaurando backup: lote ${index + 1} de ${total}...`);
-      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [], finances: { recurring:financeGroups.recurring[index] || [], entries:financeGroups.entries[index] || [], bills:financeGroups.bills[index] || [], goals:financeGroups.goals[index] || [] }, extras:{ profile:index===0?extras.profile:null, moments:extraGroups.moments[index]||[], tasks:extraGroups.tasks[index]||[], habits:extraGroups.habits[index]||[], habit_days:extraGroups.habit_days[index]||[] } }) });
+      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [], finances: { recurring:financeGroups.recurring[index] || [], entries:financeGroups.entries[index] || [], bills:financeGroups.bills[index] || [], goals:financeGroups.goals[index] || [] }, extras:{ profile:index===0?extras.profile:null, moments:extraGroups.moments[index]||[], tasks:extraGroups.tasks[index]||[], habits:extraGroups.habits[index]||[], habit_days:extraGroups.habit_days[index]||[] }, canvases:canvasGroups[index]||[] }) });
       imported += res.imported; skipped += res.skipped;
       thoughtsImported += res.thoughtsImported || 0; thoughtsSkipped += res.thoughtsSkipped || 0;
       tipsImported += res.tipsImported || 0; tipsSkipped += res.tipsSkipped || 0;
       financeImported += res.financeImported || 0; financeSkipped += res.financeSkipped || 0;
       extrasImported += res.extrasImported || 0; extrasSkipped += res.extrasSkipped || 0;
+      canvasImported += res.canvasImported || 0; canvasSkipped += res.canvasSkipped || 0;
     }
     await syncCategories();
     if (state.view === 'thoughts') await loadThoughts();
@@ -973,7 +986,7 @@ async function importData(file) {
     if (state.view === 'finance') await loadFinance();
     if (state.view === 'life') await loadLife();
     if (state.view === 'radar') await loadRadar();
-    toast(`${imported} vídeos, ${thoughtsImported} reflexões, ${tipsImported} dicas, ${financeImported} itens financeiros e ${extrasImported} registros pessoais importados; ${skipped + thoughtsSkipped + tipsSkipped + financeSkipped + extrasSkipped} já existentes/ignorados.`);
+    toast(`${imported} vídeos, ${thoughtsImported} reflexões, ${tipsImported} dicas, ${financeImported} itens financeiros e ${extrasImported} registros pessoais, ${canvasImported} quadros visuais importados; ${skipped + thoughtsSkipped + tipsSkipped + financeSkipped + extrasSkipped + canvasSkipped} já existentes/ignorados.`);
   } catch (e) { toast(e.message, true); }
   finally { $('importFile').value = ''; }
 }
@@ -1050,7 +1063,7 @@ function bindEvents() {
     const element=e.target.closest('button,a[href],input[type="file"],[data-guest-action]');
     if(!element || element.closest('#loginOverlay,#guestBanner'))return;
     if(element.closest('[data-view],[data-go],[data-cat]'))return;
-    if(element.closest('.view-mode-switch'))return;
+    if(element.closest('.view-mode-switch,[data-canvas-view]'))return;
     if(element.closest('.tips-presets')){
       e.preventDefault();e.stopImmediatePropagation();
       const selected=element.closest('[data-tip-context]');
@@ -1190,6 +1203,7 @@ function wipePreviousAccount() {
   resetAtlasUI();
   document.body.classList.remove('finance-mode');
   resetFinance();
+  resetCanvas();
   state.videos=[];state.homeVideos=[];state.categories=[];
   state.thoughts=[];state.tips=[];state.total=0;state.offset=0;
   state.editId=null;state.tipEditId=null;state.thoughtEditId=null;
@@ -1229,6 +1243,7 @@ async function start() {
   bindEvents();
   resetChatConversation();
   setupFinance({ api, toast, isGuest:()=>state.guest, requireAccount:()=>showAccountGate() });
+  setupCanvas({api,toast,isGuest:()=>state.guest,requireAccount:()=>showAccountGate()});
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
   try {
     const session=await api('/api/session');

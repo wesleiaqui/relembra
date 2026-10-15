@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/dark-palettes.css">
   <link rel="stylesheet" href="/dark-neutral-fix.css">
   <link rel="stylesheet" href="/guest-preview.css">
+  <link rel="stylesheet" href="/canvas.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -40,6 +41,7 @@
         <button class="nav-item" data-view="life"><span class="nav-icon">◫</span> Calendário da vida</button>
         <button class="nav-item" data-view="tips"><span class="nav-icon">✦</span> Dicas para o momento <span class="nav-new">NOVO</span></button>
         <button class="nav-item" data-view="finance"><span class="nav-icon">◈</span> Minhas finanças</button>
+        <button class="nav-item" data-view="canvas"><span class="nav-icon">⤧</span> Canvas Visual <span class="nav-new">NOVO</span></button>
       </nav>
       <div class="side-separator"></div>
       <div class="category-heading"><span class="nav-caption">COLEÇÕES</span><button title="Adicionar coleção" aria-label="Adicionar categoria" id="addCategoryBtn" class="tiny-btn">+</button></div>
@@ -342,6 +344,53 @@
           </div>
           <div class="life-old-journal"><div><strong>Suas reflexões antigas continuam guardadas</strong><p>O diário anterior não foi apagado. Você pode consultá-lo sempre que quiser.</p></div><button type="button" class="button button-outline" id="lifeOldDiary">Abrir diário anterior</button></div>
         </section>
+        <section id="canvasView" class="view canvas-view" hidden>
+          <header class="canvas-titlebar">
+            <div><div class="eyebrow">ORGANIZE SUAS IDEIAS VISUALMENTE</div><h1>Canvas <em>Visual.</em></h1><p>Conecte ideias, planeje projetos e envie tarefas ao Radar.</p></div>
+            <div class="canvas-title-actions"><span id="canvasSaveState" role="status">Preparando Canvas...</span><button id="canvasSaveNow" class="button button-outline" type="button">Salvar</button><button class="button button-primary" id="canvasCreateBoard" type="button">＋ Novo quadro</button></div>
+          </header>
+          <div class="canvas-toolbar" role="toolbar" aria-label="Ferramentas do mapa visual">
+            <label class="canvas-board-picker"><span>Quadro</span><select id="canvasBoardSelect" aria-label="Escolher quadro"></select></label>
+            <label class="canvas-board-rename"><span>Nome</span><input id="canvasBoardTitle" type="text" maxlength="100" placeholder="Nome do quadro" aria-label="Renomear quadro"></label>
+            <button type="button" class="canvas-tool" id="canvasAddNote" title="Adicionar anotação">＋ Nota</button>
+            <button type="button" class="canvas-tool" id="canvasAddTask" title="Adicionar tarefa">☑ Tarefa</button>
+            <button type="button" class="canvas-tool" id="canvasAddLink" title="Adicionar link">↗ Link</button>
+            <button type="button" class="canvas-tool" id="canvasAddGroup" title="Adicionar grupo">▣ Grupo</button>
+            <button type="button" class="canvas-tool canvas-tool-danger" id="canvasRemoveBoard" title="Excluir quadro">Excluir quadro</button>
+          </div>
+          <div class="canvas-layout">
+            <div class="canvas-viewport" id="canvasViewport" tabindex="0" aria-label="Área visual do mapa. Arraste o fundo para mover, use a roda do mouse para aproximar ou afastar.">
+              <div class="canvas-world" id="canvasWorld">
+                <svg class="canvas-edges" id="canvasEdges" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+                <div class="canvas-nodes" id="canvasNodes"></div>
+              </div>
+              <div class="canvas-viewport-hint">Arraste o fundo para navegar · Roda do mouse para zoom · Clique no cartão para editar</div>
+              <div class="canvas-zoom" role="group" aria-label="Zoom do Canvas">
+                <button type="button" id="canvasZoomOut" data-canvas-view aria-label="Diminuir zoom">−</button>
+                <span id="canvasZoomLevel">100%</span>
+                <button type="button" id="canvasZoomIn" data-canvas-view aria-label="Aumentar zoom">＋</button>
+                <button type="button" id="canvasFit" data-canvas-view title="Restaurar visualização">Recentrar</button>
+              </div>
+              <div class="canvas-empty" id="canvasEmpty" hidden><span class="canvas-empty-icon">⤧</span><h2>Comece com uma ideia.</h2><p>Crie um quadro e organize livremente seus planos, tarefas e referências.</p><button id="canvasEmptyCreate" class="button button-primary" type="button">Criar meu primeiro quadro</button></div>
+            </div>
+            <aside class="canvas-inspector" id="canvasInspector" aria-label="Editar cartão selecionado" hidden>
+              <div class="canvas-inspector-head"><span class="eyebrow" id="canvasNodeType">Anotação</span><h2>Editar cartão</h2></div>
+              <label>Título<input id="canvasNodeTitle" maxlength="120" type="text" placeholder="Título"></label>
+              <label>Descrição<textarea id="canvasNodeBody" rows="5" maxlength="2200" placeholder="Escreva suas ideias..."></textarea></label>
+              <label>Cor<input id="canvasNodeColor" type="color" value="#4d8896"></label>
+              <div class="canvas-dimensions"><label>Largura<input id="canvasNodeWidth" type="number" min="180" max="1000" step="10" aria-label="Largura do cartão"></label><label>Altura<input id="canvasNodeHeight" type="number" min="108" max="900" step="10" aria-label="Altura do cartão"></label></div>
+              <label id="canvasNodeUrlWrap" hidden>Link (HTTPS)<input id="canvasNodeUrl" type="url" maxlength="2048" placeholder="https://..."></label>
+              <div class="canvas-task-fields" id="canvasNodeTaskWrap" hidden>
+                <label>Vencimento<input id="canvasNodeDue" type="date"></label>
+                <label>Prioridade<select id="canvasNodePriority"><option value="1">Alta</option><option value="2">Normal</option><option value="3">Baixa</option></select></label>
+              </div>
+              <button class="button button-outline" type="button" id="canvasConnect">↗ Conectar a outro cartão</button>
+              <button class="button button-primary" type="button" id="canvasTaskLink" hidden>↗ Enviar tarefa ao Radar</button>
+              <button class="button button-outline canvas-inspector-delete" id="canvasDeleteNode" type="button">Excluir cartão</button>
+              <small>As alterações são salvas automaticamente. As tarefas vinculadas aparecem também no Radar.</small>
+            </aside>
+          </div>
+        </section>
         <section id="financeView" class="view" hidden><div id="financeRoot" aria-live="polite"></div></section>
         <section id="backupView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">CONTROLE DOS SEUS DADOS</div><h1>Backup e restauração</h1><p>Leve sua biblioteca com você. Seus dados são seus.</p></div></div>
@@ -491,6 +540,7 @@
             <button type="button" data-atlas-route="life"><span>✧</span> Calendário da vida</button>
             <button type="button" data-atlas-route="tips"><span>✦</span> Minhas dicas</button>
             <button type="button" data-atlas-route="finance"><span>◇</span> Minhas finanças</button>
+            <button type="button" data-atlas-route="canvas"><span>⤧</span> Canvas Visual</button>
           </div>
         </div>
         <div class="atlas-command-section"><div class="atlas-command-result-head">Pesquisar no Chat <small>Sem acesso separado aos seus dados</small></div><div id="atlasCommandResults" aria-live="polite"><p>Digite duas ou mais letras para buscar em suas informações salvas.</p></div></div>

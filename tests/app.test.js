@@ -20,6 +20,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0010_bill_payment_details.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0011_recurring_monthly_bills.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0012_companion.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0013_canvas_visual.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -1399,4 +1400,108 @@ test('modo escuro não contém violeta ou lilás e mantém cores semânticas',()
     assert.ok(!(hue>=233&&hue<=310&&max>.2&&delta/(max||1)>.13),
       'A cor #'+hex+' reintroduziu roxo/lilás no escuro');
   }
+});
+
+
+test('Canvas: API exige sessão, quadros isolados e salvamento com revisão',async()=>{
+  const {req,env}=setup();
+  assert.equal((await req('/api/canvas')).status,401);
+  assert.equal((await req('/api/canvas','POST',{title:'Tentativa visitante'})).status,401);
+  assert.equal((await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'})).status,200);
+  const created=await req('/api/canvas','POST',{title:'Plano de estudos'});
+  assert.equal(created.status,201);
+  const boardId=created.data.board.id;
+  assert.equal(created.data.board.revision,1);
+  assert.deepEqual(created.data.board.snapshot,{nodes:[],edges:[]});
+  assert.equal((await req('/api/canvas')).data.boards[0].title,'Plano de estudos');
+  const noteId=crypto.randomUUID(),taskId=crypto.randomUUID(),groupId=crypto.randomUUID(),edgeId=crypto.randomUUID();
+  const due=new Date().toISOString().slice(0,10);
+  const snapshot={nodes:[
+    {id:groupId,type:'group',x:30,y:50,width:500,height:360,title:'Meu plano',body:'Projetos importantes',color:'#278a69'},
+    {id:noteId,type:'note',x:75,y:125,width:240,height:165,title:'Aprender SQL',body:'SELECT, JOIN e índices',color:'#4d8896'},
+    {id:taskId,type:'task',x:380,y:125,width:245,height:160,title:'Revisar exercícios',body:'Uma hora',due_date:due,priority:1,done:false,color:'#b78050'}
+  ],edges:[{id:edgeId,from:noteId,to:taskId,label:''}]};
+  const updated=await req('/api/canvas/'+boardId,'PUT',{title:'Plano visual',revision:1,snapshot});
+  assert.equal(updated.status,200);
+  assert.equal(updated.data.revision,2);
+  const loaded=await req('/api/canvas/'+boardId);
+  assert.equal(loaded.data.board.snapshot.nodes.length,3);
+  assert.equal(loaded.data.board.snapshot.edges[0].from,noteId);
+  assert.equal((await req('/api/canvas/'+boardId,'PUT',{title:'Perdi',revision:1,snapshot})).status,409);
+  assert.equal((await req('/api/canvas/'+boardId,'PUT',{title:'Inválido',revision:2,snapshot:{
+    nodes:[snapshot.nodes[0],snapshot.nodes[0]],edges:[]}})).status,400);
+  assert.equal((await req('/api/canvas/'+boardId,'PUT',{title:'Inválido',revision:2,snapshot:{
+    nodes:[{...snapshot.nodes[1],type:'link',url:'javascript:alert(1)'}],edges:[]}})).status,400);
+  const member=await req('/api/register','POST',{username:'membrocanvas',password:'senha-muito-segura-123'});
+  assert.equal(member.status,201);
+  assert.deepEqual((await req('/api/canvas')).data.boards,[]);
+  assert.equal((await req('/api/canvas/'+boardId)).status,404);
+  assert.equal((await req('/api/canvas/'+boardId,'PUT',{title:'Ataque',revision:2,snapshot})).status,404);
+  assert.equal((await req('/api/canvas/'+boardId,'DELETE')).status,404);
+  assert.equal((await req('/api/canvas/'+boardId+'/tasks','POST',{nodeId:taskId})).status,404);
+  const memberBoard=await req('/api/canvas','POST',{title:'Quadro particular'});
+  assert.equal(memberBoard.status,201);
+  assert.notEqual(memberBoard.data.board.id,boardId);
+  assert.equal((await req('/api/login','POST',{username:'principal',password:'um-passphrase-longo-de-verdade'})).status,200);
+  assert.equal((await req('/api/canvas')).data.boards.length,1);
+  assert.equal((await req('/api/canvas/'+memberBoard.data.board.id)).status,404);
+});
+test('Canvas: vínculo real com Radar, conclusão compartilhada e exclusão sem perder tarefa',async()=>{
+  const {req,env}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const id=(await req('/api/canvas','POST',{title:'Minhas prioridades'})).data.board.id;
+  const nodeId=crypto.randomUUID();
+  const due=new Date().toISOString().slice(0,10);
+  const snapshot={nodes:[{
+    id:nodeId,type:'task',x:100,y:200,width:260,height:160,
+    title:'Enviar currículo',body:'Tarefa ligada ao Radar',color:'#278a69',
+    due_date:due,priority:1,done:false
+  }],edges:[]};
+  assert.equal((await req('/api/canvas/'+id+'/tasks','POST',{nodeId})).status,404);
+  assert.equal((await req('/api/canvas/'+id,'PUT',{title:'Minhas prioridades',revision:1,snapshot})).status,200);
+  const linked=await req('/api/canvas/'+id+'/tasks','POST',{nodeId});
+  assert.equal(linked.status,201);
+  const taskId=linked.data.task_id;
+  assert.match(taskId,/^[0-9a-f-]{36}$/);
+  const duplicate=await req('/api/canvas/'+id+'/tasks','POST',{nodeId});
+  assert.equal(duplicate.status,200);
+  assert.equal(duplicate.data.task_id,taskId);
+  const radar=await req('/api/radar');
+  assert.ok(radar.data.tasks.some(t=>t.id===taskId && t.title==='Enviar currículo'));
+  assert.equal((await req('/api/radar/tasks/'+taskId,'PATCH',{done:true})).status,200);
+  const board=(await req('/api/canvas/'+id)).data;
+  assert.equal(board.links.length,1);
+  assert.equal(board.links[0].task_id,taskId);
+  assert.ok(board.links[0].done_at);
+  assert.equal((await req('/api/canvas/'+id,'DELETE')).status,200);
+  assert.equal((await req('/api/canvas/'+id)).status,404);
+  const preserved=await env.DB.prepare('SELECT id FROM radar_tasks WHERE id=?').bind(taskId).first();
+  assert.ok(preserved);
+});
+
+
+test('Canvas entra no backup completo e restaura mapas e vínculos do próprio usuário',async()=>{
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const id=(await req('/api/canvas','POST',{title:'Meu mapa para backup'})).data.board.id;
+  const nodeId=crypto.randomUUID();
+  const snapshot={nodes:[{id:nodeId,type:'task',x:55,y:88,width:270,height:170,
+    title:'Uma tarefa do mapa',body:'Preservada no backup',color:'#4d8896',
+    due_date:new Date().toISOString().slice(0,10),priority:2,done:false}],edges:[]};
+  assert.equal((await req('/api/canvas/'+id,'PUT',{title:'Meu mapa para backup',revision:1,snapshot})).status,200);
+  const link=await req('/api/canvas/'+id+'/tasks','POST',{nodeId});
+  assert.equal(link.status,201);
+  const backup=(await req('/api/export')).data;
+  assert.equal(backup.canvases.length,1);
+  assert.equal(backup.canvases[0].task_links[0].task_id,link.data.task_id);
+  assert.equal((await req('/api/canvas/'+id,'DELETE')).status,200);
+  const restore=await req('/api/import','POST',{canvases:backup.canvases});
+  assert.equal(restore.status,200);
+  assert.equal(restore.data.canvasImported,1);
+  const returned=(await req('/api/canvas/'+id)).data;
+  assert.equal(returned.board.snapshot.nodes[0].title,'Uma tarefa do mapa');
+  assert.equal(returned.links.length,1);
+  assert.equal(returned.links[0].task_id,link.data.task_id);
+  const again=await req('/api/import','POST',{canvases:backup.canvases});
+  assert.equal(again.data.canvasSkipped,1);
 });
