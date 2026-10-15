@@ -1615,8 +1615,10 @@ test('administração: apenas dono acessa diretório e painéis de membros, com 
   assert.equal(users.users[0].password_hash,undefined);
   assert.equal(users.users[0].password_salt,undefined);
   const id=users.users[0].id;
+  const memberCategories=(await call('/api/categories','GET',null,memberCookie)).data.categories;
+  const category=memberCategories.find(c=>c.name==='Culinária')?.id||memberCategories[0]?.id;
   const video=await call('/api/videos','POST',{
-    ...vid,url:'https://www.instagram.com/reel/AdminMember01/'
+    ...vid,category,url:'https://www.instagram.com/reel/AdminMember01/'
   },memberCookie);
   assert.equal(video.status,201);
   const before=(await call('/api/admin/audit','GET',null,ownerCookie)).data.audit.length;
