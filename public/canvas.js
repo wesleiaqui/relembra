@@ -400,7 +400,7 @@ async function listBoards(){
   const result=await api('/api/canvas');boards=result.boards;
   paintBoardNames();
   if(!boards.length){
-    board=null;selected=null;$('canvasBoardTitle').value='';draw();setStatus('Crie seu primeiro mapa mental');
+    board=null;selected=null;$('canvasBoardTitle').value='';paintBoardNames();draw();setStatus('Crie seu primeiro mapa mental');
     $('canvasEmpty').hidden=false;return;
   }
   $('canvasEmpty').hidden=true;
@@ -756,7 +756,12 @@ function bindCanvasEvents(){
       if(!e.target.closest('[data-canvas-drag]'))return;
       if(!ensureWrite())return;
       const n=nodeById(id);
-      gesture={kind:'node',id,x:e.clientX,y:e.clientY,startX:n.x,startY:n.y,moved:false};
+      const contained=n.type==='group'?snap().nodes.filter(other=>
+        other.id!==n.id&&other.type!=='group'&&
+        other.x>=n.x&&other.y>=n.y&&
+        other.x+other.width<=n.x+n.width&&other.y+other.height<=n.y+n.height
+      ).map(other=>({id:other.id,x:other.x,y:other.y})):[];
+      gesture={kind:'node',id,x:e.clientX,y:e.clientY,startX:n.x,startY:n.y,contained,moved:false};
     }else{
       closeQuickCreate();selected=null;selectedEdge=null;drawInspector();
       $('canvasEdgeEditor').hidden=true;
@@ -786,6 +791,13 @@ function bindCanvasEvents(){
     n.y=Math.round(bounds(gesture.startY+dy/zoom,-100000,100000));
     const el=$('canvasNodes').querySelector('[data-canvas-node="'+n.id+'"]');
     if(el){el.style.left=n.x+'px';el.style.top=n.y+'px';}
+    for(const child of gesture.contained||[]){
+      const inside=nodeById(child.id);if(!inside)continue;
+      inside.x=Math.round(bounds(child.x+dx/zoom,-100000,100000));
+      inside.y=Math.round(bounds(child.y+dy/zoom,-100000,100000));
+      const dom=$('canvasNodes').querySelector('[data-canvas-node="'+child.id+'"]');
+      if(dom){dom.style.left=inside.x+'px';dom.style.top=inside.y+'px';}
+    }
     updateEdges();
   });
   const finishPointer=(e,cancel=false)=>{
@@ -884,6 +896,7 @@ export function resetCanvas(){
   saving=false;editEpoch=0;savedEpoch=0;conflicted=false;
   selectedEdge=null;connectFrom=null;connectDraft=null;
   if(initialized){
+    $('canvasWorkspaceBar').dataset.hasMap='false';
     $('canvasCreateOverlay').hidden=true;
     $('canvasAIDialog').hidden=true;
     closeVideoDialog();
