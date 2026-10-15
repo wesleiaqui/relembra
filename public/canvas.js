@@ -27,11 +27,97 @@ export const exampleCanvas=()=>({
   ]
 });
 let api,toast,guest,gate;
-let board=null,boards=[],links=new Map(),selected=null,connectFrom=null,zoom=1,offset={x:90,y:64};
+let board=null,boards=[],links=new Map(),selected=null,selectedEdge=null,connectFrom=null,zoom=1,offset={x:90,y:64};
+let quickPosition=null,connectDraft=null;
 let saveTimer=null,saving=false,editEpoch=0,savedEpoch=0,conflicted=false,initialized=false;
 const viewer=()=>$('canvasViewport');
 const snap=()=>board?.snapshot;
 const nodeById=id=>snap()?.nodes.find(n=>n.id===id);
+
+export function canvasWorldPoint(clientX,clientY,rect,origin,scale){
+  return {x:(clientX-rect.left-origin.x)/scale,y:(clientY-rect.top-origin.y)/scale};
+}
+export function canvasCanConnect(nodes,edges,from,to){
+  return from!==to && nodes.some(n=>n.id===from) && nodes.some(n=>n.id===to)
+    && !edges.some(e=>e.from===from&&e.to===to);
+}
+function worldPoint(x,y){return canvasWorldPoint(x,y,viewer().getBoundingClientRect(),offset,zoom);}
+function viewportPoint(p){return {x:p.x*zoom+offset.x,y:p.y*zoom+offset.y};}
+function closeQuickCreate(){
+  $('canvasQuickCreate').hidden=true;
+  $('canvasQuickTitle').value='';
+  quickPosition=null;
+}
+function openQuickCreate(clientX,clientY,from=null){
+  if(!ensureWrite()||!board)return;
+  const rect=viewer().getBoundingClientRect(),menu=$('canvasQuickCreate');
+  const px=bounds(clientX-rect.left,10,Math.max(10,rect.width-10));
+  const py=bounds(clientY-rect.top,10,Math.max(10,rect.height-10));
+  quickPosition={...worldPoint(clientX,clientY),from};
+  menu.hidden=false;
+  const menuWidth=Math.min(294,rect.width-20),menuHeight=Math.min(330,rect.height-20);
+  menu.style.left=bounds(px,10,Math.max(10,rect.width-menuWidth-10))+'px';
+  menu.style.top=bounds(py,10,Math.max(10,rect.height-menuHeight-10))+'px';
+  $('canvasQuickTitle').focus();
+}
+function closeConnection(){
+  connectDraft=null;
+  connectFrom=null;
+  viewer().classList.remove('is-connecting');
+  $('canvasNodes').querySelectorAll('.canvas-node.is-connect-target').forEach(n=>n.classList.remove('is-connect-target'));
+  updateEdges();
+}
+function nodePort(node,port){
+  const x=node.x,y=node.y,w=node.width,h=node.height;
+  return {top:{x:x+w/2,y},right:{x:x+w,y:y+h/2},bottom:{x:x+w/2,y:y+h},left:{x,y:y+h/2}}[port]||{x:x+w,y:y+h/2};
+}
+function choosePort(node,point){
+  const cx=node.x+node.width/2,cy=node.y+node.height/2;
+  return Math.abs((point.x-cx)/node.width)>Math.abs((point.y-cy)/node.height)
+    ?point.x<cx?'left':'right'
+    :point.y<cy?'top':'bottom';
+}
+export function canvasCurve(p,q,fromPort=null,toPort=null){
+  const horizontal=fromPort?['left','right'].includes(fromPort):Math.abs(q.x-p.x)>=Math.abs(q.y-p.y);
+  if(horizontal){
+    const dx=Math.max(45,Math.min(190,Math.abs(q.x-p.x)*.5));
+    const sign=fromPort==='left'?-1:fromPort==='right'?1:q.x>p.x?1:-1;
+    const targetSign=toPort==='left'?-1:toPort==='right'?1:sign;
+    return 'M'+p.x+','+p.y+' C'+(p.x+sign*dx)+','+p.y+' '+(q.x+targetSign*dx)+','+q.y+' '+q.x+','+q.y;
+  }
+  const dy=Math.max(45,Math.min(190,Math.abs(q.y-p.y)*.5));
+  const sign=fromPort==='top'?-1:fromPort==='bottom'?1:q.y>p.y?1:-1;
+  const targetSign=toPort==='top'?-1:toPort==='bottom'?1:sign;
+  return 'M'+p.x+','+p.y+' C'+p.x+','+(p.y+sign*dy)+' '+q.x+','+(q.y+targetSign*dy)+' '+q.x+','+q.y;
+}
+function createConnection(from,to){
+  if(!board||!canvasCanConnect(snap().nodes,snap().edges,from,to))return false;
+  if(snap().edges.length>=400){toast('Limite de 400 conexões por quadro.',true);return false;}
+  snap().edges.push({id:crypto.randomUUID(),from,to,label:''});
+  selectedEdge=null;dirty();draw();return true;
+}
+function selectEdge(id){selected=null;selectedEdge=id;draw();}
+function edgeMidpoint(edge){
+  const a=nodeById(edge.from),b=nodeById(edge.to);
+  if(!a||!b)return {x:0,y:0};
+  const p=endpoint(a,b),q=endpoint(b,a);
+  return viewportPoint({x:(p.x+q.x)/2,y:(p.y+q.y)/2});
+}
+function positionEdgeEditor(){
+  const editor=$('canvasEdgeEditor'),edge=snap()?.edges.find(e=>e.id===selectedEdge);
+  editor.hidden=!edge;
+  if(!edge)return;
+  const rect=viewer().getBoundingClientRect(),point=edgeMidpoint(edge);
+  editor.style.left=bounds(point.x-104,10,Math.max(10,rect.width-218))+'px';
+  editor.style.top=bounds(point.y-72,10,Math.max(10,rect.height-110))+'px';
+  if(document.activeElement!==$('canvasEdgeLabel'))$('canvasEdgeLabel').value=edge.label||'';
+}
+function removeEdge(){
+  if(!selectedEdge||!ensureWrite())return;
+  snap().edges=snap().edges.filter(e=>e.id!==selectedEdge);
+  selectedEdge=null;dirty();draw();
+}
+
 function setStatus(message,kind=''){
   $('canvasSaveState').textContent=message;
   $('canvasSaveState').dataset.state=kind;
