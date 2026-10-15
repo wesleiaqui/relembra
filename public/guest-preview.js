@@ -124,7 +124,7 @@ export function renderGuestPreview(view){
     $('tipsStatFavorites').textContent='1';
     $('tipsStatContexts').textContent='3';
     const demoCounts={'all':3,'Conversar':1,'Foco e produtividade':1,'Para mim':1};
-    document.querySelectorAll?.('.tips-presets .tips-preset').forEach(button=>{
+    document.querySelectorAll?.('.tips-presets .tips-preset')?.forEach(button=>{
       const count=button.querySelector('.tips-preset-count');
       if(count)count.textContent=String(demoCounts[button.dataset.tipContext]||0);
     });
