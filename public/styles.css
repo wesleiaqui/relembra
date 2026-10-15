@@ -389,3 +389,18 @@
 .motivation-advice-foot button{background:none;border:0;padding:4px;color:#bdc7ff;font-size:11px;font-weight:750;cursor:pointer;}
 .motivation-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 24px;border-top:1px solid #35496d;}
 @media(max-width:700px){.motivation-home-cta{align-items:flex-start;flex-direction:column;padding:19px;}.motivation-home-cta>.button{white-space:normal;}.tips-hero-actions{width:100%;}.motivation-dialog{border-radius:17px 17px 0 0;max-height:94dvh;width:100%;}.motivation-dialog-inner{padding:15px;}.motivation-moments{grid-template-columns:1fr;gap:8px;}.motivation-footer{padding:13px 15px;}.motivation-footer .button{flex:1;}}
+
+
+/* Verificação de cadastro: acompanha modo claro/escuro sem alterar login. */
+.register-turnstile-wrap[hidden]{display:none}
+.register-turnstile-wrap{
+  display:grid;justify-items:center;gap:9px;padding:14px 8px;
+  border:1px solid var(--stroke,#dfe5ee);border-radius:12px;
+  background:var(--panel2,#f7f8fc);margin:12px 0 14px;
+}
+.register-turnstile-wrap #registerTurnstile{max-width:100%}
+.register-turnstile-wrap p{margin:0;font-size:11px;line-height:1.55;text-align:center;color:var(--muted,#67758a)}
+#accountSessionPanel[hidden]{display:none}
+#accountSessionPanel .button{flex:none;align-self:center;min-height:42px}
+@media(max-width:750px){#accountSessionPanel{flex-direction:column;align-items:stretch}
+#accountSessionPanel .button{align-self:stretch}}
