@@ -184,21 +184,47 @@ function endpoint(node,other){
   return {x:cx,y:cy+(oy>cy?node.height/2:-node.height/2)};
 }
 function updateEdges(){
-  const svg=$('canvasEdges');
-  svg.replaceChildren();
+  const svg=$('canvasEdges');svg.replaceChildren();
   if(!board)return;
+  const ns='http://www.w3.org/2000/svg';
+  const defs=document.createElementNS(ns,'defs');
+  const marker=document.createElementNS(ns,'marker');
+  marker.setAttribute('id','canvasArrow');marker.setAttribute('markerWidth','9');marker.setAttribute('markerHeight','9');
+  marker.setAttribute('refX','8');marker.setAttribute('refY','4.5');marker.setAttribute('orient','auto');
+  marker.setAttribute('markerUnits','userSpaceOnUse');
+  const tip=document.createElementNS(ns,'path');
+  tip.setAttribute('d','M1 1 L8 4.5 L1 8 z');tip.setAttribute('class','canvas-arrow-tip');
+  marker.append(tip);defs.append(marker);svg.append(defs);
   for(const edge of snap().edges){
     const a=nodeById(edge.from),b=nodeById(edge.to);
     if(!a||!b)continue;
-    const p=endpoint(a,b),q=endpoint(b,a);
-    const curve=Math.max(40,Math.min(180,Math.abs(q.x-p.x)*.45));
-    const isHorizontal=Math.abs(q.x-p.x)>=Math.abs(q.y-p.y);
-    const d=isHorizontal
-      ?`M${p.x},${p.y} C${p.x+(q.x>p.x?curve:-curve)},${p.y} ${q.x+(q.x>p.x?-curve:curve)},${q.y} ${q.x},${q.y}`
-      :`M${p.x},${p.y} C${p.x},${p.y+(q.y>p.y?curve:-curve)} ${q.x},${q.y+(q.y>p.y?-curve:curve)} ${q.x},${q.y}`;
-    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',d);path.setAttribute('class','canvas-edge-line');svg.append(path);
+    const p=endpoint(a,b),q=endpoint(b,a),d=canvasCurve(p,q);
+    const visible=document.createElementNS(ns,'path');
+    visible.setAttribute('d',d);visible.setAttribute('class','canvas-edge-line'+(selectedEdge===edge.id?' is-selected':''));
+    visible.setAttribute('marker-end','url(#canvasArrow)');svg.append(visible);
+    const hit=document.createElementNS(ns,'path');
+    hit.setAttribute('d',d);hit.setAttribute('class','canvas-edge-hit');
+    hit.dataset.canvasEdge=edge.id;hit.setAttribute('aria-label','Editar conexão');svg.append(hit);
+    if(edge.label){
+      const label=document.createElementNS(ns,'text');
+      label.setAttribute('x',String((p.x+q.x)/2));
+      label.setAttribute('y',String((p.y+q.y)/2-12));
+      label.setAttribute('class','canvas-edge-label');
+      label.textContent=edge.label;svg.append(label);
+    }
   }
+  if(connectDraft){
+    const start=nodeById(connectDraft.from);
+    if(start){
+      const p=nodePort(start,connectDraft.port);
+      const dest=connectDraft.targetId?nodeById(connectDraft.targetId):null;
+      const q=dest?nodePort(dest,choosePort(dest,p)):(connectDraft.point||p);
+      const preview=document.createElementNS(ns,'path');
+      preview.setAttribute('d',canvasCurve(p,q,connectDraft.port));
+      preview.setAttribute('class','canvas-edge-preview');svg.append(preview);
+    }
+  }
+  positionEdgeEditor();
 }
 function cardHtml(n){
   const selectedClass=selected===n.id?' is-selected':'';
