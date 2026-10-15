@@ -1695,7 +1695,9 @@ test('página de administração não fornece função de edição nem sessão d
   assert.match(html,/id="myAdminConsentToggle"/);
   assert.match(js,/myAdminConsentToggle/);
   assert.match(js,/readonly!==true/);
-  assert.doesNotMatch(js,/method:\s*'PUT'|method:\s*'DELETE'|method:\s*'PATCH'/);
+  assert.equal((js.match(/method:\s*'PUT'/g)||[]).length,1); // Apenas alterar a própria autorização
+  assert.match(js,/\/api\/account\/admin-view-consent/);
+  assert.doesNotMatch(js,/method:\s*'DELETE'|method:\s*'PATCH'/);
   assert.match(workerSrc,/handleAdministration\(request,env,user\)/);
 });
 
