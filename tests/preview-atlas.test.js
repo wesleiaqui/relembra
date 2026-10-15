@@ -29,11 +29,13 @@ test('calendário visitante usa a mesma estrutura da conta real e semanas distin
 
 test('prévia oferece exemplos de Instagram sem dados privados e sem embeds remotos',()=>{
   const js=read('guest-preview.js');
-  assert.match(js,/instagramExample\('Receita rápida no Instagram'/);
-  assert.match(js,/instagramExample\('Roteiro de viagem · Instagram'/);
-  assert.match(js,/INSTAGRAM · REEL/);
-  assert.match(js,/EXEMPLO FICTÍCIO/);
-  assert.doesNotMatch(js,/<iframe|instagram\.com\//);
+  assert.match(js,/https:\/\/www\.instagram\.com\/reel\/Dboi557ocop\//);
+  assert.match(js,/https:\/\/www\.instagram\.com\/reel\/Dboi557ocop\/embed\//);
+  assert.match(js,/INSTAGRAM · EXEMPLO REAL/);
+  assert.match(js,/sandbox="allow-scripts/);
+  assert.match(js,/loading="lazy"/);
+  assert.match(js,/data-guest-action/);
+  assert.doesNotMatch(js,/EXEMPLO FICTÍCIO/);
   const css=read('guest-preview.css');
   assert.match(css,/\.guest-reel-screen/);
   assert.match(css,/\.guest-reel-play/);
