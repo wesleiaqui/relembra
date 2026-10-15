@@ -114,11 +114,9 @@
               <div class="home-work-heading"><div><span class="home-overline">O QUE IMPORTA AGORA</span><h2 id="homeTodayTitle">Prioridades do dia</h2></div><span class="home-date" id="homeDate"></span></div>
               <form id="homeQuickTaskForm" class="home-quick-task" aria-label="Adicionar tarefa rápida">
                 <div class="home-quick-task-input"><span class="home-quick-add-icon" aria-hidden="true">＋</span>
-                  <label for="homeQuickTaskTitle" class="sr-only">O que precisa fazer?</label>
-                  <input id="homeQuickTaskTitle" name="title" required maxlength="160" placeholder="O que você precisa fazer?">
+                  <input id="homeQuickTaskTitle" name="title" required maxlength="160" aria-label="Título da tarefa rápida" placeholder="O que você precisa fazer?">
                 </div>
-                <label for="homeQuickTaskDate" class="sr-only">Data de vencimento</label>
-                <input id="homeQuickTaskDate" name="due_date" type="date" required title="Data de vencimento">
+                <input id="homeQuickTaskDate" name="due_date" type="date" required aria-label="Data de vencimento" title="Data de vencimento">
                 <button type="submit" class="button button-primary">Adicionar</button>
               </form>
               <div id="homeRadar" class="home-priorities" aria-live="polite"><p class="home-placeholder">Preparando suas prioridades...</p></div>
