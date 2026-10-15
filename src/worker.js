@@ -910,5 +910,9 @@ export default {
       response=error(e instanceof Error && ['Informações do vídeo inválidas.', 'Informe um link HTTP ou HTTPS válido.', 'Dê um título ao vídeo.', 'JSON inválido.', 'O arquivo ou texto é muito grande.'].includes(e.message) ? e.message : 'Erro ao processar a solicitação. Verifique sua conexão ou configuração.', 400);
     }
     return secureResponse(response);
+  },
+  async scheduled(_event,env){
+    if(!env.DB)return;
+    await cleanupExpiredAdminAudits(env);
   }
 };
