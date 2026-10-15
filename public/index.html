@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="/mental-maps.css">
   <link rel="stylesheet" href="/atlas-light-parity.css">
   <link rel="stylesheet" href="/admin.css">
+  <link rel="stylesheet" href="/workspace-visual-refinement.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -101,17 +102,24 @@
             <div><div class="eyebrow">✦ SEU ESPAÇO PESSOAL</div><h1 id="homeGreeting">Seu dia, com mais clareza.</h1><p>As próximas ações, o que não pode esperar e seus aprendizados em um só lugar.</p></div>
             <button type="button" class="button button-outline" data-go="radar">Abrir radar completo <span aria-hidden="true">↗</span></button>
           </header>
+          <section id="homeSummary" class="home-summary" aria-label="Resumo do seu dia" aria-live="polite">
+            <div class="home-summary-item"><span class="home-summary-icon" aria-hidden="true">☑</span><div><strong id="homeSummaryTasks">—</strong><span>Tarefas pendentes</span></div></div>
+            <div class="home-summary-item"><span class="home-summary-icon" aria-hidden="true">◷</span><div><strong id="homeSummaryBills">—</strong><span>Contas próximas</span></div></div>
+            <div class="home-summary-item"><span class="home-summary-icon" aria-hidden="true">✓</span><div><strong id="homeSummaryHabits">—</strong><span>Hábitos concluídos</span></div></div>
+          </section>
           <div class="home-focus-grid">
             <section class="home-work-section home-work-primary" aria-labelledby="homeTodayTitle">
               <div class="home-work-heading"><div><span class="home-overline">O QUE IMPORTA AGORA</span><h2 id="homeTodayTitle">Prioridades do dia</h2></div><span class="home-date" id="homeDate"></span></div>
-              <div id="homeRadar" class="home-priorities" aria-live="polite"><p class="home-placeholder">Preparando suas prioridades...</p></div>
-              <form id="homeQuickTaskForm" class="home-quick-task">
-                <label for="homeQuickTaskTitle" class="sr-only">Adicionar tarefa rápida</label>
-                <input id="homeQuickTaskTitle" name="title" required maxlength="160" placeholder="+ Uma coisa que preciso resolver...">
+              <form id="homeQuickTaskForm" class="home-quick-task" aria-label="Adicionar tarefa rápida">
+                <div class="home-quick-task-input"><span class="home-quick-add-icon" aria-hidden="true">＋</span>
+                  <label for="homeQuickTaskTitle" class="sr-only">O que precisa fazer?</label>
+                  <input id="homeQuickTaskTitle" name="title" required maxlength="160" placeholder="O que você precisa fazer?">
+                </div>
                 <label for="homeQuickTaskDate" class="sr-only">Data de vencimento</label>
-                <input id="homeQuickTaskDate" name="due_date" type="date" required>
+                <input id="homeQuickTaskDate" name="due_date" type="date" required title="Data de vencimento">
                 <button type="submit" class="button button-primary">Adicionar</button>
               </form>
+              <div id="homeRadar" class="home-priorities" aria-live="polite"><p class="home-placeholder">Preparando suas prioridades...</p></div>
             </section>
             <div class="home-support-column">
               <section class="home-work-section home-bill-section" aria-labelledby="homeBillsTitle">
@@ -333,7 +341,7 @@
           <p class="companion-footnote">A idade de referência é apenas uma escolha visual para planejamento. Não é uma previsão de longevidade.</p>
           <div id="lifeOverview" class="life-overview"></div>
           <div class="life-layout">
-            <div class="life-calendar-panel"><div class="life-legend"><span><i class="life-dot lived"></i> Vividas</span><span><i class="life-dot present"></i> Atual</span><span><i class="life-dot saved"></i> Com lembranças</span><span><i class="life-dot future"></i> Referência futura</span></div><div id="lifeWeeks" class="life-weeks" aria-label="Semanas da vida"></div></div>
+            <div class="life-calendar-panel"><header class="life-grid-heading"><div><span class="eyebrow">SUAS SEMANAS</span><h2>Uma vida em perspectiva</h2><p>Selecione uma semana para guardar um momento.</p></div><span class="life-grid-tip">Cada quadrado é uma semana</span></header><div class="life-legend"><span><i class="life-dot lived"></i> Vividas</span><span><i class="life-dot present"></i> Atual</span><span><i class="life-dot saved"></i> Com lembranças</span><span><i class="life-dot future"></i> Referência futura</span></div><div id="lifeWeeks" class="life-weeks" aria-label="Semanas da vida"></div></div>
             <div class="life-moment-panel"><h2 id="lifeMomentHeading">Guarde um momento</h2><p>Você pode registrar algo de bom que aconteceu, uma conquista ou o que aprendeu.</p>
               <form id="lifeMomentForm" class="life-moment-form">
                 <input name="id" type="hidden">

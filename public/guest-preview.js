@@ -63,6 +63,9 @@ export function renderGuestLifeCalendar(){
 export function renderGuestPreview(view){
   if(view==='home'){
     $('homeGreeting').textContent='Sua segunda memória começa aqui.';
+    $('homeSummaryTasks').textContent='2';
+    $('homeSummaryBills').textContent='2';
+    $('homeSummaryHabits').textContent='1 / 3';
     $('homeRadar').innerHTML='<div class="home-empty-priority"><span aria-hidden="true">✦</span><strong>Planeje o que importa hoje</strong><p>Organize tarefas, prioridades e lembretes em um único lugar.</p></div>';
     $('homeBills').innerHTML='<div class="guest-home-preview"><strong>Contas e vencimentos</strong><span>Veja o que precisa pagar, sem perder nenhuma data.</span></div>';
     $('homeHabits').innerHTML='<div class="guest-home-preview"><strong>Rotinas e hábitos</strong><span>Acompanhe os hábitos e pequenas conquistas do dia.</span></div>';
