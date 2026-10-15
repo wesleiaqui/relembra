@@ -341,6 +341,7 @@ function bindCanvasEvents(){
     }else{
       if(e.target.closest('button,input,textarea'))return;
       selected=null;drawInspector();
+      $('canvasNodes').querySelectorAll('.canvas-node.is-selected').forEach(el=>el.classList.remove('is-selected'));
       gesture={kind:'pan',x:e.clientX,y:e.clientY,startX:offset.x,startY:offset.y,moved:false};
     }
     viewer().setPointerCapture?.(e.pointerId);
