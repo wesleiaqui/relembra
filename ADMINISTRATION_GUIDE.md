@@ -27,3 +27,18 @@ O recurso necessita da migração **migrations/0014_admin_observability.sql** an
 3. Abrir Finanças, confirmar a seção correspondente no histórico.
 4. Voltar à conta membro e consultar os registros de acesso em Backup e dados.
 5. Conferir atividade após login e após dez minutos sem heartbeat.
+
+
+## Revisão de segurança: acesso por consentimento
+
+As contas novas e existentes iniciam com **autorização administrativa desativada**. O administrador pode ver o diretório e métricas gerais de atividade, mas qualquer detalhamento privado (Visão geral, Biblioteca, Finanças, Anotações, Radar e Mapas) exige autorização explícita do próprio membro.
+
+O membro encontra o controle em **Backup e dados → Privacidade: acesso administrativo**. A ativação exige confirmação. A desativação impede novas consultas de conteúdo privado, sem alterar os registros anteriores; o servidor também revalida a autorização antes de entregar uma resposta em preparação.
+
+Cada mudança é registrada na tabela de auditoria de consentimento (conta, escolha e data/hora). Cada consulta administrativa autorizada gera um registro obrigatório; em caso de falha de auditoria, a resposta de conteúdo não é entregue.
+
+O proprietário está limitado a **120 consultas administrativas por hora** via contador atômico D1. Logs têm no máximo **2.000 registros por proprietário** e uma rotina diária no Cloudflare (03:00 UTC) exclui registros com mais de **90 dias**. Cada membro pode conferir seus 50 últimos acessos.
+
+A interface descarta respostas assíncronas de sessões anteriores ao trocar de conta ou sair, evitando que conteúdo privado reapareça no HTML. Valores recebidos de outros usuários são exibidos como texto, nunca interpretados como HTML.
+
+A migração **0015_admin_access_consent.sql** adiciona o controle revogável, desativado por padrão, sem apagar conteúdo anterior. A política de privacidade pública ainda deve esclarecer finalidade, limites de acesso e tratamento de dados conforme aplicável. Testes de código não substituem pentest externo.

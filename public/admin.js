@@ -2,6 +2,7 @@
 // e nunca reutiliza as rotas privadas de edição de membros.
 let api,toast,adminOwner=false,currentId=null,currentSection='overview',page=1,searchTimer=null,requestEpoch=0;
 let cachedUsers=[];
+let accessLoadEpoch=0,adminAuditEpoch=0,consentEpoch=0;
 const $=id=>document.getElementById(id);
 const date=value=>value?new Date(value).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'Ainda sem atividade registrada';
 const money=cents=>(Number(cents||0)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -115,6 +116,17 @@ function renderDashboard(result){
 async function openDashboard(id,section='overview'){
   if(!adminOwner)return;
   currentId=id;currentSection=section;
+  const selectedUser=cachedUsers.find(u=>u.id===id);
+  if(selectedUser && selectedUser.admin_view_consent!==true){
+    ++requestEpoch;
+    $('adminEmptyState').hidden=true;$('adminDetail').hidden=false;
+    $('adminDetailName').textContent='@'+selectedUser.username;
+    $('adminDetailAvatar').textContent=selectedUser.username[0]?.toUpperCase()||'U';
+    $('adminDetailStatus').textContent=timeStatus(selectedUser.last_seen_at);
+    $('adminDetailBody').replaceChildren(noData('Este usuário não autorizou o acesso administrativo ao painel. A autorização é opcional e pode ser concedida em Backup e dados. Os dados pessoais continuam protegidos.'));
+    $('adminTabs').querySelectorAll('[data-admin-section]').forEach(btn=>btn.setAttribute('aria-selected','false'));
+    return;
+  }
   const epoch=++requestEpoch;
   $('adminEmptyState').hidden=true;$('adminDetail').hidden=false;
   $('adminDetailBody').replaceChildren(element('p','admin-no-data','Abrindo painel somente leitura…'));
@@ -148,7 +160,8 @@ function renderUsers(data){
     const info=element('span','admin-user-info');
     info.append(element('strong','','@'+u.username),
       element('small','',timeStatus(u.last_seen_at)),
-      element('small','',''+(u.videos||0)+' vídeos · '+(u.maps||0)+' mapas'));
+      element('small','',''+(u.videos||0)+' vídeos · '+(u.maps||0)+' mapas'),
+      element('small','',u.admin_view_consent?'Acesso autorizado pelo usuário':'Painel privado · aguardando autorização'));
     const status=element('span',activeRecently(u.last_seen_at)?'admin-presence active':'admin-presence',
       activeRecently(u.last_seen_at)?'Recente':'Inativo');
     btn.append(avatar,info,status);
@@ -174,13 +187,16 @@ async function listUsers(){
   }
 }
 async function showAudit(){
+  if(!adminOwner)return;
+  const epoch=++adminAuditEpoch;
   const box=$('adminAuditList');box.hidden=false;box.replaceChildren(noData('Carregando histórico…'));
   try{
     const {audit}=await api('/api/admin/audit');
+    if(epoch!==adminAuditEpoch||!adminOwner)return;
     box.replaceChildren();
     box.append(group('Últimas consultas',audit,a=>record('@'+a.target_username,
       'Seção: '+a.section,date(a.created_at))));
-  }catch(e){box.replaceChildren(apiError(e.message));}
+  }catch(e){if(epoch===adminAuditEpoch&&adminOwner)box.replaceChildren(apiError(e.message));}
 }
 export function setupAdmin({api:client,toast:notify}){
   api=client;toast=notify;
@@ -195,6 +211,29 @@ export function setupAdmin({api:client,toast:notify}){
     if(currentId&&btn)void openDashboard(currentId,btn.dataset.adminSection);
   });
   $('adminShowAudit').addEventListener('click',()=>void showAudit());
+  $('myAdminConsentToggle').addEventListener('change',async e=>{
+    const requested=e.target.checked;
+    if(requested && !confirm('Permitir que o proprietário visualize suas informações pessoais, incluindo finanças, lembranças e anotações? Cada consulta será registrada e você poderá revogar a autorização.')){
+      e.target.checked=false;return;
+    }
+    const epoch=++consentEpoch;
+    e.target.disabled=true;
+    $('myAdminConsentStatus').textContent='Salvando sua preferência…';
+    try{
+      const state=await api('/api/account/admin-view-consent',{
+        method:'PUT',body:JSON.stringify({enabled:requested})
+      });
+      if(epoch!==consentEpoch||adminOwner)return;
+      e.target.checked=state.enabled===true;
+      $('myAdminConsentStatus').textContent=state.enabled?
+        'Acesso somente leitura autorizado. Você pode revogar a qualquer momento.':
+        'Acesso revogado. O administrador não poderá abrir novos painéis com seus dados pessoais.';
+    }catch(err){
+      if(epoch!==consentEpoch||adminOwner)return;
+      e.target.checked=!requested;
+      $('myAdminConsentStatus').textContent='Não foi possível salvar: '+err.message;
+    }finally{if(epoch===consentEpoch&&!adminOwner)e.target.disabled=false;}
+  });
 }
 export async function loadAdmin(){
   if(!adminOwner)return;
@@ -202,14 +241,33 @@ export async function loadAdmin(){
 }
 export async function showOwnAdminAccess(){
   if(adminOwner)return;
-  const section=$('myAdminAccess');section.hidden=false;
+  const epoch=++accessLoadEpoch;
+  const settingEpoch=++consentEpoch;
+  const section=$('myAdminAccess'),consent=$('myAdminConsent');
+  section.hidden=false;consent.hidden=false;
   const body=$('myAdminAccessList');body.replaceChildren(noData('Consultando histórico…'));
+  const toggle=$('myAdminConsentToggle');
+  toggle.disabled=true;$('myAdminConsentStatus').textContent='Consultando sua preferência…';
+  try{
+    const setting=await api('/api/account/admin-view-consent');
+    if(epoch!==accessLoadEpoch||settingEpoch!==consentEpoch||adminOwner)return;
+    toggle.checked=setting.enabled===true;
+    $('myAdminConsentStatus').textContent=setting.enabled?
+      'Você autorizou o acesso administrativo em modo somente leitura.':
+      'Acesso desativado. Seus dados pessoais não podem ser consultados pela administração.';
+  }catch(e){
+    if(epoch!==accessLoadEpoch||adminOwner)return;
+    $('myAdminConsentStatus').textContent='Erro ao consultar autorização: '+e.message;
+  }finally{if(epoch===accessLoadEpoch&&settingEpoch===consentEpoch&&!adminOwner)toggle.disabled=false;}
   try{
     const {accesses}=await api('/api/account/admin-access');
+    if(epoch!==accessLoadEpoch||adminOwner)return;
     body.replaceChildren();
     if(!accesses.length)body.append(noData('Nenhum acesso administrativo registrado.'));
     for(const item of accesses)body.append(record('Consulta administrativa',item.section,date(item.created_at)));
-  }catch(e){body.replaceChildren(apiError(e.message));}
+  }catch(e){
+    if(epoch===accessLoadEpoch&&!adminOwner)body.replaceChildren(apiError(e.message));
+  }
 }
 export function setAdminOwner(value){
   adminOwner=value===true;
@@ -219,6 +277,7 @@ export function setAdminOwner(value){
 }
 export function resetAdmin(){
   adminOwner=false;currentId=null;currentSection='overview';page=1;requestEpoch++;
+  accessLoadEpoch++;adminAuditEpoch++;consentEpoch++;
   clearTimeout(searchTimer);
   $('adminNavItem').hidden=true;
   $('adminDetail').hidden=true;$('adminEmptyState').hidden=false;
@@ -226,4 +285,6 @@ export function resetAdmin(){
   $('adminAuditList').replaceChildren();$('adminAuditList').hidden=true;
   $('adminStats').replaceChildren();$('adminSearch').value='';
   $('myAdminAccess').hidden=true;$('myAdminAccessList').replaceChildren();
+  $('myAdminConsent').hidden=true;$('myAdminConsentToggle').checked=false;
+  $('myAdminConsentToggle').disabled=false;$('myAdminConsentStatus').textContent='';
 }
