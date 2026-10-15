@@ -364,7 +364,23 @@
                 <svg class="canvas-edges" id="canvasEdges" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
                 <div class="canvas-nodes" id="canvasNodes"></div>
               </div>
-              <div class="canvas-viewport-hint">Arraste o fundo para navegar · Roda do mouse para zoom · Clique no cartão para editar</div>
+              <div class="canvas-viewport-hint">Duplo clique no fundo para criar · Arraste os pontos dos cartões para conectar · Clique na linha para editar</div>
+              <button class="canvas-floating-add" id="canvasFloatingAdd" type="button" aria-label="Criar cartão neste mapa" title="Criar cartão">＋</button>
+              <div class="canvas-quick-create" id="canvasQuickCreate" hidden role="dialog" aria-label="Adicionar cartão neste ponto">
+                <div class="canvas-quick-heading"><span>O que você quer criar?</span><button id="canvasQuickClose" type="button" aria-label="Fechar criação">×</button></div>
+                <input id="canvasQuickTitle" type="text" maxlength="120" placeholder="Título da ideia (opcional)" aria-label="Título do novo cartão" autocomplete="off">
+                <div class="canvas-quick-options">
+                  <button type="button" data-canvas-create="note"><span class="canvas-quick-icon">▤</span><span><strong>Anotação</strong><small>Ideia ou pensamento</small></span></button>
+                  <button type="button" data-canvas-create="task"><span class="canvas-quick-icon">☑</span><span><strong>Tarefa</strong><small>Planeje e envie ao Radar</small></span></button>
+                  <button type="button" data-canvas-create="link"><span class="canvas-quick-icon">↗</span><span><strong>Referência</strong><small>Salve um link</small></span></button>
+                  <button type="button" data-canvas-create="group"><span class="canvas-quick-icon">▣</span><span><strong>Grupo</strong><small>Organize por assunto</small></span></button>
+                </div>
+                <small>Enter cria uma anotação · Esc cancela</small>
+              </div>
+              <div id="canvasEdgeEditor" class="canvas-edge-editor" hidden role="group" aria-label="Editar conexão selecionada">
+                <label>Conexão <input id="canvasEdgeLabel" type="text" maxlength="60" placeholder="Nome da relação (opcional)"></label>
+                <button type="button" id="canvasEdgeDelete" title="Remover conexão" aria-label="Excluir conexão">✕</button>
+              </div>
               <div class="canvas-zoom" role="group" aria-label="Zoom do Canvas">
                 <button type="button" id="canvasZoomOut" data-canvas-view aria-label="Diminuir zoom">−</button>
                 <span id="canvasZoomLevel">100%</span>
@@ -384,7 +400,7 @@
                 <label>Vencimento<input id="canvasNodeDue" type="date"></label>
                 <label>Prioridade<select id="canvasNodePriority"><option value="1">Alta</option><option value="2">Normal</option><option value="3">Baixa</option></select></label>
               </div>
-              <button class="button button-outline" type="button" id="canvasConnect">↗ Conectar a outro cartão</button>
+              <button class="button button-outline" type="button" id="canvasConnect">↗ Conectar por seleção</button>
               <button class="button button-primary" type="button" id="canvasTaskLink" hidden>↗ Enviar tarefa ao Radar</button>
               <button class="button button-outline canvas-inspector-delete" id="canvasDeleteNode" type="button">Excluir cartão</button>
               <small>As alterações são salvas automaticamente. As tarefas vinculadas aparecem também no Radar.</small>
