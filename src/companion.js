@@ -1,4 +1,5 @@
 // Relembra Companion: rotas privadas, sem dados entre contas e sem contexto financeiro na IA.
+import {readLimitedJSON} from './security.js';
 const respond=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'private, no-store','x-content-type-options':'nosniff'}});
 const fail=(message,status=400)=>respond({error:message},status);
 const now=()=>new Date().toISOString();
@@ -25,12 +26,10 @@ function inputDate(s,allowFuture=true){
   if(!dateOK(s,allowFuture))throw Error('Informe uma data válida.');
   return s;
 }
-function bodyLimit(request,max=6000){return request.text().then(raw=>{
-  if(raw.length>max)throw Error('Registro muito grande.');
-  const obj=JSON.parse(raw);
-  if(!obj||typeof obj!=='object'||Array.isArray(obj))throw Error('Registro inválido.');
-  return obj;
-});}
+async function bodyLimit(request,max=6000){
+  try{return await readLimitedJSON(request,max);}
+  catch(e){throw Error(/grande/i.test(e.message)?'Registro muito grande.':e.message);}
+}
 async function fromDB(statement,...args){return (await statement.bind(...args).all()).results||[];}
 async function exists(env,table,id,owner){return Boolean(await env.DB.prepare('SELECT id FROM '+table+' WHERE id=? AND owner_id=?').bind(id,owner).first());}
 const safeId=/^[a-f0-9-]{36}$/i;
