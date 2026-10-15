@@ -1757,3 +1757,41 @@ test('auditoria: logs antigos são podados e histórico da conta não revela IDs
   assert.equal(accesses[0].target_id,undefined);
   assert.equal(accesses[0].section,'overview');
 });
+
+
+test('auditoria: rotina diária elimina logs vencidos mesmo sem novas visitas de administrador',async()=>{
+  const {req,env}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const owner=await env.DB.prepare("SELECT id FROM app_users WHERE role='owner'").first();
+  await req('/api/register','POST',{username:'expiracaolog',password:'senha-membro-expiracao-123'});
+  const member=await env.DB.prepare("SELECT id FROM app_users WHERE role='member'").first();
+  for(const [date,i] of [['2020-01-01T00:00:00.000Z',0],[new Date().toISOString(),1]]){
+    await env.DB.prepare('INSERT INTO admin_access_audit(id,actor_id,target_id,action,section,created_at) VALUES(?,?,?,?,?,?)')
+      .bind(crypto.randomUUID(),owner.id,member.id,'view-dashboard','overview',date).run();
+  }
+  const prior=(await env.DB.prepare('SELECT COUNT(*) AS n FROM admin_access_audit').first()).n;
+  assert.equal(prior,2);
+  await worker.scheduled({},env);
+  const remaining=(await env.DB.prepare('SELECT created_at FROM admin_access_audit').all()).results;
+  assert.equal(remaining.length,1);
+  assert.ok(remaining[0].created_at.startsWith(String(new Date().getFullYear())));
+});
+
+test('interface administrativa ignora consultas que chegam após logout e renderiza conteúdo como texto',()=>{
+  const script=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
+  const backend=readFileSync(new URL('../src/admin.js',import.meta.url),'utf8');
+  const view=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  assert.match(script,/adminAuditEpoch\+\+/);
+  assert.match(script,/accessLoadEpoch\+\+/);
+  assert.match(script,/consentEpoch\+\+/);
+  assert.match(script,/epoch!==accessLoadEpoch\|\|adminOwner/);
+  assert.match(script,/epoch!==adminAuditEpoch\|\|!adminOwner/);
+  assert.match(script,/node.textContent=String\(value\)/);
+  assert.match(view,/id="myAdminConsentToggle"/);
+  assert.match(view,/Por padrão, esta autorização fica/);
+  assert.match(backend,/if\(person.admin_view_consent!==1\)/);
+  assert.match(backend,/A autorização para esta visualização foi revogada/);
+  assert.match(backend,/reserveAdminRead\(env,user\)/);
+  assert.match(backend,/LIMIT 1 OFFSET 1999/);
+  assert.doesNotMatch(script,/\.innerHTML\s*=/);
+});
