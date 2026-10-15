@@ -68,8 +68,8 @@ export function renderGuestPreview(view){
     $('homeSummaryHabits').textContent='1 / 3';
     $('homeBillsMeta').textContent='Demonstração de vencimentos';
     $('homeHabitProgressLabel').textContent='1 de 3';
-    $('homeHabitMeter').setAttribute('aria-valuenow','33');
-    $('homeHabitMeterFill').style.width='33%';
+    $('homeHabitMeter')?.setAttribute?.('aria-valuenow','33');
+    if($('homeHabitMeterFill')?.style)$('homeHabitMeterFill').style.width='33%';
     $('homeRadar').innerHTML='<div class="home-empty-priority"><span aria-hidden="true">✦</span><strong>Planeje o que importa hoje</strong><p>Organize tarefas, prioridades e lembretes em um único lugar.</p></div>';
     $('homeBills').innerHTML='<div class="guest-home-preview"><strong>Contas e vencimentos</strong><span>Veja o que precisa pagar, sem perder nenhuma data.</span></div>';
     $('homeHabits').innerHTML='<div class="guest-home-preview"><strong>Rotinas e hábitos</strong><span>Acompanhe os hábitos e pequenas conquistas do dia.</span></div>';
