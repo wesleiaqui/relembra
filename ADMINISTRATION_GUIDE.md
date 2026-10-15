@@ -28,17 +28,14 @@ O recurso necessita da migração **migrations/0014_admin_observability.sql** an
 4. Voltar à conta membro e consultar os registros de acesso em Backup e dados.
 5. Conferir atividade após login e após dez minutos sem heartbeat.
 
+## Acesso do proprietário sem autorização individual
 
-## Revisão de segurança: acesso por consentimento
+Somente a conta com papel `owner` pode abrir o painel administrativo. O proprietário pode consultar as seções dos membros (biblioteca, finanças, anotações, Radar e mapas) em **modo somente leitura**, sem solicitar autorização individual. O histórico de consultas e a divulgação desse acesso no cadastro permanecem obrigatórios.
 
-As contas novas e existentes iniciam com **autorização administrativa desativada**. O administrador pode ver o diretório e métricas gerais de atividade, mas qualquer detalhamento privado (Visão geral, Biblioteca, Finanças, Anotações, Radar e Mapas) exige autorização explícita do próprio membro.
+Esta alteração **não** altera o login de membros, não troca o `owner_id` da sessão e não libera acesso entre membros. Todas as rotas administrativas exigem sessão válida, papel `owner` e apenas métodos GET; cada abertura de seção gera registro de auditoria. O histórico pode ser consultado pelo membro em **Backup e dados**.
 
-O membro encontra o controle em **Backup e dados → Privacidade: acesso administrativo**. A ativação exige confirmação. A desativação impede novas consultas de conteúdo privado, sem alterar os registros anteriores; o servidor também revalida a autorização antes de entregar uma resposta em preparação.
+Os limites de 120 requisições por hora e a retenção de auditoria (até 2.000 registros por administrador ou 90 dias, com limpeza diária) continuam ativos. Dados apresentados na interface usam `textContent` para prevenir injeção de HTML.
 
-Cada mudança é registrada na tabela de auditoria de consentimento (conta, escolha e data/hora). Cada consulta administrativa autorizada gera um registro obrigatório; em caso de falha de auditoria, a resposta de conteúdo não é entregue.
+A migração `0015_admin_access_consent.sql` permanece **no histórico de migrações** para compatibilidade com bancos já atualizados, mas seus campos não são mais consultados nem modificados pela aplicação. A rota `/api/account/admin-view-consent` e os controles de autorização individual foram removidos.
 
-O proprietário está limitado a **120 consultas administrativas por hora** via contador atômico D1. Logs têm no máximo **2.000 registros por proprietário** e uma rotina diária no Cloudflare (03:00 UTC) exclui registros com mais de **90 dias**. Cada membro pode conferir seus 50 últimos acessos.
-
-A interface descarta respostas assíncronas de sessões anteriores ao trocar de conta ou sair, evitando que conteúdo privado reapareça no HTML. Valores recebidos de outros usuários são exibidos como texto, nunca interpretados como HTML.
-
-A migração **0015_admin_access_consent.sql** adiciona o controle revogável, desativado por padrão, sem apagar conteúdo anterior. A política de privacidade pública ainda deve esclarecer finalidade, limites de acesso e tratamento de dados conforme aplicável. Testes de código não substituem pentest externo.
+**Privacidade e LGPD:** por permitir acesso administrativo inclusive a registros financeiros e pessoais, é importante manter uma Política de Privacidade pública e clara, com finalidade, responsabilidades e retenção de dados, antes de abrir o serviço amplamente. O administrador deve restringir suas consultas às finalidades legítimas e protegê-las como dados confidenciais.

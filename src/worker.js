@@ -1,7 +1,7 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
 import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
 import { handleCanvas, exportCanvases, importCanvases } from './canvas.js';
-import { handleAdministration, updateAccountActivity, listOwnAdminAccess, handleAdminViewConsent, cleanupExpiredAdminAudits } from './admin.js';
+import { handleAdministration, updateAccountActivity, listOwnAdminAccess, cleanupExpiredAdminAudits } from './admin.js';
 import { reserveAIQuota, secureResponse, readLimitedJSON, turnstileConfig, verifyRegistrationTurnstile } from './security.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
@@ -593,7 +593,6 @@ async function handle(request, env) {
     return json({ok:true});
   }
   if(path==='/api/account/admin-access'&&method==='GET')return listOwnAdminAccess(env,user);
-  if(path==='/api/account/admin-view-consent')return handleAdminViewConsent(request,env,user);
   if(path==='/api/admin'||path.startsWith('/api/admin/'))return handleAdministration(request,env,user);
   if(path==='/api/sessions/revoke-all'&&method==='POST'){
     await env.DB.prepare('UPDATE app_users SET session_version=session_version+1 WHERE id=?').bind(user.id).run();
