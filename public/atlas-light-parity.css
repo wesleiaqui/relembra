@@ -123,3 +123,39 @@ body[data-visual-theme="atlas"][data-color-mode="light"] .life-week.saved{backgr
 body[data-visual-theme="atlas"][data-color-mode="light"] .life-year-label{color:#65738f}
 body[data-visual-theme="atlas"][data-color-mode="light"] .modal-footer{background:#f7f8fc;border-color:#e2e6f1}
 body[data-visual-theme="atlas"][data-color-mode="light"] .chat-top{border-color:#e2e6f1}
+
+
+/* Igualdade explícita com o fundo Clássico: neutraliza seletor Atlas financeiro. */
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"],
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .workspace,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] #page,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] #financeView,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .finance-dashboard {
+  background:#f8fafb;
+  background-color:#f8fafb;
+  color:#1c2937;
+}
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .finance-dashboard :is(
+  .finance-panel,.finance-kpi,.finance-kpi-card,.finance-summary-card,
+  .finance-table-wrap,.finance-goals-panel,.finance-planning-panel
+) { background-color:#fff; }
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .topbar{
+  background:#ffffffee;
+  border-bottom-color:#e2e6f1;
+}
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .sidebar {
+  background:linear-gradient(162deg,#fff 0%,#f9f8ff 63%,#f0f4ff 100%);
+  border-right-color:#e0e5f0;
+}
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .nav-item.active{
+  background:#e9e7fb;color:#4b3fbb;box-shadow:inset 3px 0 #8470df;
+}
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .nav-item:hover{
+  background:#edecff;color:#453e9b;
+}
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .visual-theme-control{
+  background:#f2f1fb;border-color:#e4e2f4;
+}
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .visual-theme-option.selected{
+  background:#fff;color:#5546ba;
+}
