@@ -114,10 +114,10 @@ export function setupVisualTheme({documentRef=globalThis.document,windowRef=glob
   const legacy=safeRead(storage,LAYOUT_KEY);
   setVisualTheme(legacy,{documentRef,storage,persist:true}); // migração sem apagar preferências
   for(const btn of documentRef.querySelectorAll('[data-visual-option]')){
-    btn.addEventListener('click',()=>setVisualTheme(btn.dataset.visualOption,{documentRef,storage}));
+    btn.addEventListener('click',()=>setVisualTheme(btn.dataset.visualOption,{documentRef,storage,persist:documentRef.body.dataset.guest!=='true'}));
   }
   for(const btn of documentRef.querySelectorAll('[data-color-option]')){
-    btn.addEventListener('click',()=>setColorMode(btn.dataset.colorOption,{documentRef,storage}));
+    btn.addEventListener('click',()=>setColorMode(btn.dataset.colorOption,{documentRef,storage,persist:documentRef.body.dataset.guest!=='true'}));
   }
   const menu=documentRef.querySelector?.('#darkPaletteMenu');
   const trigger=documentRef.querySelector?.('#darkPaletteTrigger');
@@ -132,7 +132,7 @@ export function setupVisualTheme({documentRef=globalThis.document,windowRef=glob
   });
   for(const btn of documentRef.querySelectorAll('[data-dark-palette-option]')){
     btn.addEventListener('click',()=>{
-      setDarkPalette(btn.dataset.darkPaletteOption,{documentRef,storage});
+      setDarkPalette(btn.dataset.darkPaletteOption,{documentRef,storage,persist:documentRef.body.dataset.guest!=='true'});
       closeMenu();
       trigger?.focus?.();
     });
