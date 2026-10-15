@@ -496,6 +496,14 @@
             <div><h2>Segurança da conta</h2><p>Se você perdeu o acesso a outro computador ou suspeita de uma sessão aberta, encerre todos os acessos de uma vez.</p><small>Você precisará entrar novamente neste e nos outros dispositivos.</small></div>
             <button class="button button-outline" id="revokeAllSessionsBtn" type="button">↪ Sair de todos os dispositivos</button>
           </section>
+          <section id="myAdminConsent" class="account-admin-access" hidden>
+            <h2>Privacidade: acesso administrativo</h2>
+            <p>Você decide se o proprietário da plataforma pode visualizar os seus vídeos, finanças, tarefas, lembranças, mapas e anotações para suporte. Por padrão, esta autorização fica <strong>desativada</strong>. O administrador não poderá abrir seu painel sem sua permissão.</p>
+            <label class="admin-consent-toggle"><input id="myAdminConsentToggle" type="checkbox">
+              <span><strong>Permitir que o administrador visualize meu painel</strong><small>Somente leitura, com registro das seções acessadas. Você pode revogar a autorização quando quiser.</small></span>
+            </label>
+            <p id="myAdminConsentStatus" role="status"></p>
+          </section>
           <section id="myAdminAccess" class="account-admin-access" hidden>
             <h2>Acessos administrativos ao meu painel</h2>
             <p>O administrador pode consultar informações para suporte. Veja abaixo quando seu painel foi acessado.</p>
@@ -611,7 +619,7 @@
         <button class="button button-primary login-submit" type="submit">Criar minha conta principal →</button>
       </form>
       <form id="registerForm" hidden>
-        <div class="form-info">Cadastro gratuito, sem convite. Cada conta mantém seus dados separados. O administrador da plataforma pode visualizar painéis de usuários, inclusive biblioteca, finanças e anotações, em modo somente leitura, com registro de acesso.</div>
+        <div class="form-info">Cadastro gratuito, sem convite. Cada conta mantém seus dados separados. O administrador só poderá visualizar seu painel, incluindo biblioteca, finanças e anotações, caso você conceda autorização em Backup e dados. A escolha começa desativada, é revogável e os acessos ficam registrados.</div>
         <label class="field"><span>Escolha seu usuário</span><input type="text" name="username" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9][a-zA-Z0-9_.-]{2,31}" autocomplete="username" placeholder="Ex.: meuusuario"></label>
         <label class="field"><span>Crie uma senha (mínimo 12 caracteres)</span><input type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password" placeholder="Senha exclusiva da sua conta"></label>
         <div class="register-turnstile-wrap" id="registerTurnstileWrap" hidden><div id="registerTurnstile"></div><p id="registerTurnstileStatus" role="status"></p></div>
