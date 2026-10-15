@@ -4,6 +4,7 @@ import { setupAtlasUI, renderAtlasCollections, resetAtlasUI } from './atlas-ui.j
 import { embeddedMediaLink } from './media-links.js';
 import { guestCategories, renderGuestPreview } from './guest-preview.js';
 import { setupFinance, loadFinance, resetFinance } from './finance.js';
+import { setupCanvas, loadCanvas, resetCanvas } from './canvas.js';
 import { setupCompanion, loadRadar, loadHomeRadar, searchMemory, openSearchItem, loadLife, loadHabits, resetCompanion, openHistory } from './companion.js';
 const $ = id => document.getElementById(id);
 const state = { guest: false, thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
@@ -128,7 +129,7 @@ async function loadList(append = false) {
   } catch(e) { if (requestNumber === listRequest) { box.innerHTML = skeletonEmpty('Erro ao carregar vídeos', e.message, '⚠️', false); toast(e.message, true); } }
   finally { if (requestNumber === listRequest) state.busy = false; }
 }
-const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados' };
+const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', canvas: 'Canvas Visual', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados' };
 async function navigate(view, category = 'all') {
   const known = viewNames[view] ? view : 'home';
   state.view = known;
@@ -137,14 +138,15 @@ async function navigate(view, category = 'all') {
   else state.category = 'all';
   state.search = ''; state.sort = 'recent'; state.videos = [];
   document.querySelectorAll('.view').forEach(el => el.hidden = true);
-  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'radar' ? 'radarView' : known === 'life' ? 'lifeView' : known === 'finance' ? 'financeView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
-  $('addVideoBtn').hidden = known === 'finance';
+  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'radar' ? 'radarView' : known === 'life' ? 'lifeView' : known === 'finance' ? 'financeView' : known === 'canvas' ? 'canvasView' : known === 'backup' ? 'backupView' : 'libraryView').hidden = false;
+  $('addVideoBtn').hidden = known === 'finance' || known === 'canvas';
   $('breadcrumbActive').textContent = known === 'library' && state.category !== 'all' ? catOf(state.category).name : viewNames[known];
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === known && (known !== 'library' || state.category === 'all')));
   document.querySelectorAll('[data-cat]').forEach(el => el.classList.toggle('active', known === 'library' && el.dataset.cat === category));
   $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true;
   if(state.guest){
     if(known==='finance') await loadFinance();
+    if(known==='canvas')await loadCanvas();
     else if(known==='chat')resetChatConversation();
     renderGuestPreview(known);
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -156,6 +158,7 @@ async function navigate(view, category = 'all') {
   if (known === 'thoughts') await loadThoughts();
   if (known === 'tips') await loadTips();
   if (known === 'finance') await loadFinance();
+  if (known === 'canvas') await loadCanvas();
   if (known === 'library') {
     $('libraryTitle').textContent = state.category !== 'all' ? catOf(state.category).name : 'Minha biblioteca';
     $('librarySubtitle').textContent = 'Encontre qualquer ideia pelo assunto, resumo ou transcrição.';
@@ -1050,7 +1053,7 @@ function bindEvents() {
     const element=e.target.closest('button,a[href],input[type="file"],[data-guest-action]');
     if(!element || element.closest('#loginOverlay,#guestBanner'))return;
     if(element.closest('[data-view],[data-go],[data-cat]'))return;
-    if(element.closest('.view-mode-switch'))return;
+    if(element.closest('.view-mode-switch,[data-canvas-view]'))return;
     if(element.closest('.tips-presets')){
       e.preventDefault();e.stopImmediatePropagation();
       const selected=element.closest('[data-tip-context]');
@@ -1190,6 +1193,7 @@ function wipePreviousAccount() {
   resetAtlasUI();
   document.body.classList.remove('finance-mode');
   resetFinance();
+  resetCanvas();
   state.videos=[];state.homeVideos=[];state.categories=[];
   state.thoughts=[];state.tips=[];state.total=0;state.offset=0;
   state.editId=null;state.tipEditId=null;state.thoughtEditId=null;
@@ -1229,6 +1233,7 @@ async function start() {
   bindEvents();
   resetChatConversation();
   setupFinance({ api, toast, isGuest:()=>state.guest, requireAccount:()=>showAccountGate() });
+  setupCanvas({api,toast,isGuest:()=>state.guest,requireAccount:()=>showAccountGate()});
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
   try {
     const session=await api('/api/session');
