@@ -1,6 +1,8 @@
 // Painel financeiro independente da biblioteca de vídeos e da IA do Relembra.
 let api;
 let toast;
+let isGuest=()=>false;
+let requireAccount=()=>false;
 let snapshot = null;
 let currentMonth = nowMonth();
 function nowMonth(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
@@ -25,6 +27,23 @@ export function resetFinance(){
 }
 export async function loadFinance(){
   const localVersion = ++version;
+  if(isGuest()){
+    const demoMonth=currentMonth;
+    const bill=(id,name,day,amount,priority,essential)=>({
+      id,name,due_date:demoMonth+'-'+String(day).padStart(2,'0'),
+      amount_cents:amount,priority,essential,paid_at:null,recurring_id:null
+    });
+    // Não consulta a API nem reutiliza informações de outras contas.
+    snapshot={
+      balance_cents:90000,
+      recurring:[],
+      entries:[{id:'demo-income',description:'Recebimento de exemplo',entry_date:demoMonth+'-05',amount_cents:90000,type:'income',status:'confirmed'}],
+      bills:[bill('demo-bill-1','Internet (exemplo)',15,12000,1,true),bill('demo-bill-2','Conta de luz (exemplo)',22,18000,2,true)],
+      goals:[{id:'demo-goal',name:'Reserva de emergência (exemplo)',target_cents:300000,saved_cents:40000}]
+    };
+    render();
+    return;
+  }
   if (node() && !snapshot) node().innerHTML = '<div class="finance-loading">Carregando suas finanças...</div>';
   try {
     const loaded = await api('/api/finance?month='+encodeURIComponent(currentMonth));
@@ -142,6 +161,7 @@ function render(){
     '<label class="finance-month-input" title="Selecionar mês"><span class="sr-only">Mês de referência</span>'+
     '<input id="financeMonth" aria-label="Selecionar mês" type="month" value="'+escapeHtml(currentMonth)+'"></label></div>';
   node().innerHTML =
+    (isGuest()?'<div class="guest-finance-notice" role="note">✦ Demonstração com valores fictícios. Crie sua conta para registrar suas próprias finanças.</div>':'')+
     '<div class="finance-dashboard">'+
       '<header class="finance-toolbar">'+
         '<div class="finance-toolbar-left"><div class="finance-title-area"><h1>'+escapeHtml(monthLabel())+'</h1><p>Planeje seus pagamentos e acompanhe sua renda variável</p></div>'+monthControls+'</div>'+
@@ -440,10 +460,16 @@ function openForm(kind,id=null){
 export function setupFinance(deps){
   api = deps.api;
   toast = deps.toast;
+  isGuest = deps.isGuest || (()=>false);
+  requireAccount=deps.requireAccount || (()=>false);
   node().addEventListener('click',async e=>{
     const btn=e.target.closest('[data-fin-action]');
     if(!btn)return;
     const action=btn.dataset.finAction,kind=btn.dataset.kind,id=btn.dataset.id;
+    if(isGuest() && !['prev-month','next-month'].includes(action)){
+      requireAccount('Crie sua conta para usar as ferramentas financeiras.');
+      return;
+    }
     if(action==='new')return openForm(kind);
     if(action==='edit')return openForm(kind,id);
     if(action==='prev-month')return shiftMonth(-1);

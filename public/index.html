@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="/chat-layout-refined.css">
   <link rel="stylesheet" href="/dark-palettes.css">
   <link rel="stylesheet" href="/dark-neutral-fix.css">
+  <link rel="stylesheet" href="/guest-preview.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -46,7 +47,6 @@
       <div class="side-spacer"></div>
       <div class="side-bottom">
         <div class="account-label" id="accountLabel" aria-live="polite">Sua conta</div>
-        <button class="nav-item muted" id="inviteBtn" hidden><span class="nav-icon">✉</span> Convidar outra pessoa</button>
         <button class="nav-item muted" data-view="backup"><span class="nav-icon">⇄</span> Backup e dados</button>
         <button class="nav-item muted" id="logoutBtn"><span class="nav-icon">↪</span> Sair da conta</button>
         <div class="privacy-note"><span class="status-dot"></span> Biblioteca privada <small>Seus vídeos ficam na sua conta Cloudflare.</small></div>
@@ -89,6 +89,7 @@
           <span class="header-date" id="todayText"></span><button class="button button-primary" id="addVideoBtn"><span class="plus">+</span> <span>Adicionar vídeo</span></button></div>
       </header>
       <main class="page" id="page">
+        <div class="guest-banner" id="guestBanner" hidden role="status"><div><strong>✦ Você está explorando o Relembra</strong><span>Prévia com exemplos fictícios. Crie sua conta para começar a salvar suas próprias informações.</span></div><div class="guest-banner-actions"><button class="button button-outline" type="button" id="guestLoginBtn">Entrar</button><button class="button button-primary" type="button" id="guestRegisterBtn">Criar conta grátis</button></div></div>
         <section id="homeView" class="view">
           <header class="home-new-heading">
             <div><div class="eyebrow">✦ SEU ESPAÇO PESSOAL</div><h1 id="homeGreeting">Seu dia, com mais clareza.</h1><p>As próximas ações, o que não pode esperar e seus aprendizados em um só lugar.</p></div>
@@ -456,11 +457,11 @@
         <label class="field"><span>Nova senha pessoal (mínimo 12 caracteres)</span><input type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password" placeholder="Senha exclusiva da sua conta"></label>
         <button class="button button-primary login-submit" type="submit">Criar minha conta principal →</button>
       </form>
-      <form id="inviteRegisterForm" hidden>
-        <label class="field"><span>Código de convite</span><input type="text" name="invitation" required autocomplete="off" placeholder="Código enviado pelo administrador"></label>
-        <label class="field"><span>Seu usuário</span><input type="text" name="username" required minlength="3" maxlength="32" autocomplete="username"></label>
-        <label class="field"><span>Senha pessoal (mínimo 12 caracteres)</span><input type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password"></label>
-        <button class="button button-primary login-submit" type="submit">Criar minha biblioteca →</button>
+      <form id="registerForm" hidden>
+        <div class="form-info">Cadastro gratuito, sem convite. Sua biblioteca, finanças e anotações são privadas e separadas das outras contas.</div>
+        <label class="field"><span>Escolha seu usuário</span><input type="text" name="username" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9][a-zA-Z0-9_.-]{2,31}" autocomplete="username" placeholder="Ex.: meuusuario"></label>
+        <label class="field"><span>Crie uma senha (mínimo 12 caracteres)</span><input type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password" placeholder="Senha exclusiva da sua conta"></label>
+        <button class="button button-primary login-submit" type="submit">Criar minha conta gratuitamente →</button>
       </form>
       <form id="ownerRecoverForm" hidden>
         <div class="form-info">A recuperação da conta principal exige a chave administrativa <strong>APP_PASSWORD</strong>. Se você não a lembra, poderá redefini-la usando o Wrangler no Cloudflare.</div>
@@ -470,24 +471,12 @@
       </form>
       <div class="account-login-links" id="loginLinks">
         <button type="button" id="showLoginBtn">Entrar</button>
-        <button type="button" id="showRegisterBtn">Tenho um convite</button>
+        <button type="button" id="showRegisterBtn">Criar conta</button>
         <button type="button" id="showRecoverBtn">Esqueci minha senha</button>
       </div>
+      <button class="guest-explore-btn" id="exploreGuestBtn" type="button">Explorar o Relembra sem criar conta <span aria-hidden="true">↗</span></button>
       <p class="login-error" id="loginError" role="alert"></p>
       <small>🔒 Seus dados não são compartilhados com outras contas.</small>
-    </div>
-  </div>
-  <div class="modal-backdrop" id="inviteModal" hidden>
-    <div class="small-modal invite-dialog" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">
-      <div class="modal-head"><div><span class="eyebrow">CONVITE PRIVADO</span><h2 id="inviteTitle">Convidar pessoa</h2></div><button type="button" class="close-btn" id="inviteCloseBtn" aria-label="Fechar convite">×</button></div>
-      <div class="invite-content">
-        <p>O convite vale por 24 horas e só pode ser usado uma vez. A outra pessoa terá uma biblioteca separada da sua.</p>
-        <button type="button" class="button button-primary" id="generateInviteBtn">Gerar código de convite</button>
-        <div id="inviteResult" hidden>
-          <label class="field"><span>Código de uso único</span><input id="inviteCode" type="text" readonly></label>
-          <button type="button" class="button button-outline" id="copyInviteBtn">Copiar instruções e código</button>
-        </div>
-      </div>
     </div>
   </div>
   <div id="atlasCommandModal" class="modal-backdrop atlas-command-backdrop" hidden>
