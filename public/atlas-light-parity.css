@@ -1,0 +1,125 @@
+/*
+  Atlas claro com a MESMA PALETA do Clássico claro.
+  Preserva layout Atlas, não afeta Atlas escuro nem as demais paletas.
+  Carregado depois de todas as folhas anteriores.
+*/
+body[data-visual-theme="atlas"][data-color-mode="light"],
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"]{
+  color-scheme:light;
+  --bg:#f7f8fc;
+  --sidebar:#f9f9ff;
+  --panel:#ffffff;
+  --panel2:#f4f3ff;
+  --stroke:#e2e6f1;
+  --text:#202742;
+  --soft:#6b7691;
+  --muted:#65738f;
+  --primary:#5749c7;
+  --primary2:#6558da;
+  --shadow:0 18px 48px #333e7220;
+  background:#f7f8fc;
+  color:#202742;
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .workspace{
+  background:radial-gradient(ellipse 850px 550px at 95% 1%,#eeeaff95,transparent 74%),#f7f8fc
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .sidebar,
+body.finance-mode[data-visual-theme="atlas"][data-color-mode="light"] .sidebar{
+  background:linear-gradient(162deg,#fff 0%,#f9f8ff 63%,#f0f4ff 100%);
+  color:#202742;border-right:1px solid #e0e5f0;
+  box-shadow:11px 0 46px #4e5b8c0b
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .topbar{
+  background:rgb(255 255 255 / 94%);
+  border-bottom:1px solid #e2e6f1;
+  box-shadow:0 6px 20px rgb(35 44 76 / 4%)
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .brand,
+body[data-visual-theme="atlas"][data-color-mode="light"] .top-left strong{color:#252948}
+body[data-visual-theme="atlas"][data-color-mode="light"] .page-head h1,
+body[data-visual-theme="atlas"][data-color-mode="light"] .welcome-head h1{color:#202742}
+body[data-visual-theme="atlas"][data-color-mode="light"] .page-head p,
+body[data-visual-theme="atlas"][data-color-mode="light"] .welcome-head p{color:#65738f}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-item,
+body[data-visual-theme="atlas"][data-color-mode="light"] .category-item{color:#59657c}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-item:hover,
+body[data-visual-theme="atlas"][data-color-mode="light"] .category-item:hover{
+  background:#edecff;color:#453e9b
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .nav-item.active,
+body[data-visual-theme="atlas"][data-color-mode="light"] .category-item.active{
+  background:#e9e7fb;color:#4b3fbb
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .atlas-command-trigger{
+  background:#fff;border-color:#e2e6f1;color:#65738f
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .atlas-command-trigger:hover{
+  background:#f4f3ff;border-color:#c8c5ef
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .visual-theme-control,
+body[data-visual-theme="atlas"][data-color-mode="light"] .visual-color-control{
+  background:#f0f1fa;border-color:#e2e6f1
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .visual-theme-option.selected,
+body[data-visual-theme="atlas"][data-color-mode="light"] .visual-color-option.selected{
+  background:#fff;color:#5546ba
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .button-primary{
+  background:#5749c7;border-color:#5749c7;color:white;box-shadow:0 4px 13px #5749c724
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .button-primary:hover{
+  background:#6558da;border-color:#6558da
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .button-outline,
+body[data-visual-theme="atlas"][data-color-mode="light"] .button-ghost{
+  background:#fff;border-color:#e2e6f1;color:#5749c7
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .button-outline:hover,
+body[data-visual-theme="atlas"][data-color-mode="light"] .button-ghost:hover{
+  background:#f4f3ff;border-color:#cdc8f0
+}
+/* As superfícies secundárias tinham #fafaf8, #fdfcfb e tons creme.
+   Usar brancos e azul-lavanda frio iguais à identidade Clássico. */
+body[data-visual-theme="atlas"][data-color-mode="light"] #homeView .motivation-home-cta{
+  background:#f4f3ff;border:1px solid #e2e6f1
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] #homeView .home-radar{
+  background:#ecf8f1
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] :is(
+ .atlas-collection-chip,.atlas-video-card,.atlas-library-help,
+ .atlas-card,.atlas-library-card,.card,.tips-card,.tip-card,
+ .radar-panel,.life-calendar-panel,.life-moment-panel,
+ .companion-form,.chat-shell,.chat-compose,.chat-workspace-messages,
+ .modal,.small-modal,.finance-panel,.guest-showcase-card
+ ){
+  border-color:#e2e6f1
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] :is(
+ .radar-item,.life-moment-item,.life-old-journal,
+ .chat-compose,.chat-workspace-composer,.message .bubble,
+ .tips-search,.atlas-card-more summary
+ ){
+  background:#f4f3ff;border-color:#e2e6f1
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] :is(
+ .chat-messages,.chat-workspace-messages,.life-moment-panel,
+ .life-calendar-panel,.companion-form,.tip-card,
+ .atlas-card,.atlas-video-card,.atlas-collection-bar,
+ .finance-panel
+ ){
+  background:#fff
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] :is(
+ .companion-form input,.companion-form select,
+ .life-moment-form input,.life-moment-form select,.life-moment-form textarea,
+ .chat-compose textarea,.tips-search input
+ ){
+  background:#fff;color:#202742;border-color:#e2e6f1
+}
+body[data-visual-theme="atlas"][data-color-mode="light"] .life-week.future{background:#d9e0eb}
+body[data-visual-theme="atlas"][data-color-mode="light"] .life-week.lived{background:#778fdc}
+body[data-visual-theme="atlas"][data-color-mode="light"] .life-week.saved{background:#30ac89}
+body[data-visual-theme="atlas"][data-color-mode="light"] .life-year-label{color:#65738f}
+body[data-visual-theme="atlas"][data-color-mode="light"] .modal-footer{background:#f7f8fc;border-color:#e2e6f1}
+body[data-visual-theme="atlas"][data-color-mode="light"] .chat-top{border-color:#e2e6f1}
