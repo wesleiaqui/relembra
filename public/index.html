@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="/dark-neutral-fix.css">
   <link rel="stylesheet" href="/guest-preview.css">
   <link rel="stylesheet" href="/canvas.css">
+  <link rel="stylesheet" href="/mental-maps.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -41,7 +42,7 @@
         <button class="nav-item" data-view="life"><span class="nav-icon">◫</span> Calendário da vida</button>
         <button class="nav-item" data-view="tips"><span class="nav-icon">✦</span> Dicas para o momento <span class="nav-new">NOVO</span></button>
         <button class="nav-item" data-view="finance"><span class="nav-icon">◈</span> Minhas finanças</button>
-        <button class="nav-item" data-view="canvas"><span class="nav-icon">⤧</span> Canvas Visual <span class="nav-new">NOVO</span></button>
+        <button class="nav-item" data-view="canvas"><span class="nav-icon">⤧</span> Mapas mentais <span class="nav-new">NOVO</span></button>
       </nav>
       <div class="side-separator"></div>
       <div class="category-heading"><span class="nav-caption">COLEÇÕES</span><button title="Adicionar coleção" aria-label="Adicionar categoria" id="addCategoryBtn" class="tiny-btn">+</button></div>
@@ -345,18 +346,30 @@
           <div class="life-old-journal"><div><strong>Suas reflexões antigas continuam guardadas</strong><p>O diário anterior não foi apagado. Você pode consultá-lo sempre que quiser.</p></div><button type="button" class="button button-outline" id="lifeOldDiary">Abrir diário anterior</button></div>
         </section>
         <section id="canvasView" class="view canvas-view" hidden>
-          <header class="canvas-titlebar">
-            <div><div class="eyebrow">ORGANIZE SUAS IDEIAS VISUALMENTE</div><h1>Canvas <em>Visual.</em></h1><p>Conecte ideias, planeje projetos e envie tarefas ao Radar.</p></div>
-            <div class="canvas-title-actions"><span id="canvasSaveState" role="status">Preparando Canvas...</span><button id="canvasSaveNow" class="button button-outline" type="button">Salvar</button><button class="button button-primary" id="canvasCreateBoard" type="button">＋ Novo quadro</button></div>
+          <header class="canvas-titlebar mental-page-header">
+            <div><span class="eyebrow">ORGANIZE SUAS IDEIAS</span><h1>Mapas <em>mentais.</em></h1><p>Transforme pensamentos em planos visuais. Organize seus estudos, projetos e tarefas.</p></div>
+            <div class="canvas-title-actions"><span id="canvasSaveState" role="status">Tudo pronto para começar</span><button id="canvasSaveNow" class="button button-outline" type="button">Salvar</button><button class="button button-primary mental-main-cta" id="canvasCreateBoard" type="button">＋ Criar mapa mental</button></div>
           </header>
-          <div class="canvas-toolbar" role="toolbar" aria-label="Ferramentas do mapa visual">
-            <label class="canvas-board-picker"><span>Quadro</span><select id="canvasBoardSelect" aria-label="Escolher quadro"></select></label>
-            <label class="canvas-board-rename"><span>Nome</span><input id="canvasBoardTitle" type="text" maxlength="100" placeholder="Nome do quadro" aria-label="Renomear quadro"></label>
-            <button type="button" class="canvas-tool" id="canvasAddNote" title="Adicionar anotação">＋ Nota</button>
+          <div class="mental-workspace-bar" id="canvasWorkspaceBar" data-has-map="false">
+            <div class="mental-map-identity">
+              <div class="mental-map-symbol" aria-hidden="true">◎</div>
+              <label class="canvas-board-picker"><span>MEUS MAPAS</span><select id="canvasBoardSelect" aria-label="Alternar entre meus mapas mentais"><option value="">Escolha um mapa mental</option></select></label>
+              <span class="mental-map-count" id="canvasMapCount">Nenhum mapa criado</span>
+            </div>
+            <div class="mental-workspace-actions">
+              <button type="button" id="canvasOpenGallery" class="mental-action-button" title="Modelos prontos de mapas mentais">▧ <span>Modelos</span></button>
+              <button type="button" id="canvasAIGenerate" class="mental-action-button" title="Criar estrutura com inteligência artificial">✦ <span>Gerar com IA</span></button>
+              <button type="button" id="canvasOpenLibrary" class="mental-action-button" title="Adicionar vídeo da minha biblioteca">▣ <span>Minha biblioteca</span></button>
+              <details id="canvasMapOptions" class="mental-options"><summary title="Opções deste mapa">•••</summary><div class="mental-options-menu"><label>Renomear mapa<input id="canvasBoardTitle" type="text" maxlength="100" placeholder="Nome do mapa mental" aria-label="Renomear mapa mental"></label><button type="button" id="canvasRemoveBoard">Excluir este mapa</button></div></details>
+            </div>
+          </div>
+          <div class="canvas-toolbar mental-editor-toolbar" role="toolbar" aria-label="Adicionar elementos ao mapa mental">
+            <span class="mental-tool-label">Adicionar ao mapa</span>
+            <button type="button" class="canvas-tool" id="canvasAddNote" title="Adicionar uma ideia">＋ Ideia</button>
             <button type="button" class="canvas-tool" id="canvasAddTask" title="Adicionar tarefa">☑ Tarefa</button>
             <button type="button" class="canvas-tool" id="canvasAddLink" title="Adicionar link">↗ Link</button>
-            <button type="button" class="canvas-tool" id="canvasAddGroup" title="Adicionar grupo">▣ Grupo</button>
-            <button type="button" class="canvas-tool canvas-tool-danger" id="canvasRemoveBoard" title="Excluir quadro">Excluir quadro</button>
+            <button type="button" class="canvas-tool" id="canvasAddGroup" title="Organizar ideias em grupo">▣ Grupo</button>
+            <span class="mental-toolbar-hint">Duplo clique no mapa para adicionar mais</span>
           </div>
           <div class="canvas-layout">
             <div class="canvas-viewport" id="canvasViewport" tabindex="0" aria-label="Área visual do mapa. Arraste o fundo para mover, use a roda do mouse para aproximar ou afastar.">
@@ -387,7 +400,9 @@
                 <button type="button" id="canvasZoomIn" data-canvas-view aria-label="Aumentar zoom">＋</button>
                 <button type="button" id="canvasFit" data-canvas-view title="Restaurar visualização">Recentrar</button>
               </div>
-              <div class="canvas-empty" id="canvasEmpty" hidden><span class="canvas-empty-icon">⤧</span><h2>Comece com uma ideia.</h2><p>Crie um quadro e organize livremente seus planos, tarefas e referências.</p><button id="canvasEmptyCreate" class="button button-primary" type="button">Criar meu primeiro quadro</button></div>
+              <div class="canvas-empty" id="canvasEmpty" hidden><span class="canvas-empty-icon">⤧</span><h2>Suas ideias merecem um espaço.</h2><p>Crie um mapa mental para planejar projetos, aprender algo novo ou organizar tarefas. Você não precisa saber usar diagramas.</p>
+                <button id="canvasEmptyCreate" class="button button-primary" type="button">＋ Criar meu primeiro mapa mental</button>
+                <span class="mental-empty-hint">Ou escolha um modelo pronto para começar</span><div class="mental-empty-templates" id="canvasEmptyTemplates"><button type="button" data-mental-template="mind">◎ Mapa mental</button><button type="button" data-mental-template="project">▤ Projeto</button><button type="button" data-mental-template="study">◈ Estudos</button></div></div>
             </div>
             <aside class="canvas-inspector" id="canvasInspector" aria-label="Editar cartão selecionado" hidden>
               <div class="canvas-inspector-head"><span class="eyebrow" id="canvasNodeType">Anotação</span><h2>Editar cartão</h2></div>
@@ -405,6 +420,29 @@
               <button class="button button-outline canvas-inspector-delete" id="canvasDeleteNode" type="button">Excluir cartão</button>
               <small>As alterações são salvas automaticamente. As tarefas vinculadas aparecem também no Radar.</small>
             </aside>
+          </div>
+          <div class="mental-create-overlay" id="canvasCreateOverlay" hidden>
+            <section class="mental-create-dialog" role="dialog" aria-modal="true" aria-labelledby="mentalCreateTitle">
+              <header class="mental-create-head"><div class="mental-dialog-mark">◎</div><div><span class="eyebrow">NOVO ESPAÇO PARA SUAS IDEIAS</span><h2 id="mentalCreateTitle">Criar mapa mental</h2><p>Escolha por onde começar. Você pode mudar tudo depois.</p></div><button id="canvasCreateClose" type="button" aria-label="Fechar criação">×</button></header>
+              <div class="mental-create-body"><label class="mental-create-name">Qual será o nome do seu mapa?<input id="mentalNewName" type="text" maxlength="100" placeholder="Ex.: Minha viagem, plano de estudos, ideias de negócio..." autocomplete="off" required></label>
+              <div class="mental-template-heading"><strong>Como você quer começar?</strong><span>Escolha um modelo ou comece em branco</span></div>
+              <div class="mental-template-gallery" id="canvasTemplateGallery" role="radiogroup" aria-label="Modelo do mapa mental"></div>
+              </div>
+              <footer class="mental-create-footer"><span>Seu mapa fica privado na sua conta.</span><div><button type="button" id="canvasCreateCancel" class="mental-cancel">Cancelar</button><button type="button" id="canvasCreateConfirm" class="mental-confirm">Criar meu mapa <span>→</span></button></div></footer>
+            </section>
+          </div>
+          <div class="mental-create-overlay" id="canvasAIDialog" hidden>
+            <section class="mental-create-dialog mental-ai-dialog" role="dialog" aria-modal="true" aria-labelledby="mentalAITitle">
+              <header class="mental-create-head"><div class="mental-dialog-mark">✦</div><div><span class="eyebrow">ORGANIZE IDEIAS COM IA</span><h2 id="mentalAITitle">Gerar um mapa mental</h2><p>A IA sugere ramificações e tópicos que você pode editar.</p></div><button id="canvasAIClose" type="button" aria-label="Fechar geração">×</button></header>
+              <div class="mental-create-body"><label class="mental-create-name">Sobre qual assunto?<textarea id="mentalAIPrompt" rows="3" maxlength="450" placeholder="Ex.: Quero montar um planejamento para estudar inglês em 3 meses"></textarea></label><p class="mental-ai-privacy">A IA recebe somente o assunto que você escrever aqui, nunca sua biblioteca ou seus dados privados.</p></div>
+              <footer class="mental-create-footer"><span id="mentalAIStatus" role="status">Até 6 gerações por hora.</span><div><button type="button" class="mental-cancel" id="canvasAICancel">Cancelar</button><button class="mental-confirm" type="button" id="canvasAIConfirm">✦ Gerar mapa mental</button></div></footer>
+            </section>
+          </div>
+          <div class="mental-create-overlay" id="canvasVideoDialog" hidden>
+            <section class="mental-create-dialog mental-video-dialog" role="dialog" aria-modal="true" aria-labelledby="mentalVideoTitle">
+              <header class="mental-create-head"><div class="mental-dialog-mark">▣</div><div><span class="eyebrow">SUA BIBLIOTECA</span><h2 id="mentalVideoTitle">Adicionar vídeo ao mapa</h2><p>Escolha um vídeo que você já guardou no Relembra.</p></div><button type="button" id="canvasVideoClose" aria-label="Fechar biblioteca">×</button></header>
+              <div class="mental-create-body"><label class="mental-create-name">Buscar vídeos salvos<input id="mentalVideoSearch" type="search" maxlength="100" placeholder="Pesquisar pelo título do vídeo"></label><div id="mentalVideoResults" class="mental-video-results" role="list"></div></div>
+            </section>
           </div>
         </section>
         <section id="financeView" class="view" hidden><div id="financeRoot" aria-live="polite"></div></section>
@@ -556,7 +594,7 @@
             <button type="button" data-atlas-route="life"><span>✧</span> Calendário da vida</button>
             <button type="button" data-atlas-route="tips"><span>✦</span> Minhas dicas</button>
             <button type="button" data-atlas-route="finance"><span>◇</span> Minhas finanças</button>
-            <button type="button" data-atlas-route="canvas"><span>⤧</span> Canvas Visual</button>
+            <button type="button" data-atlas-route="canvas"><span>⤧</span> Mapas mentais</button>
           </div>
         </div>
         <div class="atlas-command-section"><div class="atlas-command-result-head">Pesquisar no Chat <small>Sem acesso separado aos seus dados</small></div><div id="atlasCommandResults" aria-live="polite"><p>Digite duas ou mais letras para buscar em suas informações salvas.</p></div></div>
