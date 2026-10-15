@@ -920,11 +920,11 @@ async function importData(file) {
   if (file.size > 25_000_000) { toast('Arquivo muito grande. Limite: 25 MB.', true); return; }
   try {
     const data = JSON.parse(await file.text());
-    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts) && !Array.isArray(data.tips) && !data.finances && !data.extras) throw new Error('Esse arquivo não contém um backup válido.');
+    if (!Array.isArray(data.videos) && !Array.isArray(data.thoughts) && !Array.isArray(data.tips) && !data.finances && !data.extras && !Array.isArray(data.canvases)) throw new Error('Esse arquivo não contém um backup válido.');
     const videos = Array.isArray(data.videos) ? data.videos : [];
     const thoughts = Array.isArray(data.thoughts) ? data.thoughts : [];
     const tips = Array.isArray(data.tips) ? data.tips : [];
-    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0, tipsImported = 0, tipsSkipped = 0, financeImported = 0, financeSkipped = 0, extrasImported = 0, extrasSkipped = 0;
+    let imported = 0, skipped = 0, thoughtsImported = 0, thoughtsSkipped = 0, tipsImported = 0, tipsSkipped = 0, financeImported = 0, financeSkipped = 0, extrasImported = 0, extrasSkipped = 0, canvasImported = 0, canvasSkipped = 0;
     const videoGroups = []; let group = [], groupBytes = 0;
     for (const video of videos) {
       const size = new TextEncoder().encode(JSON.stringify(video)).length + 50;
@@ -960,15 +960,25 @@ async function importData(file) {
       extraGroups[kind] = [];
       for (let i = 0; i < rows.length; i += 200) extraGroups[kind].push(rows.slice(i, i + 200));
     }
-    const total = Math.max(videoGroups.length, thoughtGroups.length, tipGroups.length, ...Object.values(financeGroups).map(g => g.length), ...Object.values(extraGroups).map(g => g.length), 1);
+    const canvasGroups=[];group=[];groupBytes=0;
+    for(const item of Array.isArray(data.canvases)?data.canvases:[]){
+      const size=new TextEncoder().encode(JSON.stringify(item)).length+60;
+      if(group.length&&(group.length>=12||groupBytes+size>2_000_000)){
+        canvasGroups.push(group);group=[];groupBytes=0;
+      }
+      group.push(item);groupBytes+=size;
+    }
+    if(group.length)canvasGroups.push(group);
+    const total = Math.max(videoGroups.length, thoughtGroups.length, tipGroups.length,canvasGroups.length, ...Object.values(financeGroups).map(g => g.length), ...Object.values(extraGroups).map(g => g.length), 1);
     for (let index = 0; index < total; index++) {
       toast(`Restaurando backup: lote ${index + 1} de ${total}...`);
-      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [], finances: { recurring:financeGroups.recurring[index] || [], entries:financeGroups.entries[index] || [], bills:financeGroups.bills[index] || [], goals:financeGroups.goals[index] || [] }, extras:{ profile:index===0?extras.profile:null, moments:extraGroups.moments[index]||[], tasks:extraGroups.tasks[index]||[], habits:extraGroups.habits[index]||[], habit_days:extraGroups.habit_days[index]||[] } }) });
+      const res = await api('/api/import', { method: 'POST', body: JSON.stringify({ categories: data.categories || [], videos: videoGroups[index] || [], thoughts: thoughtGroups[index] || [], tips: tipGroups[index] || [], finances: { recurring:financeGroups.recurring[index] || [], entries:financeGroups.entries[index] || [], bills:financeGroups.bills[index] || [], goals:financeGroups.goals[index] || [] }, extras:{ profile:index===0?extras.profile:null, moments:extraGroups.moments[index]||[], tasks:extraGroups.tasks[index]||[], habits:extraGroups.habits[index]||[], habit_days:extraGroups.habit_days[index]||[] }, canvases:canvasGroups[index]||[] }) });
       imported += res.imported; skipped += res.skipped;
       thoughtsImported += res.thoughtsImported || 0; thoughtsSkipped += res.thoughtsSkipped || 0;
       tipsImported += res.tipsImported || 0; tipsSkipped += res.tipsSkipped || 0;
       financeImported += res.financeImported || 0; financeSkipped += res.financeSkipped || 0;
       extrasImported += res.extrasImported || 0; extrasSkipped += res.extrasSkipped || 0;
+      canvasImported += res.canvasImported || 0; canvasSkipped += res.canvasSkipped || 0;
     }
     await syncCategories();
     if (state.view === 'thoughts') await loadThoughts();
@@ -976,7 +986,7 @@ async function importData(file) {
     if (state.view === 'finance') await loadFinance();
     if (state.view === 'life') await loadLife();
     if (state.view === 'radar') await loadRadar();
-    toast(`${imported} vídeos, ${thoughtsImported} reflexões, ${tipsImported} dicas, ${financeImported} itens financeiros e ${extrasImported} registros pessoais importados; ${skipped + thoughtsSkipped + tipsSkipped + financeSkipped + extrasSkipped} já existentes/ignorados.`);
+    toast(`${imported} vídeos, ${thoughtsImported} reflexões, ${tipsImported} dicas, ${financeImported} itens financeiros e ${extrasImported} registros pessoais, ${canvasImported} quadros visuais importados; ${skipped + thoughtsSkipped + tipsSkipped + financeSkipped + extrasSkipped + canvasSkipped} já existentes/ignorados.`);
   } catch (e) { toast(e.message, true); }
   finally { $('importFile').value = ''; }
 }
