@@ -1069,36 +1069,20 @@ function bindEvents() {
   $('exportBtn').addEventListener('click', exportData); $('importFile').addEventListener('change', e => importData(e.target.files[0]));
   $('loginForm').addEventListener('submit',e=>submitAccountForm(e,'/api/login'));
   $('ownerSetupForm').addEventListener('submit',e=>submitAccountForm(e,'/api/setup-owner'));
-  $('inviteRegisterForm').addEventListener('submit',e=>submitAccountForm(e,'/api/register'));
+  $('registerForm').addEventListener('submit',e=>submitAccountForm(e,'/api/register'));
   $('ownerRecoverForm').addEventListener('submit',e=>submitAccountForm(e,'/api/recover-owner'));
   $('showLoginBtn').addEventListener('click',()=>showAccountMode('login'));
   $('showRegisterBtn').addEventListener('click',()=>showAccountMode('register'));
   $('showRecoverBtn').addEventListener('click',()=>showAccountMode('recover'));
-  $('inviteBtn').addEventListener('click',()=>{$('inviteResult').hidden=true;$('inviteModal').hidden=false;});
-  $('inviteCloseBtn').addEventListener('click',()=>{$('inviteModal').hidden=true;$('inviteCode').value='';});
-  $('inviteModal').addEventListener('click',e=>{if(e.target===$('inviteModal'))$('inviteCloseBtn').click();});
-  $('generateInviteBtn').addEventListener('click',async()=>{
-    const button=$('generateInviteBtn');button.disabled=true;
-    try{
-      const result=await api('/api/invites',{method:'POST',body:'{}'});
-      $('inviteCode').value=result.invitation;$('inviteResult').hidden=false;
-    }catch(e){toast(e.message,true);}finally{button.disabled=false;}
-  });
-  $('copyInviteBtn').addEventListener('click',async()=>{
-    const code=$('inviteCode').value;if(!code)return;
-    try{
-      await navigator.clipboard.writeText('Abra https://relembra-videos.wesleybrsales2018.workers.dev/ e clique em "Tenho um convite". Código: '+code);
-      toast('Instruções copiadas. Envie somente para quem você convidar.');
-    }catch(e){toast('Copie o código manualmente.');}
-  });
+
 }
 function showAccountMode(mode) {
-  const forms = { login:'loginForm', setup:'ownerSetupForm', register:'inviteRegisterForm', recover:'ownerRecoverForm' };
+  const forms = { login:'loginForm', setup:'ownerSetupForm', register:'registerForm', recover:'ownerRecoverForm' };
   for(const [name,id] of Object.entries(forms)) $(id).hidden=name!==mode;
   const labels={
     login:['Bem-vindo de volta.','Use seu usuário e senha para entrar na sua biblioteca.'],
     setup:['Criar a conta principal.','Ative a nova proteção sem perder seus vídeos, dicas e pensamentos anteriores.'],
-    register:['Sua própria biblioteca.','Insira o convite recebido. Seus dados ficarão separados das outras contas.'],
+    register:['Crie sua própria biblioteca.','Cadastre-se gratuitamente com usuário e senha. Seus dados são privados e separados das outras contas.'],
     recover:['Recuperar conta principal.','A chave administrativa da Cloudflare permite redefinir a senha do proprietário.']
   };
   $('loginModeTitle').textContent=labels[mode][0];
@@ -1118,20 +1102,16 @@ function wipePreviousAccount() {
   state.editId=null;state.tipEditId=null;state.thoughtEditId=null;
   for(const id of ['homeGrid','libraryGrid','categoryNav','thoughtList','tipsGrid']) $(id).replaceChildren();
   $('accountLabel').textContent='Sua conta';
-  $('inviteBtn').hidden=true;
   closeMediaPlayer();closeImageViewer();closeTipEditor();closeEditor();
   resetThoughtForm();
   $('tipForm').reset();
-  $('inviteModal').hidden=true;
-  $('inviteCode').value='';
   $('thoughtSuggestion').hidden=true;
 }
 async function finishAccountLogin(result) {
   wipePreviousAccount();
   $('loginOverlay').hidden=true;
   $('accountLabel').textContent='👤 '+result.user.username+(result.user.role==='owner'?' · Administrador':'');
-  $('inviteBtn').hidden=result.user.role!=='owner';
-  for(const id of ['loginForm','ownerSetupForm','inviteRegisterForm','ownerRecoverForm']) $(id).reset();
+  for(const id of ['loginForm','ownerSetupForm','registerForm','ownerRecoverForm']) $(id).reset();
   await syncCategories();
   await navigate('home');
 }
