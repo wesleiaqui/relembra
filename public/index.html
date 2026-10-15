@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="/canvas.css">
   <link rel="stylesheet" href="/mental-maps.css">
   <link rel="stylesheet" href="/atlas-light-parity.css">
+  <link rel="stylesheet" href="/admin.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -51,6 +52,7 @@
       <div class="side-spacer"></div>
       <div class="side-bottom">
         <div class="account-label" id="accountLabel" aria-live="polite">Sua conta</div>
+        <button class="nav-item admin-nav-item" id="adminNavItem" data-view="admin" hidden><span class="nav-icon">◈</span> Administração <span class="nav-new">OWNER</span></button>
         <button class="nav-item muted" data-view="backup"><span class="nav-icon">⇄</span> Backup e dados</button>
         <button class="nav-item muted" id="logoutBtn"><span class="nav-icon">↪</span> Sair da conta</button>
         <div class="privacy-note"><span class="status-dot"></span> Biblioteca privada <small>Seus vídeos ficam na sua conta Cloudflare.</small></div>
@@ -448,6 +450,43 @@
           </div>
         </section>
         <section id="financeView" class="view" hidden><div id="financeRoot" aria-live="polite"></div></section>
+        <section id="adminView" class="view admin-view" hidden>
+          <header class="admin-heading">
+            <div><div class="eyebrow">GERENCIAMENTO DA PLATAFORMA</div><h1>Administração</h1>
+              <p>Acompanhe os usuários do Relembra e visualize os painéis em modo somente leitura.</p></div>
+            <button type="button" id="adminRefresh" class="button button-outline">↻ Atualizar</button>
+          </header>
+          <div class="admin-stats" id="adminStats" role="status"></div>
+          <div class="admin-workspace">
+            <section class="admin-users-panel" aria-label="Usuários cadastrados">
+              <div class="admin-panel-heading"><div><h2>Usuários</h2><p>Atividade nos últimos 10 minutos indica presença recente, não conexão em tempo real.</p></div></div>
+              <label class="admin-search"><span class="sr-only">Buscar usuário</span><input id="adminSearch" type="search" maxlength="60" placeholder="Buscar por nome de usuário…" autocomplete="off"></label>
+              <div id="adminUserList" class="admin-user-list" aria-live="polite"></div>
+              <div class="admin-pagination"><button type="button" id="adminPrev">← Anterior</button><span id="adminPageStatus"></span><button type="button" id="adminNext">Próxima →</button></div>
+            </section>
+            <section class="admin-detail-panel" aria-label="Visualização administrativa">
+              <div id="adminEmptyState" class="admin-empty-state"><span>◈</span><h2>Selecione um usuário</h2><p>Escolha uma conta à esquerda para visualizar um resumo do painel com segurança.</p></div>
+              <div id="adminDetail" hidden>
+                <header class="admin-account-header"><div class="admin-avatar" id="adminDetailAvatar">U</div><div><div class="eyebrow">PAINEL DO USUÁRIO</div><h2 id="adminDetailName"></h2><p id="adminDetailStatus"></p></div>
+                  <span class="admin-readonly"> <span aria-hidden="true">◉</span> Somente leitura</span></header>
+                <div class="admin-privacy-note">Esta consulta é registrada. Você está visualizando os dados de outra pessoa, mas permanece na sua própria conta. Nenhuma alteração é permitida neste painel.</div>
+                <div class="admin-tabs" id="adminTabs" role="tablist" aria-label="Seções do painel">
+                  <button type="button" data-admin-section="overview" role="tab" aria-selected="true">Visão geral</button>
+                  <button type="button" data-admin-section="library" role="tab" aria-selected="false">Biblioteca</button>
+                  <button type="button" data-admin-section="finance" role="tab" aria-selected="false">Finanças</button>
+                  <button type="button" data-admin-section="radar" role="tab" aria-selected="false">Radar e vida</button>
+                  <button type="button" data-admin-section="maps" role="tab" aria-selected="false">Mapas</button>
+                  <button type="button" data-admin-section="notes" role="tab" aria-selected="false">Anotações</button>
+                </div>
+                <div id="adminDetailBody" class="admin-detail-body" role="tabpanel" aria-live="polite"></div>
+              </div>
+            </section>
+          </div>
+          <section class="admin-audit-panel"><header><div><h2>Histórico de acessos administrativos</h2>
+            <p>Registros de quais painéis foram consultados e quando. Não registra senhas ou tokens.</p></div>
+            <button type="button" id="adminShowAudit" class="button button-outline">Ver histórico</button></header>
+            <div id="adminAuditList" hidden></div></section>
+        </section>
         <section id="backupView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">CONTROLE DOS SEUS DADOS</div><h1>Backup e restauração</h1><p>Leve sua biblioteca com você. Seus dados são seus.</p></div></div>
           <div class="settings-grid"><article class="setting-card"><div class="settings-icon blue">↓</div><h2>Exportar biblioteca</h2><p>Faça download de um arquivo JSON com vídeos, transcrições, categorias, reflexões, dicas e seus registros financeiros privados.</p><button class="button button-primary" id="exportBtn">↓ &nbsp; Baixar backup</button><small>Para um backup completo, baixe também o arquivo de imagens abaixo.</small></article>
@@ -456,6 +495,11 @@
           <section class="image-backup-panel account-session-panel" id="accountSessionPanel" hidden aria-label="Segurança das sessões">
             <div><h2>Segurança da conta</h2><p>Se você perdeu o acesso a outro computador ou suspeita de uma sessão aberta, encerre todos os acessos de uma vez.</p><small>Você precisará entrar novamente neste e nos outros dispositivos.</small></div>
             <button class="button button-outline" id="revokeAllSessionsBtn" type="button">↪ Sair de todos os dispositivos</button>
+          </section>
+          <section id="myAdminAccess" class="account-admin-access" hidden>
+            <h2>Acessos administrativos ao meu painel</h2>
+            <p>O administrador pode consultar informações para suporte. Veja abaixo quando seu painel foi acessado.</p>
+            <div id="myAdminAccessList" aria-live="polite"></div>
           </section>
           <div class="tip-panel"><span>🔒</span><div><strong>Seus dados são privados</strong><p>O aplicativo tem login por senha e salva sua biblioteca no banco de dados D1 da sua conta Cloudflare. Não compartilhe sua senha nem arquivos de backup.</p></div></div>
         </section>
@@ -567,7 +611,7 @@
         <button class="button button-primary login-submit" type="submit">Criar minha conta principal →</button>
       </form>
       <form id="registerForm" hidden>
-        <div class="form-info">Cadastro gratuito, sem convite. Sua biblioteca, finanças e anotações são privadas e separadas das outras contas.</div>
+        <div class="form-info">Cadastro gratuito, sem convite. Cada conta mantém seus dados separados. O administrador da plataforma pode visualizar painéis de usuários, inclusive biblioteca, finanças e anotações, em modo somente leitura, com registro de acesso.</div>
         <label class="field"><span>Escolha seu usuário</span><input type="text" name="username" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9][a-zA-Z0-9_.-]{2,31}" autocomplete="username" placeholder="Ex.: meuusuario"></label>
         <label class="field"><span>Crie uma senha (mínimo 12 caracteres)</span><input type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password" placeholder="Senha exclusiva da sua conta"></label>
         <div class="register-turnstile-wrap" id="registerTurnstileWrap" hidden><div id="registerTurnstile"></div><p id="registerTurnstileStatus" role="status"></p></div>
