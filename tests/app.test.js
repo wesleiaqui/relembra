@@ -1478,3 +1478,30 @@ test('Canvas: vínculo real com Radar, conclusão compartilhada e exclusão sem 
   const preserved=await env.DB.prepare('SELECT id FROM radar_tasks WHERE id=?').bind(taskId).first();
   assert.ok(preserved);
 });
+
+
+test('Canvas entra no backup completo e restaura mapas e vínculos do próprio usuário',async()=>{
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const id=(await req('/api/canvas','POST',{title:'Meu mapa para backup'})).data.board.id;
+  const nodeId=crypto.randomUUID();
+  const snapshot={nodes:[{id:nodeId,type:'task',x:55,y:88,width:270,height:170,
+    title:'Uma tarefa do mapa',body:'Preservada no backup',color:'#4d8896',
+    due_date:new Date().toISOString().slice(0,10),priority:2,done:false}],edges:[]};
+  assert.equal((await req('/api/canvas/'+id,'PUT',{title:'Meu mapa para backup',revision:1,snapshot})).status,200);
+  const link=await req('/api/canvas/'+id+'/tasks','POST',{nodeId});
+  assert.equal(link.status,201);
+  const backup=(await req('/api/export')).data;
+  assert.equal(backup.canvases.length,1);
+  assert.equal(backup.canvases[0].task_links[0].task_id,link.data.task_id);
+  assert.equal((await req('/api/canvas/'+id,'DELETE')).status,200);
+  const restore=await req('/api/import','POST',{canvases:backup.canvases});
+  assert.equal(restore.status,200);
+  assert.equal(restore.data.canvasImported,1);
+  const returned=(await req('/api/canvas/'+id)).data;
+  assert.equal(returned.board.snapshot.nodes[0].title,'Uma tarefa do mapa');
+  assert.equal(returned.links.length,1);
+  assert.equal(returned.links[0].task_id,link.data.task_id);
+  const again=await req('/api/import','POST',{canvases:backup.canvases});
+  assert.equal(again.data.canvasSkipped,1);
+});
