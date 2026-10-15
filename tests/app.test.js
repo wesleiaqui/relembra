@@ -1580,3 +1580,105 @@ test('Turnstile configurado bloqueia cadastro sem token e com configuração par
   env.TURNSTILE_SECRET=undefined;
   assert.equal((await req('/api/register','POST',payload)).status,503);
 });
+
+
+test('administração: apenas dono acessa diretório e painéis de membros, com auditoria e isolamento',async()=>{
+  const {env}=setup();
+  async function call(path,method='GET',body=null,cookie=''){
+    const headers={origin:'https://relembra.example'};
+    if(body!==null)headers['content-type']='application/json';
+    if(cookie)headers.cookie=cookie;
+    const res=await worker.fetch(new Request('https://relembra.example'+path,{
+      method,headers,...(body!==null?{body:JSON.stringify(body)}:{})
+    }),env);
+    return {status:res.status,data:await res.json(),cookie:res.headers.get('set-cookie')?.split(';')[0]};
+  }
+  const owner=await call('/api/setup-owner','POST',{
+    username:'principal',password:'senha-dono-muito-segura-123',setup_key:'um-passphrase-longo-de-verdade'
+  });
+  assert.equal(owner.status,201);
+  const ownerCookie=owner.cookie;
+  const member=await call('/api/register','POST',{
+    username:'cliente01',password:'senha-membro-muito-segura-123'
+  });
+  assert.equal(member.status,201);
+  const memberCookie=member.cookie;
+  assert.equal((await call('/api/admin/users','GET',null,memberCookie)).status,403);
+  assert.equal((await call('/api/admin/users','GET')).status,401);
+  assert.equal((await call('/api/admin/audit','GET',null,memberCookie)).status,403);
+  assert.equal((await call('/api/admin/users','POST',{},ownerCookie)).status,405);
+  assert.equal((await call('/api/admin/users?section=overview','GET',null,ownerCookie)).status,200);
+  assert.equal((await call('/api/admin/users','GET',null,ownerCookie)).data.stats.total,1);
+  const users=(await call('/api/admin/users?q=cliente&page=1','GET',null,ownerCookie)).data;
+  assert.equal(users.users.length,1);
+  assert.equal(users.users[0].username,'cliente01');
+  assert.equal(users.users[0].password_hash,undefined);
+  assert.equal(users.users[0].password_salt,undefined);
+  const id=users.users[0].id;
+  const video=await call('/api/videos','POST',{
+    ...vid,url:'https://www.instagram.com/reel/AdminMember01/'
+  },memberCookie);
+  assert.equal(video.status,201);
+  const before=(await call('/api/admin/audit','GET',null,ownerCookie)).data.audit.length;
+  for(const section of ['overview','library','finance','radar','maps','notes']){
+    const seen=await call('/api/admin/users/'+id+'/dashboard?section='+section,'GET',null,ownerCookie);
+    assert.equal(seen.status,200,JSON.stringify(seen.data));
+    assert.equal(seen.data.readonly,true);
+    assert.equal(seen.data.section,section);
+    assert.equal(seen.data.user.username,'cliente01');
+    assert.equal(seen.data.user.password_hash,undefined);
+    if(section==='library')assert.equal(seen.data.videos[0].title,vid.title);
+  }
+  const log=(await call('/api/admin/audit','GET',null,ownerCookie)).data.audit;
+  assert.equal(log.length,before+6);
+  assert.equal(log[0].target_username,'cliente01');
+  assert.equal(log[0].section,'notes');
+  assert.equal((await call('/api/admin/users/'+id+'/dashboard?section=invalid','GET',null,ownerCookie)).status,404);
+  assert.equal((await call('/api/admin/users/'+id+'/dashboard?section=finance','GET',null,memberCookie)).status,403);
+  assert.equal((await call('/api/videos/'+video.data.video.id,'GET',null,ownerCookie)).status,404);
+  assert.equal((await call('/api/videos','GET',null,ownerCookie)).data.total,0);
+  const memberLog=(await call('/api/account/admin-access','GET',null,memberCookie)).data.accesses;
+  assert.equal(memberLog.length,6);
+  assert.equal(memberLog[0].section,'notes');
+  assert.equal(memberLog[0].actor_id,undefined);
+});
+test('atividade recente é registrada no login e em heartbeat sem confiar em identificadores enviados',async()=>{
+  const {env}=setup();
+  async function call(path,method='GET',body=null,cookie=''){
+    const headers={origin:'https://relembra.example'};
+    if(body!==null)headers['content-type']='application/json';
+    if(cookie)headers.cookie=cookie;
+    const res=await worker.fetch(new Request('https://relembra.example'+path,{
+      method,headers,...(body!==null?{body:JSON.stringify(body)}:{})
+    }),env);
+    return {status:res.status,data:await res.json(),cookie:res.headers.get('set-cookie')?.split(';')[0]};
+  }
+  const owner=await call('/api/setup-owner','POST',{
+    username:'principal',password:'senha-dono-muito-segura-123',setup_key:'um-passphrase-longo-de-verdade'
+  });
+  const member=await call('/api/register','POST',{username:'contaatividade',password:'senha-membro-muito-segura-123'});
+  const id=(await call('/api/admin/users','GET',null,owner.cookie)).data.users[0].id;
+  const row=await env.DB.prepare('SELECT last_seen_at,last_login_at FROM app_users WHERE id=?').bind(id).first();
+  assert.ok(row.last_seen_at&&row.last_login_at);
+  await env.DB.prepare('UPDATE app_users SET last_seen_at=? WHERE id=?').bind('2020-01-01T00:00:00.000Z',id).run();
+  const beat=await call('/api/activity','POST',{owner_id:'qualquer-outro'},member.cookie);
+  assert.equal(beat.status,200);
+  const refreshed=await env.DB.prepare('SELECT last_seen_at FROM app_users WHERE id=?').bind(id).first();
+  assert.ok(refreshed.last_seen_at>row.last_login_at||refreshed.last_seen_at===row.last_login_at);
+  assert.equal((await call('/api/activity','POST',{},'')).status,401);
+  const active=(await call('/api/admin/users','GET',null,owner.cookie)).data;
+  assert.equal(active.stats.recentlyActive,1);
+});
+test('página de administração não fornece função de edição nem sessão de outro membro',()=>{
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const js=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
+  const workerSrc=readFileSync(new URL('../src/worker.js',import.meta.url),'utf8');
+  assert.match(html,/id="adminNavItem" data-view="admin" hidden/);
+  assert.match(html,/Somente leitura/);
+  assert.match(html,/id="adminAuditList"/);
+  assert.match(html,/id="myAdminAccess"/);
+  assert.match(html,/administrador da plataforma pode visualizar painéis/);
+  assert.match(js,/readonly!==true/);
+  assert.doesNotMatch(js,/method:\s*'PUT'|method:\s*'DELETE'|method:\s*'PATCH'/);
+  assert.match(workerSrc,/handleAdministration\(request,env,user\)/);
+});
