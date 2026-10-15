@@ -177,7 +177,19 @@ function paintBoardNames(){
   $('canvasSaveNow').disabled=!board||guest();
   if(board)select.value=board.id;
 }
-function resetCamera(){zoom=1;offset={x:85,y:64};updateCamera();}
+function resetCamera(){
+  const nodes=snap()?.nodes||[];
+  const rect=viewer().getBoundingClientRect();
+  if(!nodes.length||!rect.width||!rect.height){
+    zoom=1;offset={x:85,y:64};updateCamera();return;
+  }
+  const minX=Math.min(...nodes.map(n=>n.x)),maxX=Math.max(...nodes.map(n=>n.x+n.width));
+  const minY=Math.min(...nodes.map(n=>n.y)),maxY=Math.max(...nodes.map(n=>n.y+n.height));
+  const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+  zoom=bounds(Math.min((rect.width-100)/w,(rect.height-100)/h,1.1),.35,2.5);
+  offset={x:(rect.width-w*zoom)/2-minX*zoom,y:(rect.height-h*zoom)/2-minY*zoom};
+  updateCamera();
+}
 function updateCamera(){
   $('canvasWorld').style.transform=`translate(${offset.x}px,${offset.y}px) scale(${zoom})`;
   $('canvasZoomLevel').textContent=Math.round(zoom*100)+'%';
