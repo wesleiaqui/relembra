@@ -1687,7 +1687,9 @@ test('página de administração não fornece função de edição nem sessão d
   assert.match(html,/Somente leitura/);
   assert.match(html,/id="adminAuditList"/);
   assert.match(html,/id="myAdminAccess"/);
-  assert.match(html,/proprietário da plataforma pode consultar painéis de usuários/);
+  assert.match(html,/<form id="registerForm"[^>]*>[\\s\\S]*?Cadastro gratuito, sem convite\\. Cada conta mantém seus dados separados\\./);
+  assert.match(html,/href="\\/privacidade\\.html"/);
+  assert.doesNotMatch(html,/<form id="registerForm"[^>]*>[\\s\\S]*?O proprietário da plataforma pode consultar/);
   assert.doesNotMatch(html,/id="myAdminConsentToggle"/);
   assert.doesNotMatch(js,/myAdminConsentToggle|admin_view_consent/);
   assert.match(js,/readonly!==true/);
@@ -1779,7 +1781,10 @@ test('interface administrativa ignora consultas que chegam após logout e render
   assert.match(script,/node.textContent=String\(value\)/);
   assert.doesNotMatch(view,/id="myAdminConsentToggle"/);
   assert.doesNotMatch(backend,/admin_view_consent/);
-  assert.match(view,/proprietário da plataforma pode consultar painéis de usuários/);
+  assert.match(view,/href="\\/privacidade\\.html"/);
+  const privacy=readFileSync(new URL('../public/privacidade.html',import.meta.url),'utf8');
+  assert.match(privacy,/O proprietário da plataforma[^<]*pode consultar os painéis dos usuários/);
+  assert.match(privacy,/informações financeiras e anotações pessoais/);
   assert.match(backend,/reserveAdminRead\(env,user\)/);
   assert.match(backend,/LIMIT 1 OFFSET 1999/);
   assert.doesNotMatch(script,/\.innerHTML\s*=/);
