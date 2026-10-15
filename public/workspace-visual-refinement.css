@@ -334,3 +334,16 @@ body[data-color-mode="dark"] #lifeView .life-moment-form :is(input,textarea,sele
 @media(prefers-reduced-motion:reduce){
   #lifeView .life-week{transition:none}
 }
+
+/* Guest demo keeps the same week palette as the account view. */
+body[data-guest="true"] #lifeView .life-weeks .life-week.future{background:var(--lv-future)}
+body[data-guest="true"] #lifeView .life-weeks .life-week.lived{background:var(--lv-lived)}
+body[data-guest="true"] #lifeView .life-weeks .life-week.present{background:var(--lv-now)}
+body[data-guest="true"] #lifeView .life-weeks .life-week.saved{background:var(--lv-saved)}
+body[data-guest="true"] #lifeView .life-weeks .life-week.present.saved{background:var(--lv-now);border:2px solid var(--lv-saved)}
+body[data-guest="true"] #lifeView .life-weeks .life-year-cells{
+  gap:3px;grid-template-columns:repeat(53,minmax(8px,1fr));min-width:540px
+}
+body[data-guest="true"] #lifeView .life-weeks .life-year:nth-child(5n+1):not(:first-child){
+  padding-top:7px;margin-top:3px;border-top:1px solid var(--lv-border)
+}
