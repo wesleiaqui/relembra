@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="/chat-layout-refined.css">
   <link rel="stylesheet" href="/dark-palettes.css">
   <link rel="stylesheet" href="/dark-neutral-fix.css">
+  <link rel="stylesheet" href="/guest-preview.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -88,6 +89,7 @@
           <span class="header-date" id="todayText"></span><button class="button button-primary" id="addVideoBtn"><span class="plus">+</span> <span>Adicionar vídeo</span></button></div>
       </header>
       <main class="page" id="page">
+        <div class="guest-banner" id="guestBanner" hidden role="status"><div><strong>✦ Você está explorando o Relembra</strong><span>Prévia com exemplos fictícios. Crie sua conta para começar a salvar suas próprias informações.</span></div><div class="guest-banner-actions"><button class="button button-outline" type="button" id="guestLoginBtn">Entrar</button><button class="button button-primary" type="button" id="guestRegisterBtn">Criar conta grátis</button></div></div>
         <section id="homeView" class="view">
           <header class="home-new-heading">
             <div><div class="eyebrow">✦ SEU ESPAÇO PESSOAL</div><h1 id="homeGreeting">Seu dia, com mais clareza.</h1><p>As próximas ações, o que não pode esperar e seus aprendizados em um só lugar.</p></div>
@@ -472,6 +474,7 @@
         <button type="button" id="showRegisterBtn">Criar conta</button>
         <button type="button" id="showRecoverBtn">Esqueci minha senha</button>
       </div>
+      <button class="guest-explore-btn" id="exploreGuestBtn" type="button">Explorar o Relembra sem criar conta <span aria-hidden="true">↗</span></button>
       <p class="login-error" id="loginError" role="alert"></p>
       <small>🔒 Seus dados não são compartilhados com outras contas.</small>
     </div>
