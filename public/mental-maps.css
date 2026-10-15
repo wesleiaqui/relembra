@@ -1,0 +1,156 @@
+/* Mapas mentais: identidade visual leiga, limpa e compatível com todas as paletas. */
+#canvasView .mental-page-header{padding:3px 1px 6px}
+#canvasView .mental-page-header h1{font-size:clamp(27px,2.5vw,36px);letter-spacing:-1.1px}
+#canvasView .mental-page-header p{font-size:12px;line-height:1.55}
+#canvasView .mental-main-cta{background:#108868;border-color:#108868;color:#fff;padding:11px 17px;font-size:12px;font-weight:750;box-shadow:0 5px 12px rgb(16 136 104 / 12%)}
+#canvasView .mental-main-cta:hover{background:#087553;border-color:#087553;color:#fff}
+#canvasView .mental-workspace-bar{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  min-height:72px;border:1px solid var(--cv-border);border-radius:15px;padding:12px 17px;background:var(--cv-surface)}
+#canvasView .mental-map-identity{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+#canvasView .mental-map-symbol{display:grid;place-items:center;width:43px;height:43px;border-radius:12px;background:color-mix(in srgb,#18886e 14%,var(--cv-surface));color:#289d80;font-size:26px;flex:none}
+#canvasView .canvas-board-picker{display:grid;gap:4px;flex:1;max-width:420px;min-width:125px}
+#canvasView .canvas-board-picker span{font-weight:800;letter-spacing:1px;font-size:9px;color:var(--cv-muted)}
+#canvasView .canvas-board-picker select{height:34px;border:0;box-shadow:none;appearance:auto;padding:5px 15px 5px 0;
+  background:transparent;color:var(--cv-text);font-size:15px;font-weight:750;max-width:100%;width:100%}
+#canvasView .mental-map-count{flex:none;padding:6px 9px;border-radius:18px;background:var(--cv-bg);color:var(--cv-muted);font-size:10px}
+#canvasView .mental-workspace-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#canvasView .mental-action-button{background:transparent;border:1px solid var(--cv-border);color:var(--cv-text);
+  padding:9px 13px;border-radius:10px;cursor:pointer;font-size:11px;font-weight:730;white-space:nowrap}
+#canvasView .mental-action-button:hover{border-color:#339f81;background:color-mix(in srgb,#339f81 8%,var(--cv-surface))}
+#canvasView .mental-workspace-bar[data-has-map="false"] .mental-workspace-actions{display:none}
+#canvasView .mental-workspace-bar[data-has-map="false"] .canvas-board-picker select{pointer-events:none;opacity:.65}
+#canvasView .mental-workspace-bar[data-has-map="false"] .mental-map-count{display:none}
+#canvasView .mental-editor-toolbar{align-items:center;gap:7px;padding:6px 10px;background:transparent;border:0;min-height:37px}
+#canvasView .mental-editor-toolbar .canvas-tool{min-height:33px;padding:7px 11px}
+#canvasView .mental-tool-label{font-size:10px;font-weight:750;color:var(--cv-muted);margin:0 8px 0 0}
+#canvasView .mental-toolbar-hint{margin-left:auto;color:var(--cv-muted);font-size:10px}
+#canvasView .mental-workspace-bar[data-has-map="false"] + .mental-editor-toolbar{display:none}
+#canvasView .mental-options{position:relative;z-index:21}
+#canvasView .mental-options summary{list-style:none;cursor:pointer;display:grid;place-items:center;
+  width:34px;height:34px;border-radius:10px;background:var(--cv-bg);color:var(--cv-text);
+  border:1px solid var(--cv-border);font-size:17px;letter-spacing:2px;font-weight:800}
+#canvasView .mental-options summary::-webkit-details-marker{display:none}
+#canvasView .mental-options-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:25;
+  width:255px;padding:13px;border-radius:12px;border:1px solid var(--cv-border);
+  background:var(--cv-surface);box-shadow:0 14px 35px rgb(0 0 0 / 18%);display:grid;gap:13px}
+#canvasView .mental-options:not([open]) .mental-options-menu{display:none}
+#canvasView .mental-options-menu label{font-size:11px;font-weight:750;color:var(--cv-muted);display:grid;gap:6px}
+#canvasView .mental-options-menu input{width:100%;min-height:36px;box-sizing:border-box;padding:7px 9px;
+  border:1px solid var(--cv-border);background:var(--cv-bg);color:var(--cv-text);border-radius:8px}
+#canvasView .mental-options-menu button{min-height:35px;background:color-mix(in srgb,#d77a7a 8%,var(--cv-surface));
+  border:1px solid color-mix(in srgb,#d77a7a 30%,var(--cv-border));color:#d77a7a;
+  border-radius:8px;cursor:pointer;text-align:left;padding:8px 11px;font-size:11px;font-weight:700}
+#canvasView .mental-options-menu button:hover{border-color:#d77a7a}
+#canvasView .canvas-empty{background:var(--cv-bg);
+  background-image:radial-gradient(var(--cv-grid) .8px,transparent .8px);background-size:24px 24px}
+#canvasView .canvas-empty-icon{display:grid;place-items:center;width:65px;height:65px;border-radius:20px;
+  background:color-mix(in srgb,#1d9c77 11%,var(--cv-surface));color:#33a884;font-size:40px;margin-bottom:8px}
+#canvasView .canvas-empty h2{font-size:25px;letter-spacing:-.5px}
+#canvasView .canvas-empty p{font-size:13px;max-width:490px;color:var(--cv-muted);line-height:1.8;margin:2px 0 8px}
+#canvasView .canvas-empty>.button{background:#138b6b;color:#fff;border-color:#138b6b;font-weight:800;padding:12px 20px}
+#canvasView .mental-empty-hint{font-size:11px;color:var(--cv-muted);margin-top:13px}
+#canvasView .mental-empty-templates{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+#canvasView .mental-empty-templates button{padding:10px 14px;border-radius:9px;background:var(--cv-surface);
+  color:var(--cv-text);border:1px solid var(--cv-border);cursor:pointer;font-size:11px;font-weight:750}
+#canvasView .mental-empty-templates button:hover{border-color:#16946f}
+/* Modal em camada própria: não escapa do tema claro, grafite ou OLED. */
+#canvasView .mental-create-overlay[hidden]{display:none}
+#canvasView .mental-create-overlay{position:fixed;z-index:5000;inset:0;
+  display:flex;align-items:center;justify-content:center;box-sizing:border-box;
+  padding:18px;background:rgb(0 0 0 / 65%);backdrop-filter:blur(4px)}
+#canvasView .mental-create-dialog{display:flex;flex-direction:column;min-height:0;width:min(780px,100%);max-height:min(800px,92dvh);
+  overflow:hidden;border:1px solid var(--cv-border);border-radius:22px;background:var(--cv-surface);
+  box-shadow:0 28px 100px rgb(0 0 0 / 30%);color:var(--cv-text)}
+#canvasView .mental-create-head{display:flex;align-items:center;gap:15px;padding:23px 26px 18px;
+  border-bottom:1px solid var(--cv-border)}
+#canvasView .mental-dialog-mark{display:grid;place-items:center;width:48px;height:48px;flex:none;border-radius:14px;
+  font-size:28px;background:color-mix(in srgb,#178969 16%,var(--cv-surface));color:#339f7c}
+#canvasView .mental-create-head>div:nth-child(2){flex:1;min-width:0}
+#canvasView .mental-create-head h2{margin:5px 0 4px;font-size:22px;letter-spacing:-.6px}
+#canvasView .mental-create-head p{font-size:12px;color:var(--cv-muted);margin:0;line-height:1.55}
+#canvasView .mental-create-head>button{align-self:flex-start;border:0;background:var(--cv-bg);color:var(--cv-muted);
+  width:32px;height:32px;border-radius:9px;font-size:23px;cursor:pointer}
+#canvasView .mental-create-body{padding:22px 26px;overflow:auto;flex:1;min-height:0}
+#canvasView .mental-create-name{display:grid;gap:9px;font-size:12px;font-weight:800}
+#canvasView .mental-create-name input,#canvasView .mental-create-name textarea{width:100%;box-sizing:border-box;
+  background:var(--cv-bg);color:var(--cv-text);border:1px solid var(--cv-border);border-radius:11px;
+  padding:13px 15px;outline:none;font-size:13px;line-height:1.5;font-weight:500}
+#canvasView .mental-create-name input:focus,#canvasView .mental-create-name textarea:focus{
+  border-color:#339f7c;box-shadow:0 0 0 3px rgb(51 159 124 / 12%)}
+#canvasView .mental-template-heading{display:flex;align-items:baseline;justify-content:space-between;
+  gap:8px;flex-wrap:wrap;margin:23px 0 13px}
+#canvasView .mental-template-heading strong{font-size:13px}
+#canvasView .mental-template-heading span{font-size:11px;color:var(--cv-muted)}
+#canvasView .mental-template-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+#canvasView .mental-template-card{display:grid;gap:7px;text-align:left;cursor:pointer;min-height:170px;
+  border:1px solid var(--cv-border);border-radius:14px;background:var(--cv-card);color:var(--cv-text);padding:13px}
+#canvasView .mental-template-card:hover{border-color:#57a48e}
+#canvasView .mental-template-card[aria-checked="true"]{border:2px solid #27a17a;
+  padding:12px;background:color-mix(in srgb,#2fa782 7%,var(--cv-card))}
+#canvasView .mental-template-card>.mental-card-header{display:flex;align-items:center;justify-content:space-between}
+#canvasView .mental-card-header span{color:var(--cv-muted);font-size:9px;letter-spacing:.4px}
+#canvasView .mental-card-header b{width:15px;height:15px;border:1px solid var(--cv-border);border-radius:50%;display:grid;place-items:center;font-size:10px;color:transparent}
+#canvasView .mental-template-card[aria-checked="true"] .mental-card-header b{background:#1b9b77;border-color:#1b9b77;color:white}
+#canvasView .mental-template-drawing{position:relative;height:60px;display:flex;align-items:center;justify-content:center;color:var(--mental-color)}
+#canvasView .mental-preview-center{position:relative;z-index:2;width:40px;height:26px;border-radius:7px;
+  background:var(--mental-color);opacity:.86;box-shadow:0 2px 8px rgb(0 0 0 / 9%)}
+#canvasView .mental-preview-leaf{position:absolute;z-index:1;width:29px;height:18px;border:1px solid var(--mental-color);
+  border-radius:5px;background:color-mix(in srgb,var(--mental-color) 15%,var(--cv-card))}
+#canvasView .mental-preview-leaf.one{left:12%;top:2px}
+#canvasView .mental-preview-leaf.two{right:12%;top:6px}
+#canvasView .mental-preview-leaf.three{left:9%;bottom:0}
+#canvasView .mental-preview-leaf.four{right:9%;bottom:0}
+#canvasView .mental-preview-lines{position:absolute;width:70%;height:55%;border-top:1.5px solid var(--mental-color);border-bottom:1.5px solid var(--mental-color);opacity:.4}
+#canvasView .mental-template-card strong{font-size:12px;line-height:1.35}
+#canvasView .mental-template-card small{font-size:10px;line-height:1.5;color:var(--cv-muted)}
+#canvasView .mental-create-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:17px 26px;border-top:1px solid var(--cv-border)}
+#canvasView .mental-create-footer>span{font-size:11px;color:var(--cv-muted)}
+#canvasView .mental-create-footer>div{display:flex;gap:9px}
+#canvasView .mental-cancel,#canvasView .mental-confirm{border-radius:10px;padding:11px 16px;
+  min-height:40px;font-weight:780;font-size:12px;cursor:pointer}
+#canvasView .mental-cancel{border:1px solid var(--cv-border);color:var(--cv-text);background:var(--cv-card)}
+#canvasView .mental-confirm{border:1px solid #108868;color:#fff;background:#108868}
+#canvasView .mental-confirm:disabled{opacity:.55;cursor:wait}
+#canvasView .mental-confirm:hover:not(:disabled){background:#087657}
+#canvasView .mental-create-footer .mental-confirm span{margin-left:6px}
+#canvasView .mental-ai-dialog,#canvasView .mental-video-dialog{width:min(590px,100%)}
+#canvasView .mental-ai-privacy{margin:13px 0 0;font-size:11px;color:var(--cv-muted);line-height:1.6}
+#canvasView .mental-video-results{display:grid;gap:7px;margin-top:15px;max-height:340px;overflow-y:auto}
+#canvasView .mental-video-row{border:1px solid var(--cv-border);background:var(--cv-card);color:var(--cv-text);
+  display:flex;align-items:center;gap:10px;min-height:56px;padding:10px 12px;text-align:left;border-radius:10px;cursor:pointer}
+#canvasView .mental-video-row:hover{border-color:#169979}
+#canvasView .mental-video-icon{display:grid;place-items:center;flex:none;border-radius:10px;
+  background:color-mix(in srgb,#148d6c 14%,var(--cv-surface));height:36px;width:36px;color:#15916d}
+#canvasView .mental-video-row span:nth-child(2){display:grid;gap:5px;min-width:0;flex:1}
+#canvasView .mental-video-row strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#canvasView .mental-video-row small{font-size:10px;color:var(--cv-muted)}
+#canvasView .mental-video-empty{padding:30px 18px;text-align:center;color:var(--cv-muted);font-size:12px;line-height:1.6}
+#canvasView .canvas-type-video .canvas-node-head{background:color-mix(in srgb,#148d6c 16%,var(--cv-card))}
+#canvasView .mental-video-node-badge{margin:6px 12px 3px;color:#61baa0;font-size:10px;font-weight:750}
+#canvasView #canvasVideoOpen[hidden],#canvasView .mental-create-overlay[hidden]{display:none}
+#canvasView #canvasVideoOpen{background:#168566;color:#fff;border-color:#168566}
+@media(max-width:1050px){
+  #canvasView .mental-workspace-bar{flex-wrap:wrap}
+  #canvasView .mental-map-identity{flex-basis:100%}
+  #canvasView .mental-map-count{display:none}
+}
+@media(max-width:740px){
+  #canvasView .mental-workspace-bar{padding:12px}
+  #canvasView .mental-workspace-actions{width:100%;flex-wrap:nowrap;overflow-x:auto}
+  #canvasView .mental-action-button{flex:none}
+  #canvasView .mental-toolbar-hint{display:none}
+  #canvasView .mental-template-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #canvasView .mental-create-head{padding:16px;gap:11px}
+  #canvasView .mental-create-head h2{font-size:19px}
+  #canvasView .mental-create-body{padding:16px}
+  #canvasView .mental-create-footer{padding:14px 16px;flex-wrap:wrap}
+  #canvasView .mental-create-footer>div{width:100%}
+  #canvasView .mental-create-footer button{flex:1}
+}
+@media(max-width:410px){
+  #canvasView .mental-template-gallery{grid-template-columns:1fr 1fr;gap:8px}
+  #canvasView .mental-template-card{min-height:157px;padding:10px}
+  #canvasView .mental-template-card[aria-checked="true"]{padding:9px}
+  #canvasView .mental-create-head .mental-dialog-mark{width:36px;height:36px;font-size:21px}
+}
