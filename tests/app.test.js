@@ -1616,13 +1616,10 @@ test('administração: apenas dono acessa diretório e painéis de membros, com 
   assert.equal(users.users[0].password_hash,undefined);
   assert.equal(users.users[0].password_salt,undefined);
   const id=users.users[0].id;
-  assert.equal(users.users[0].admin_view_consent,false);
-  assert.equal((await call('/api/admin/users/'+id+'/dashboard','GET',null,ownerCookie)).status,403);
-  assert.deepEqual((await call('/api/account/admin-view-consent','GET',null,memberCookie)).data.enabled,false);
-  assert.equal((await call('/api/account/admin-view-consent','PUT',{enabled:true},ownerCookie)).status,403);
-  assert.equal((await call('/api/account/admin-view-consent','PUT',{enabled:'yes'},memberCookie)).status,400);
-  assert.equal((await call('/api/account/admin-view-consent','PUT',{enabled:true},memberCookie)).status,200);
-  assert.equal((await call('/api/account/admin-view-consent','GET',null,memberCookie)).data.enabled,true);
+  // A conta proprietária consulta os painéis independentemente de preferências antigas.
+  assert.equal(users.users[0].admin_view_consent,undefined);
+  assert.equal((await call('/api/account/admin-view-consent','GET',null,memberCookie)).status,404);
+  assert.equal((await call('/api/account/admin-view-consent','PUT',{enabled:false},memberCookie)).status,404);
   const memberCategories=(await call('/api/categories','GET',null,memberCookie)).data.categories;
   const category=memberCategories.find(c=>c.name==='Culinária')?.id||memberCategories[0]?.id;
   const video=await call('/api/videos','POST',{
@@ -1651,10 +1648,9 @@ test('administração: apenas dono acessa diretório e painéis de membros, com 
   assert.equal(memberLog.length,6);
   assert.equal(memberLog[0].section,'notes');
   assert.equal(memberLog[0].actor_id,undefined);
-  assert.equal((await call('/api/account/admin-view-consent','PUT',{enabled:false},memberCookie)).status,200);
-  assert.equal((await call('/api/admin/users/'+id+'/dashboard?section=finance','GET',null,ownerCookie)).status,403);
-  assert.equal((await call('/api/admin/audit','GET',null,ownerCookie)).data.audit.length,6);
-  assert.equal((await call('/api/account/admin-access','GET',null,memberCookie)).data.accesses.length,6);
+  assert.equal((await call('/api/admin/users/'+id+'/dashboard?section=finance','GET',null,ownerCookie)).status,200);
+  assert.equal((await call('/api/admin/audit','GET',null,ownerCookie)).data.audit.length,7);
+  assert.equal((await call('/api/account/admin-access','GET',null,memberCookie)).data.accesses.length,7);
 });
 test('atividade recente é registrada no login e em heartbeat sem confiar em identificadores enviados',async()=>{
   const {env}=setup();
@@ -1691,37 +1687,31 @@ test('página de administração não fornece função de edição nem sessão d
   assert.match(html,/Somente leitura/);
   assert.match(html,/id="adminAuditList"/);
   assert.match(html,/id="myAdminAccess"/);
-  assert.match(html,/administrador só poderá visualizar seu painel/);
-  assert.match(html,/id="myAdminConsentToggle"/);
-  assert.match(js,/myAdminConsentToggle/);
+  assert.match(html,/proprietário da plataforma pode consultar painéis de usuários/);
+  assert.doesNotMatch(html,/id="myAdminConsentToggle"/);
+  assert.doesNotMatch(js,/myAdminConsentToggle|admin_view_consent/);
   assert.match(js,/readonly!==true/);
-  assert.equal((js.match(/method:\s*'PUT'/g)||[]).length,1); // Apenas alterar a própria autorização
-  assert.match(js,/\/api\/account\/admin-view-consent/);
-  assert.doesNotMatch(js,/method:\s*'DELETE'|method:\s*'PATCH'/);
+  assert.doesNotMatch(js,/method:\s*'PUT'|method:\s*'DELETE'|method:\s*'PATCH'/);
   assert.match(workerSrc,/handleAdministration\(request,env,user\)/);
 });
 
 
-test('auditoria: nenhuma seção privada é retornada antes de permissão explícita, nem após revogação',async()=>{
+test('administração: proprietário não depende de campo histórico de autorização',async()=>{
   const {req,env}=setup();
   await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
-  const member=await req('/api/register','POST',{username:'privacidade02',password:'senha-membro-privacidade-123'});
-  assert.equal(member.status,201);
-  const memberRecord=await env.DB.prepare("SELECT id,admin_view_consent FROM app_users WHERE role='member'").first();
-  assert.equal(memberRecord.admin_view_consent,0);
-  assert.equal((await req('/api/account/admin-view-consent')).data.enabled,false);
-  assert.equal((await req('/api/account/admin-view-consent','PUT',{enabled:1})).status,400);
-  assert.equal((await req('/api/account/admin-view-consent','PUT',{enabled:true,user_id:'different'})).status,200);
-  const consent=await env.DB.prepare('SELECT admin_view_consent FROM app_users WHERE id=?').bind(memberRecord.id).first();
-  assert.equal(consent.admin_view_consent,1);
+  await req('/api/register','POST',{username:'acessodono02',password:'senha-membro-admin-123'});
+  const member=await env.DB.prepare("SELECT id FROM app_users WHERE role='member'").first();
+  // Dados históricos de versões anteriores não modificam permissões administrativas.
+  await env.DB.prepare('UPDATE app_users SET admin_view_consent=0 WHERE id=?').bind(member.id).run();
   await req('/api/login','POST',{username:'principal',password:'um-passphrase-longo-de-verdade'});
-  assert.equal((await req('/api/admin/users/'+memberRecord.id+'/dashboard?section=notes')).status,200);
-  await req('/api/login','POST',{username:'privacidade02',password:'senha-membro-privacidade-123'});
-  assert.equal((await req('/api/account/admin-view-consent','PUT',{enabled:false})).status,200);
-  const actions=(await env.DB.prepare('SELECT enabled FROM admin_consent_audit WHERE user_id=? ORDER BY created_at DESC,rowid DESC').bind(memberRecord.id).all()).results;
-  assert.deepEqual(actions.map(x=>x.enabled),[0,1]);
-  await req('/api/login','POST',{username:'principal',password:'um-passphrase-longo-de-verdade'});
-  assert.equal((await req('/api/admin/users/'+memberRecord.id+'/dashboard?section=notes')).status,403);
+  const view=await req('/api/admin/users/'+member.id+'/dashboard?section=notes');
+  assert.equal(view.status,200);
+  assert.equal(view.data.readonly,true);
+  assert.equal(view.data.user.admin_view_consent,undefined);
+  const users=await req('/api/admin/users');
+  assert.equal(users.data.users[0].admin_view_consent,undefined);
+  assert.equal((await req('/api/account/admin-view-consent')).status,404);
+  assert.equal((await req('/api/account/admin-view-consent','PUT',{enabled:false})).status,404);
   const audit=(await req('/api/admin/audit')).data.audit;
   assert.equal(audit.length,1);
   assert.equal(audit[0].section,'notes');
@@ -1742,7 +1732,6 @@ test('auditoria: logs antigos são podados e histórico da conta não revela IDs
   await req('/api/register','POST',{username:'historico02',password:'senha-membro-historico-123'});
   const member=await env.DB.prepare("SELECT id FROM app_users WHERE role='member'").first();
   const owner=await env.DB.prepare("SELECT id FROM app_users WHERE role='owner'").first();
-  assert.equal((await req('/api/account/admin-view-consent','PUT',{enabled:true})).status,200);
   const oldStamp='2020-01-01T00:00:00.000Z';
   await env.DB.prepare(
     'INSERT INTO admin_access_audit(id,actor_id,target_id,action,section,created_at) VALUES(?,?,?,?,?,?)'
@@ -1785,14 +1774,12 @@ test('interface administrativa ignora consultas que chegam após logout e render
   const view=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
   assert.match(script,/adminAuditEpoch\+\+/);
   assert.match(script,/accessLoadEpoch\+\+/);
-  assert.match(script,/consentEpoch\+\+/);
   assert.match(script,/epoch!==accessLoadEpoch\|\|adminOwner/);
   assert.match(script,/epoch!==adminAuditEpoch\|\|!adminOwner/);
   assert.match(script,/node.textContent=String\(value\)/);
-  assert.match(view,/id="myAdminConsentToggle"/);
-  assert.match(view,/Por padrão, esta autorização fica/);
-  assert.match(backend,/if\(person.admin_view_consent!==1\)/);
-  assert.match(backend,/A autorização para esta visualização foi revogada/);
+  assert.doesNotMatch(view,/id="myAdminConsentToggle"/);
+  assert.doesNotMatch(backend,/admin_view_consent/);
+  assert.match(view,/proprietário da plataforma pode consultar painéis de usuários/);
   assert.match(backend,/reserveAdminRead\(env,user\)/);
   assert.match(backend,/LIMIT 1 OFFSET 1999/);
   assert.doesNotMatch(script,/\.innerHTML\s*=/);
