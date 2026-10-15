@@ -105,6 +105,7 @@ body[data-color-mode="dark"][data-dark-palette="oled"] #canvasView{
   border:1px solid var(--cv-border);border-radius:8px;padding:9px;
   font:500 12px/1.5 'DM Sans',sans-serif}
 .canvas-inspector input[type=color]{height:35px;padding:3px;cursor:pointer}
+.canvas-dimensions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .canvas-inspector .button{width:100%;font-size:11px;white-space:normal}
 .canvas-inspector textarea{resize:vertical}
 .canvas-inspector small{line-height:1.6;font-size:10px;color:var(--cv-muted)}
