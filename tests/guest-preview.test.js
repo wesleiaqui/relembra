@@ -56,7 +56,8 @@ test('finanças do visitante são fictícias; troca de mês não chama API',asyn
   const node={
     innerHTML:'',
     addEventListener(){},
-    querySelector(){return null;}
+    querySelector(){return null;},
+    replaceChildren(){this.innerHTML='';}
   };
   globalThis.document={getElementById:id=>id==='financeRoot'?node:null};
   let calls=0;
