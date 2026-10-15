@@ -1,0 +1,336 @@
+/*
+ * Relembra v1.29 — Início, palette-aware command menu and Calendário da vida.
+ * Loaded last. Scoped to these three surfaces: preserves Finance/Chat/Mapas.
+ * Reuses selected dark palette from dark-palettes.css and dark-neutral-fix.css.
+ */
+
+/* ---------- 1. Home: clearer hierarchy, compact cards, no stretched blank space ---------- */
+body[data-color-mode="light"] #homeView{
+  --hv-card:#fff;--hv-surface:#f6f8fb;--hv-input:#fff;
+  --hv-border:#e2e7ef;--hv-text:#263348;--hv-muted:#6d7c90;
+  --hv-accent:#427e72;--hv-hover:#ecf4f1;
+}
+body[data-color-mode="dark"] #homeView{
+  --hv-card:var(--night-card,#1b1e21);
+  --hv-surface:var(--night-elevated,#25292d);
+  --hv-input:var(--night-base,#171b1e);
+  --hv-border:var(--night-border,#373d42);
+  --hv-text:var(--night-text,#f0f2f4);
+  --hv-muted:var(--night-secondary,#bac4ca);
+  --hv-accent:var(--night-accent,#c1ccd3);
+  --hv-hover:var(--night-elevated,#25292d);
+}
+#homeView .home-new-heading{margin-bottom:21px;align-items:center}
+#homeView .home-new-heading h1{font-size:clamp(28px,2.7vw,38px);line-height:1.15;margin:7px 0 8px;letter-spacing:-1.1px}
+#homeView .home-new-heading p{max-width:660px;font-size:12px}
+#homeView .home-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:0 0 16px}
+#homeView .home-summary-item{
+  display:flex;align-items:center;gap:13px;min-width:0;padding:15px 18px;
+  background:var(--hv-card);border:1px solid var(--hv-border);
+  border-radius:13px;color:var(--hv-text);
+}
+#homeView .home-summary-icon{
+  flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;
+  background:var(--hv-surface);color:var(--hv-accent);
+  font-size:19px;font-weight:800;
+}
+#homeView .home-summary-item>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+#homeView .home-summary-item strong{font:800 21px/1.1 Manrope,sans-serif;letter-spacing:-.5px;color:var(--hv-text)}
+#homeView .home-summary-item div span{color:var(--hv-muted);font-size:10.5px;line-height:1.5}
+#homeView .home-focus-grid{
+  grid-template-columns:minmax(0,1.3fr) minmax(310px,.92fr);
+  align-items:start;gap:15px;
+}
+#homeView .home-support-column{grid-template-rows:auto auto;gap:15px}
+#homeView .home-work-section{
+  background:var(--hv-card);color:var(--hv-text);border-color:var(--hv-border);
+  border-radius:15px;box-shadow:none;padding:20px 21px;
+}
+#homeView .home-work-heading{align-items:center;margin-bottom:15px;gap:10px}
+#homeView .home-work-heading h2{color:var(--hv-text);font-size:16px;letter-spacing:-.25px}
+#homeView .home-overline{color:var(--hv-muted);letter-spacing:1.1px;font-size:9px}
+#homeView .home-date{color:var(--hv-muted);font-size:10px}
+#homeView .home-work-primary{display:flex;flex-direction:column;gap:0;min-height:290px}
+#homeView .home-priorities{flex:initial;min-height:0}
+#homeView .home-empty-priority{
+  min-height:146px;padding:20px 12px;display:grid;align-content:center;justify-items:center;
+  gap:6px;border:1px dashed var(--hv-border);border-radius:12px;
+  background:var(--hv-surface);color:var(--hv-muted);
+}
+#homeView .home-empty-priority>span{
+  display:grid;place-items:center;width:34px;height:34px;border-radius:50%;
+  background:var(--hv-card);border:1px solid var(--hv-border);
+  font-size:19px;color:var(--hv-accent)
+}
+#homeView .home-empty-priority strong{font-size:12px;color:var(--hv-text)}
+#homeView .home-empty-priority p{font-size:11px;color:var(--hv-muted);max-width:320px;line-height:1.6}
+#homeView .home-placeholder{color:var(--hv-muted)}
+#homeView .home-quick-task{
+  display:flex;align-items:center;flex-wrap:nowrap;gap:8px;order:0;
+  padding:0;margin:0 0 15px;border:0;
+}
+#homeView .home-quick-task-input{
+  flex:1;min-width:130px;display:flex;align-items:center;gap:6px;
+  min-height:41px;border:1px solid var(--hv-border);background:var(--hv-input);
+  border-radius:10px;padding:0 10px;
+}
+#homeView .home-quick-add-icon{color:var(--hv-accent);font-size:20px}
+#homeView .home-quick-task-input:focus-within{border-color:var(--hv-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--hv-accent) 14%,transparent)}
+#homeView .home-quick-task input[name="title"]{
+  flex:1;width:100%;min-width:0;border:0;outline:0;box-shadow:none;
+  padding:10px 0;background:transparent;color:var(--hv-text);font:500 11.5px 'DM Sans',sans-serif;
+}
+#homeView .home-quick-task input[name="title"]::placeholder{color:var(--hv-muted);opacity:.9}
+#homeView .home-quick-task input[type="date"]{
+  flex:none;box-sizing:border-box;max-width:145px;min-height:41px;
+  padding:10px 8px;background:var(--hv-input);color:var(--hv-text);
+  border:1px solid var(--hv-border);border-radius:10px;
+  color-scheme:dark;font-size:11px;
+}
+body[data-color-mode="light"] #homeView .home-quick-task input[type="date"]{color-scheme:light}
+#homeView .home-quick-task .button{flex:none;min-height:41px;border-radius:10px;padding:10px 14px;font-size:11px}
+#homeView .home-task-item,#homeView .home-habit-item,#homeView .home-bill-item{
+  background:var(--hv-surface);color:var(--hv-text);
+  border:1px solid var(--hv-border);border-radius:10px;box-shadow:none;
+}
+#homeView .home-task-item:hover,#homeView .home-habit-item:hover,
+#homeView .home-bill-item:hover{background:var(--hv-hover);border-color:var(--hv-accent)}
+#homeView .home-task-details strong,#homeView .home-bill-item strong{color:var(--hv-text)}
+#homeView .home-task-details small,#homeView .home-bill-item small,
+#homeView .home-inline-link{color:var(--hv-muted)}
+#homeView .home-task-item input,#homeView .home-habit-item input{accent-color:var(--hv-accent)}
+#homeView .home-inline-link{font-size:10.5px;font-weight:800}
+#homeView .home-inline-link:hover{color:var(--hv-text)}
+#homeView .home-work-section .home-bill-item{padding:10px 11px}
+#homeView .home-shortcuts{gap:11px;margin:17px 0 26px}
+#homeView .home-shortcuts button{
+  background:var(--hv-card);border-color:var(--hv-border);
+  color:var(--hv-text);padding:13px;border-radius:12px;
+}
+#homeView .home-shortcuts button:hover{background:var(--hv-hover);border-color:var(--hv-accent)}
+#homeView .home-shortcuts button>span{background:var(--hv-surface);color:var(--hv-accent)}
+#homeView .home-shortcuts strong{color:var(--hv-text)}
+#homeView .home-shortcuts small,#homeView .home-shortcuts button>b{color:var(--hv-muted)}
+#homeView .home-recent-section{margin-top:18px}
+#homeView .home-recent-section .home-work-heading{margin-bottom:15px}
+
+/* ---------- 2. Atlas command: one palette across modal, inputs, buttons, footer ---------- */
+body[data-visual-theme="atlas"][data-color-mode="light"] #atlasCommandModal{
+  --cmd-card:#fff;--cmd-panel:#f6f8fb;--cmd-hover:#eef2f6;
+  --cmd-field:#fff;--cmd-border:#e2e7ef;--cmd-strong:#c7d1df;
+  --cmd-text:#243147;--cmd-muted:#657389;--cmd-accent:#506a76;
+}
+body[data-visual-theme="atlas"][data-color-mode="dark"] #atlasCommandModal{
+  --cmd-card:var(--night-card,#1b1e21);
+  --cmd-panel:var(--night-elevated,#25292d);
+  --cmd-hover:var(--night-elevated,#25292d);
+  --cmd-field:var(--night-base,#171b1e);
+  --cmd-border:var(--night-border,#373d42);
+  --cmd-strong:var(--night-strong-border,#4d565c);
+  --cmd-text:var(--night-text,#f0f2f4);
+  --cmd-muted:var(--night-secondary,#bac4ca);
+  --cmd-accent:var(--night-accent,#c1ccd3);
+}
+body[data-visual-theme="atlas"] #atlasCommandModal.atlas-command-backdrop{
+  background:rgb(0 0 0 / 66%);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  padding-top:clamp(64px,11vh,120px);
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-dialog{
+  color:var(--cmd-text);background:var(--cmd-card);
+  border:1px solid var(--cmd-strong);box-shadow:0 22px 65px rgb(0 0 0 / 38%);
+  border-radius:17px;max-height:min(80dvh,740px);
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-input-wrap{
+  background:var(--cmd-card);border-color:var(--cmd-border);padding:13px 17px;
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-glass{color:var(--cmd-accent)}
+body[data-visual-theme="atlas"] #atlasCommandModal #atlasCommandQuery{
+  color:var(--cmd-text);background:transparent;font-weight:600;
+}
+body[data-visual-theme="atlas"] #atlasCommandModal #atlasCommandQuery::placeholder{color:var(--cmd-muted)}
+body[data-visual-theme="atlas"] #atlasCommandModal #atlasCommandClose{
+  background:var(--cmd-panel);color:var(--cmd-muted);
+  border:1px solid var(--cmd-border);border-radius:7px;
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-scroll{background:var(--cmd-card);padding:17px}
+body[data-visual-theme="atlas"] #atlasCommandModal :is(.atlas-command-section h2,.atlas-command-result-head){
+  color:var(--cmd-muted);letter-spacing:.95px;margin-bottom:11px;
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-result-head small{color:var(--cmd-muted);opacity:.85}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-links{gap:7px}
+body[data-visual-theme="atlas"] #atlasCommandModal :is(.atlas-command-links button,.atlas-command-result){
+  background:var(--cmd-panel);color:var(--cmd-text);
+  border:1px solid var(--cmd-border);border-radius:10px;
+  box-shadow:none;
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-links button{padding:11px 12px}
+body[data-visual-theme="atlas"] #atlasCommandModal :is(.atlas-command-links button,.atlas-command-result):is(:hover,:focus-visible){
+  background:var(--cmd-hover);color:var(--cmd-text);border-color:var(--cmd-strong);
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-links button span{
+  color:var(--cmd-accent);background:transparent;
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-result-icon{
+  background:var(--cmd-card);border:1px solid var(--cmd-border);color:var(--cmd-accent);
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-result-body strong{color:var(--cmd-text)}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-result-body small,
+body[data-visual-theme="atlas"] #atlasCommandModal #atlasCommandResults>p{color:var(--cmd-muted)}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-footer{
+  background:var(--cmd-card);border-color:var(--cmd-border);color:var(--cmd-muted);
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-footer kbd{
+  background:var(--cmd-panel);color:var(--cmd-muted);border:1px solid var(--cmd-border);
+}
+body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-footer button{
+  color:var(--cmd-accent);background:transparent;border:0;
+}
+body[data-visual-theme="atlas"] #atlasCommandModal :is(button,input):focus-visible{
+  outline:2px solid var(--cmd-accent);outline-offset:2px;
+}
+/* In pure OLED the modal is black/charcoal rather than inheriting blue cards. */
+body[data-visual-theme="atlas"][data-color-mode="dark"][data-dark-palette="oled"] #atlasCommandModal{
+  --cmd-card:#0b0b0b;--cmd-panel:#141414;--cmd-hover:#202020;
+  --cmd-field:#080808;--cmd-border:#282828;--cmd-strong:#383838;
+  --cmd-text:#f2f2f2;--cmd-muted:#bfbfbf;--cmd-accent:#dddddd;
+}
+
+/* ---------- 3. Calendar: thematic week colors and more legible form layout ---------- */
+body[data-color-mode="light"] #lifeView{
+  --lv-card:#fff;--lv-elevated:#f6f8fb;--lv-input:#fff;
+  --lv-border:#e1e7ed;--lv-text:#263348;--lv-muted:#657389;
+  --lv-future:#e3e9ee;--lv-lived:#778987;--lv-now:#d29b53;
+  --lv-saved:#249b83;--lv-selection:#476981;
+}
+body[data-color-mode="dark"] #lifeView{
+  --lv-card:var(--night-card,#1b1e21);
+  --lv-elevated:var(--night-elevated,#25292d);
+  --lv-input:var(--night-base,#171b1e);
+  --lv-border:var(--night-border,#373d42);
+  --lv-text:var(--night-text,#f0f2f4);
+  --lv-muted:var(--night-secondary,#bac4ca);
+  --lv-future:#262c2e;--lv-lived:#657772;
+  --lv-now:#e2b980;--lv-saved:#54b6a1;--lv-selection:#e3e9e6;
+}
+body[data-color-mode="dark"][data-dark-palette="oled"] #lifeView{
+  --lv-future:#202020;--lv-lived:#555f5b;--lv-now:#e0b877;--lv-saved:#59b4a1;
+}
+#lifeView .companion-heading{margin-bottom:17px}
+#lifeView .companion-heading h1{font-size:clamp(28px,3vw,38px);margin:8px 0}
+#lifeView .companion-heading p{font-size:12px;line-height:1.6}
+#lifeView .companion-form{
+  display:flex;align-items:end;gap:12px;flex-wrap:wrap;
+  border:1px solid var(--lv-border);background:var(--lv-card);
+  border-radius:13px;padding:15px;margin:0 0 8px;box-shadow:none;
+}
+#lifeView .companion-form label{display:grid;gap:6px;font-size:10.5px;font-weight:750;color:var(--lv-muted);flex:1;min-width:170px}
+#lifeView .companion-form input{
+  width:100%;min-height:39px;padding:8px 11px;box-sizing:border-box;
+  color:var(--lv-text);background:var(--lv-input);border:1px solid var(--lv-border);
+  border-radius:9px;box-shadow:none;
+}
+body[data-color-mode="light"] #lifeView .companion-form input{color-scheme:light}
+body[data-color-mode="dark"] #lifeView .companion-form input{color-scheme:dark}
+#lifeView .companion-form .button{min-height:39px;border-radius:9px}
+#lifeView .companion-footnote{font-size:10px;color:var(--lv-muted);margin:0 0 14px}
+#lifeView .life-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:12px 0 17px}
+#lifeView .life-stat{min-width:0;padding:15px 17px;background:var(--lv-card);border:1px solid var(--lv-border);border-radius:12px}
+#lifeView .life-stat strong{font-size:20px;letter-spacing:-.3px;color:var(--lv-text)}
+#lifeView .life-stat small{color:var(--lv-muted);font-size:10px;line-height:1.45}
+#lifeView .life-layout{grid-template-columns:minmax(0,1.42fr) minmax(305px,.86fr);gap:15px;align-items:start}
+#lifeView .life-calendar-panel,#lifeView .life-moment-panel{
+  background:var(--lv-card);border:1px solid var(--lv-border);border-radius:14px;
+  padding:20px;box-shadow:none;color:var(--lv-text);
+}
+#lifeView .life-grid-heading{display:flex;justify-content:space-between;gap:14px;align-items:start;margin:0 0 19px}
+#lifeView .life-grid-heading h2{font:800 16px/1.4 Manrope,sans-serif;color:var(--lv-text);margin:4px 0}
+#lifeView .life-grid-heading p{color:var(--lv-muted);font-size:11px;line-height:1.6;margin:0}
+#lifeView .life-grid-heading .eyebrow{color:var(--lv-muted);font-size:9px;letter-spacing:1px}
+#lifeView .life-grid-tip{font-size:10px;color:var(--lv-muted);text-align:right;max-width:123px}
+#lifeView .life-legend{padding:11px 12px;margin:0 0 15px;border:1px solid var(--lv-border);
+  background:var(--lv-elevated);border-radius:10px;color:var(--lv-muted);font-size:10px;gap:14px}
+#lifeView .life-dot{height:10px;width:10px;border-radius:3px;border:1px solid transparent}
+#lifeView :is(.life-dot.future,.life-week.future){background:var(--lv-future)}
+#lifeView :is(.life-dot.lived,.life-week.lived){background:var(--lv-lived)}
+#lifeView :is(.life-dot.present,.life-week.present){background:var(--lv-now)}
+#lifeView :is(.life-dot.saved,.life-week.saved){background:var(--lv-saved)}
+#lifeView .life-weeks{max-width:100%;overflow-x:auto;gap:3px;padding:4px 2px 12px;scrollbar-width:thin}
+#lifeView .life-year{gap:9px}
+#lifeView .life-year:nth-child(5n+1):not(:first-child){padding-top:7px;margin-top:3px;border-top:1px solid var(--lv-border)}
+#lifeView .life-year-label{width:24px;color:var(--lv-muted);font-size:10px;opacity:.86}
+#lifeView .life-year:nth-child(5n+1) .life-year-label{font-weight:800;opacity:1;color:var(--lv-text)}
+#lifeView .life-year-cells{gap:3px;grid-template-columns:repeat(53,minmax(8px,1fr));min-width:540px}
+#lifeView .life-week{
+  display:block;aspect-ratio:1/1;min-height:8px;width:100%;padding:0;
+  border:1px solid transparent;border-radius:2.8px;
+  cursor:pointer;transition:transform 110ms ease,filter 110ms ease,border-color 110ms ease;
+}
+#lifeView .life-week:hover{filter:brightness(1.22);transform:scale(1.12);border-color:var(--lv-selection);z-index:1;position:relative}
+#lifeView .life-week.present{box-shadow:0 0 0 1px var(--lv-now)}
+#lifeView .life-week.present.saved{background:var(--lv-now);border:2px solid var(--lv-saved)}
+#lifeView .life-week.selected,#lifeView .life-week:focus-visible{
+  outline:2px solid var(--lv-selection);outline-offset:2px;position:relative;z-index:2;
+}
+#lifeView .life-moment-panel>p{color:var(--lv-muted);font-size:11px;line-height:1.7}
+#lifeView .life-moment-panel h2{color:var(--lv-text);font-size:17px}
+#lifeView .life-moment-panel h3{color:var(--lv-text)}
+#lifeView .life-moment-form{gap:13px}
+#lifeView .life-moment-form label{color:var(--lv-muted);font-size:11px;font-weight:740;gap:7px}
+#lifeView .life-moment-form :is(input,textarea,select){
+  width:100%;min-height:40px;padding:10px 12px;
+  background:var(--lv-input);border:1px solid var(--lv-border);
+  color:var(--lv-text);border-radius:10px;box-shadow:none;
+}
+body[data-color-mode="light"] #lifeView .life-moment-form :is(input,textarea,select){color-scheme:light}
+body[data-color-mode="dark"] #lifeView .life-moment-form :is(input,textarea,select){color-scheme:dark}
+#lifeView .life-moment-form :is(input,textarea,select):focus-visible,
+#lifeView .companion-form input:focus-visible{
+  outline:2px solid var(--lv-selection);outline-offset:2px;
+}
+#lifeView .life-moment-item{
+  background:var(--lv-elevated);border:1px solid var(--lv-border);
+  color:var(--lv-text);border-radius:10px;padding:13px;
+}
+#lifeView .life-moment-item strong{color:var(--lv-text)}
+#lifeView .life-moment-item :is(small,p){color:var(--lv-muted)}
+#lifeView .life-moment-item:hover{border-color:var(--lv-selection)}
+#lifeView .life-old-journal{background:var(--lv-card);border:1px solid var(--lv-border);box-shadow:none}
+#lifeView .life-old-journal strong{color:var(--lv-text)}
+#lifeView .life-old-journal p{color:var(--lv-muted)}
+
+/* Mobile/tablet */
+@media(max-width:1100px){
+  #homeView .home-focus-grid{grid-template-columns:1fr}
+  #homeView .home-support-column{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}
+  #lifeView .life-layout{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  #homeView .home-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #homeView .home-summary-item{padding:12px;gap:7px;flex-direction:column;align-items:flex-start}
+  #homeView .home-summary-item strong{font-size:18px}
+  #homeView .home-support-column{grid-template-columns:1fr}
+  #homeView .home-quick-task{flex-wrap:wrap}
+  #homeView .home-quick-task-input{flex:1 1 100%}
+  #homeView .home-quick-task input[type="date"]{max-width:none;flex:1}
+  #lifeView .life-overview{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #lifeView .life-stat{padding:12px}
+  #lifeView .life-stat strong{font-size:17px}
+  #lifeView .life-grid-heading{flex-wrap:wrap}
+  #lifeView .life-grid-tip{text-align:left;max-width:none}
+}
+@media(max-width:430px){
+  #homeView .home-summary-item div span{font-size:9.5px}
+  #homeView .home-summary-icon{width:29px;height:29px;font-size:16px}
+  #homeView .home-new-heading{align-items:flex-start}
+  #homeView .home-new-heading .button{white-space:normal}
+  #lifeView .life-overview{grid-template-columns:1fr}
+  #lifeView .life-stat{padding:11px 15px}
+  #lifeView .life-stat strong{font-size:20px}
+  body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-links{grid-template-columns:1fr}
+  body[data-visual-theme="atlas"] #atlasCommandModal .atlas-command-scroll{padding:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  #lifeView .life-week{transition:none}
+}
