@@ -1,6 +1,7 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
 import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
 import { handleCanvas, exportCanvases, importCanvases } from './canvas.js';
+import { handleAdministration, updateAccountActivity, listOwnAdminAccess } from './admin.js';
 import { reserveAIQuota, secureResponse, readLimitedJSON, turnstileConfig, verifyRegistrationTurnstile } from './security.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
@@ -524,6 +525,7 @@ async function handle(request, env) {
       env.DB.prepare("UPDATE situational_tips SET owner_id=? WHERE owner_id='legacy'").bind(id)
     ]);
     await clearFailedLogin(env,rate);
+    await updateAccountActivity(env,id,{login:true});
     return json({ok:true,user:{username:account.username,role:'owner'}},201,{'set-cookie':await newUserCookie(env,{id,session_version:1},request)});
   }
   if (path === '/api/login' && method === 'POST') {
@@ -538,6 +540,7 @@ async function handle(request, env) {
       return error('Usuário ou senha incorretos.',401);
     }
     await clearFailedLogin(env,rate);
+    await updateAccountActivity(env,user.id,{login:true});
     return json({ok:true,user:{username:user.username,role:user.role}},200,{'set-cookie':await newUserCookie(env,user,request)});
   }
   if (path === '/api/register' && method === 'POST') {
@@ -560,6 +563,7 @@ async function handle(request, env) {
           .bind(ownerCategoryId(id,slugId),name,emoji,color,id))
       ]);
     }catch{return error('Este nome de usuário já está em uso.',409);}
+    await updateAccountActivity(env,id,{login:true});
     return json({ok:true,user:{username:account.username,role:'member'}},201,{'set-cookie':await newUserCookie(env,{id,session_version:1},request)});
   }
   if (path === '/api/recover-owner' && method === 'POST') {
@@ -584,6 +588,12 @@ async function handle(request, env) {
   const user=await verifySession(request,env);
   if (!user) return error('Faça login para acessar sua biblioteca.',401);
   if (path === '/api/me' && method === 'GET') return json({user:{username:user.username,role:user.role}});
+  if(path==='/api/activity'&&method==='POST'){
+    await updateAccountActivity(env,user.id);
+    return json({ok:true});
+  }
+  if(path==='/api/account/admin-access'&&method==='GET')return listOwnAdminAccess(env,user);
+  if(path==='/api/admin'||path.startsWith('/api/admin/'))return handleAdministration(request,env,user);
   if(path==='/api/sessions/revoke-all'&&method==='POST'){
     await env.DB.prepare('UPDATE app_users SET session_version=session_version+1 WHERE id=?').bind(user.id).run();
     return json({ok:true},200,{'set-cookie':cookie('',request,true)});
