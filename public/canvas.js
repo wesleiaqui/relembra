@@ -174,6 +174,7 @@ function resetCamera(){zoom=1;offset={x:85,y:64};updateCamera();}
 function updateCamera(){
   $('canvasWorld').style.transform=`translate(${offset.x}px,${offset.y}px) scale(${zoom})`;
   $('canvasZoomLevel').textContent=Math.round(zoom*100)+'%';
+  positionEdgeEditor();
 }
 function endpoint(node,other){
   const cx=node.x+node.width/2,cy=node.y+node.height/2;
@@ -239,6 +240,11 @@ function cardHtml(n){
     <p class="canvas-node-body">${snippet}</p>
     ${n.type==='task'?'<div class="canvas-node-foot"><span>'+esc(n.due_date||'Sem prazo')+'</span><span>'+ (linked?(linked.done_at?'✓ Concluída':'↗ Radar'):(n.done?'✓ Concluída':'Não vinculada'))+'</span></div>':''}
     ${n.type==='link'&&n.url?'<small class="canvas-node-url">'+esc(n.url)+'</small>':''}
+    <div class="canvas-node-ports" aria-label="Conectar cartões">
+      ${['top','right','bottom','left'].map(port=>`<button class="canvas-port canvas-port-${port}" type="button"
+        data-canvas-port="${port}" data-canvas-owner="${n.id}" aria-label="Arraste para conectar: ${esc(n.title)}"
+        title="Arraste para conectar"></button>`).join('')}
+    </div>
   </article>`;
 }
 function draw(){
