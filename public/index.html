@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="/atlas-light-parity.css">
   <link rel="stylesheet" href="/admin.css">
   <link rel="stylesheet" href="/workspace-visual-refinement.css">
+  <link rel="stylesheet" href="/home-life-finish.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -108,6 +109,7 @@
             <div class="home-summary-item"><span class="home-summary-icon" aria-hidden="true">✓</span><div><strong id="homeSummaryHabits">—</strong><span>Hábitos concluídos</span></div></div>
           </section>
           <div class="home-focus-grid">
+            <div class="home-main-column">
             <section class="home-work-section home-work-primary" aria-labelledby="homeTodayTitle">
               <div class="home-work-heading"><div><span class="home-overline">O QUE IMPORTA AGORA</span><h2 id="homeTodayTitle">Prioridades do dia</h2></div><span class="home-date" id="homeDate"></span></div>
               <form id="homeQuickTaskForm" class="home-quick-task" aria-label="Adicionar tarefa rápida">
@@ -121,13 +123,23 @@
               </form>
               <div id="homeRadar" class="home-priorities" aria-live="polite"><p class="home-placeholder">Preparando suas prioridades...</p></div>
             </section>
+            <section class="home-recent-section">
+              <div class="home-work-heading"><div><span class="home-overline">CONTINUE EXPLORANDO</span><h2>Salvos recentemente</h2></div><button type="button" class="home-inline-link" data-go="library">Toda a biblioteca ↗</button></div>
+              <div id="homeGrid" class="video-grid"></div>
+            </section>
+            </div>
             <div class="home-support-column">
               <section class="home-work-section home-bill-section" aria-labelledby="homeBillsTitle">
                 <div class="home-work-heading"><div><span class="home-overline">MINHAS FINANÇAS</span><h2 id="homeBillsTitle">Próximos vencimentos</h2></div><button type="button" class="home-inline-link" data-go="finance">Ver contas ↗</button></div>
+                <div class="home-aside-meta" id="homeBillsMeta" aria-live="polite">Suas contas com vencimento próximo</div>
                 <div id="homeBills" aria-live="polite"><p class="home-placeholder">Consultando vencimentos...</p></div>
               </section>
               <section class="home-work-section home-habit-section" aria-labelledby="homeHabitsTitle">
                 <div class="home-work-heading"><div><span class="home-overline">PEQUENOS PASSOS</span><h2 id="homeHabitsTitle">Meus hábitos de hoje</h2></div><button class="home-inline-link" data-open-motivation type="button">Motivação ↗</button></div>
+                <div class="home-habit-progress" aria-label="Progresso dos hábitos">
+                  <div class="home-habit-progress-copy"><span>Seu progresso de hoje</span><strong id="homeHabitProgressLabel">—</strong></div>
+                  <div class="home-habit-meter" role="progressbar" aria-label="Hábitos concluídos" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="homeHabitMeter"><span id="homeHabitMeterFill"></span></div>
+                </div>
                 <div id="homeHabits" aria-live="polite"><p class="home-placeholder">Carregando seus hábitos...</p></div>
               </section>
             </div>
@@ -137,10 +149,6 @@
             <button type="button" data-go="life"><span aria-hidden="true">◫</span><strong>Calendário da vida</strong><small>Guarde algo bom de hoje</small><b aria-hidden="true">↗</b></button>
             <button type="button" data-go="library"><span aria-hidden="true">▣</span><strong>Minha biblioteca</strong><small>Consulte suas referências</small><b aria-hidden="true">↗</b></button>
             <button type="button" data-open-motivation><span aria-hidden="true">✦</span><strong>Preciso de incentivo</strong><small>Seus próprios lembretes</small><b aria-hidden="true">↗</b></button>
-          </section>
-          <section class="home-recent-section">
-            <div class="home-work-heading"><div><span class="home-overline">CONTINUE EXPLORANDO</span><h2>Salvos recentemente</h2></div><button type="button" class="home-inline-link" data-go="library">Toda a biblioteca ↗</button></div>
-            <div id="homeGrid" class="video-grid"></div>
           </section>
         </section>
         <section id="libraryView" class="view" hidden>
