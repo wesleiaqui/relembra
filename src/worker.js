@@ -1,6 +1,6 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
 import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
-import { handleCanvas } from './canvas.js';
+import { handleCanvas, exportCanvases, importCanvases } from './canvas.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
@@ -790,12 +790,12 @@ async function handle(request, env) {
     const videos = (await env.DB.prepare(`SELECT ${FULL_COLUMNS} FROM videos WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
     const thoughts = (await env.DB.prepare(`SELECT ${THOUGHT_COLUMNS} FROM thought_entries WHERE owner_id=? ORDER BY created_at DESC LIMIT 5000`).bind(user.id).all()).results;
     const tips = (await env.DB.prepare(`SELECT ${TIP_COLUMNS} FROM situational_tips WHERE owner_id=? ORDER BY created_at ASC LIMIT 5000`).bind(user.id).all()).results;
-    const file = { format: 'relembra-v1.10', exported_at: now(), categories: await categories(env,user.id), videos, thoughts, tips, finances: await exportFinances(env,user.id), extras: await exportCompanion(env,user.id) };
+    const file = { format: 'relembra-v1.10', exported_at: now(), categories: await categories(env,user.id), videos, thoughts, tips, finances: await exportFinances(env,user.id), extras: await exportCompanion(env,user.id), canvases: await exportCanvases(env,user.id) };
     return json(file, 200, { 'content-disposition': `attachment; filename="relembra-backup-${new Date().toISOString().slice(0, 10)}.json"` });
   }
   if (path === '/api/import' && method === 'POST') {
     const body = await getBody(request, 4000000);
-    if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts) && !Array.isArray(body.tips) && !body.finances && !body.extras) return error('Backup inválido: faltam conteúdos restauráveis.');
+    if (!Array.isArray(body.videos) && !Array.isArray(body.thoughts) && !Array.isArray(body.tips) && !body.finances && !body.extras && !Array.isArray(body.canvases)) return error('Backup inválido: faltam conteúdos restauráveis.');
     if ((body.videos || []).length > 250 || (body.thoughts || []).length > 250 || (body.tips || []).length > 250) return error('Importe até 250 itens de cada tipo por lote.');
     const existingCategories = await categories(env,user.id);
     const categoryMap = new Set(existingCategories.map(c => c.id));
@@ -865,7 +865,9 @@ async function handle(request, env) {
     }
     const financeImport = await importFinances(env,user.id,body.finances);
     const extrasImport = await importCompanion(env,user.id,body.extras);
-    return json({ imported, skipped, thoughtsImported, thoughtsSkipped, tipsImported, tipsSkipped, financeImported:financeImport.imported, financeSkipped:financeImport.skipped, extrasImported:extrasImport.imported, extrasSkipped:extrasImport.skipped });
+    const canvasImport = await importCanvases(env,user.id,body.canvases);
+    return json({ imported, skipped, thoughtsImported, thoughtsSkipped, tipsImported, tipsSkipped, financeImported:financeImport.imported, financeSkipped:financeImport.skipped, extrasImported:extrasImport.imported, extrasSkipped:extrasImport.skipped,
+      canvasImported:canvasImport.imported,canvasSkipped:canvasImport.skipped });
   }
   return error('Rota não encontrada.', 404);
 }
