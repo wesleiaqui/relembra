@@ -1,5 +1,6 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
 import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
+import { handleCanvas } from './canvas.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
@@ -572,6 +573,7 @@ async function handle(request, env) {
   const user=await verifySession(request,env);
   if (!user) return error('Faça login para acessar sua biblioteca.',401);
   if (path === '/api/me' && method === 'GET') return json({user:{username:user.username,role:user.role}});
+  if (path === '/api/canvas' || path.startsWith('/api/canvas/')) return handleCanvas(request,env,user);
   if (path === '/api/finance' || path.startsWith('/api/finance/')) return handleFinance(request,env,user);
   if (/^\/api\/(radar|life|habits|history|backup\/images|search\/all)(\/|$)/.test(path)) return handleCompanion(request,env,user);
   if (path === '/api/categories' && method === 'GET') return json({ categories: await categories(env,user.id) });
