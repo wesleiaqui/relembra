@@ -28,12 +28,12 @@ const BASE_HEADERS=Object.freeze({
 });
 const PAGE_CSP=[
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' https: data: blob:",
-  "connect-src 'self'",
-  "frame-src https://www.youtube-nocookie.com https://www.instagram.com",
+  "connect-src 'self' https://challenges.cloudflare.com",
+  "frame-src https://www.youtube-nocookie.com https://www.instagram.com https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'self'",
@@ -76,4 +76,37 @@ export async function readLimitedJSON(request,maxBytes){
   try{data=JSON.parse(raw);}catch{throw new Error('JSON inválido.');}
   if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('JSON inválido.');
   return data;
+}
+
+// Registro protegido por Turnstile quando a chave pública e a privada forem
+// configuradas pelo administrador. Configuração parcial falha de forma segura.
+export function turnstileConfig(env){
+  const siteKey=String(env.TURNSTILE_SITE_KEY||'').trim();
+  const enabled=Boolean(siteKey||env.TURNSTILE_SECRET);
+  return {enabled,siteKey:enabled?siteKey:'',configured:!!(siteKey&&env.TURNSTILE_SECRET)};
+}
+export async function verifyRegistrationTurnstile(request,env,token,fetchImpl=fetch){
+  const config=turnstileConfig(env);
+  if(!config.enabled)return {ok:true,skipped:true};
+  if(!config.configured)return {ok:false,status:503,message:'Proteção de cadastro incompleta. Contate o administrador.'};
+  if(typeof token!=='string'||!token.trim()||token.length>2048)
+    return {ok:false,status:403,message:'Complete a verificação de segurança para criar sua conta.'};
+  try{
+    const form=new URLSearchParams({
+      secret:env.TURNSTILE_SECRET,response:token,
+      remoteip:request.headers.get('CF-Connecting-IP')||''
+    });
+    const response=await fetchImpl('https://challenges.cloudflare.com/turnstile/v0/siteverify',{
+      method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},
+      body:form,signal:AbortSignal.timeout(8000)
+    });
+    if(!response.ok)throw Error('Turnstile indisponível');
+    const body=await response.json();
+    if(body?.success===true && body.action==='register' &&
+       body.hostname===new URL(request.url).hostname)
+      return {ok:true};
+    return {ok:false,status:403,message:'A verificação expirou ou não foi aprovada. Tente novamente.'};
+  }catch{
+    return {ok:false,status:503,message:'Não foi possível validar a verificação de segurança. Tente novamente.'};
+  }
 }
