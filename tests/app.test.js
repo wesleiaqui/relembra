@@ -22,6 +22,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0012_companion.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0013_canvas_visual.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0014_admin_observability.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0015_admin_access_consent.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
@@ -1615,6 +1616,13 @@ test('administração: apenas dono acessa diretório e painéis de membros, com 
   assert.equal(users.users[0].password_hash,undefined);
   assert.equal(users.users[0].password_salt,undefined);
   const id=users.users[0].id;
+  assert.equal(users.users[0].admin_view_consent,false);
+  assert.equal((await call('/api/admin/users/'+id+'/dashboard','GET',null,ownerCookie)).status,403);
+  assert.deepEqual((await call('/api/account/admin-view-consent','GET',null,memberCookie)).data.enabled,false);
+  assert.equal((await call('/api/account/admin-view-consent','PUT',{enabled:true},ownerCookie)).status,403);
+  assert.equal((await call('/api/account/admin-view-consent','PUT',{enabled:'yes'},memberCookie)).status,400);
+  assert.equal((await call('/api/account/admin-view-consent','PUT',{enabled:true},memberCookie)).status,200);
+  assert.equal((await call('/api/account/admin-view-consent','GET',null,memberCookie)).data.enabled,true);
   const memberCategories=(await call('/api/categories','GET',null,memberCookie)).data.categories;
   const category=memberCategories.find(c=>c.name==='Culinária')?.id||memberCategories[0]?.id;
   const video=await call('/api/videos','POST',{
@@ -1643,6 +1651,10 @@ test('administração: apenas dono acessa diretório e painéis de membros, com 
   assert.equal(memberLog.length,6);
   assert.equal(memberLog[0].section,'notes');
   assert.equal(memberLog[0].actor_id,undefined);
+  assert.equal((await call('/api/account/admin-view-consent','PUT',{enabled:false},memberCookie)).status,200);
+  assert.equal((await call('/api/admin/users/'+id+'/dashboard?section=finance','GET',null,ownerCookie)).status,403);
+  assert.equal((await call('/api/admin/audit','GET',null,ownerCookie)).data.audit.length,6);
+  assert.equal((await call('/api/account/admin-access','GET',null,memberCookie)).data.accesses.length,6);
 });
 test('atividade recente é registrada no login e em heartbeat sem confiar em identificadores enviados',async()=>{
   const {env}=setup();
@@ -1679,7 +1691,9 @@ test('página de administração não fornece função de edição nem sessão d
   assert.match(html,/Somente leitura/);
   assert.match(html,/id="adminAuditList"/);
   assert.match(html,/id="myAdminAccess"/);
-  assert.match(html,/administrador da plataforma pode visualizar painéis/);
+  assert.match(html,/administrador só poderá visualizar seu painel/);
+  assert.match(html,/id="myAdminConsentToggle"/);
+  assert.match(js,/myAdminConsentToggle/);
   assert.match(js,/readonly!==true/);
   assert.doesNotMatch(js,/method:\s*'PUT'|method:\s*'DELETE'|method:\s*'PATCH'/);
   assert.match(workerSrc,/handleAdministration\(request,env,user\)/);
