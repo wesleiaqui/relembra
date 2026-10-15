@@ -5,7 +5,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const apiPath=id=>'/api/canvas/'+encodeURIComponent(id);
 const colors=['#4d8896','#278a69','#b78050','#9a76b5','#b86572','#71809a'];
 const bounds=(v,a,b)=>Math.max(a,Math.min(b,v));
-const today=()=>new Date().toLocaleDateString('en-CA');
+const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');};
 const makeNode=(type,x,y)=>({
   id:crypto.randomUUID(),type,x:Math.round(x),y:Math.round(y),
   width:type==='group'?430:270,height:type==='group'?250:170,
@@ -210,6 +210,7 @@ async function loadBoard(id){
   if(guest())return;
   const result=await api(apiPath(id));
   board=result.board;links=new Map(result.links.map(l=>[l.node_id,l]));
+  $('canvasBoardTitle').value=board.title;
   selected=null;connectFrom=null;conflicted=false;editEpoch=0;savedEpoch=0;
   resetCamera();paintBoardNames();draw();setStatus('Salvo','ok');
 }
@@ -217,7 +218,7 @@ async function listBoards(){
   const result=await api('/api/canvas');boards=result.boards;
   paintBoardNames();
   if(!boards.length){
-    board=null;selected=null;draw();setStatus('Crie seu primeiro quadro');
+    board=null;selected=null;$('canvasBoardTitle').value='';draw();setStatus('Crie seu primeiro quadro');
     $('canvasEmpty').hidden=false;return;
   }
   $('canvasEmpty').hidden=true;
@@ -233,6 +234,7 @@ async function createBoard(){
     const result=await api('/api/canvas',{method:'POST',body:JSON.stringify({title:title.trim()})});
     boards.unshift({id:result.board.id,title:result.board.title});
     board=result.board;links=new Map();selected=null;editEpoch=0;savedEpoch=0;conflicted=false;
+    $('canvasBoardTitle').value=board.title;
     $('canvasEmpty').hidden=true;
     resetCamera();paintBoardNames();draw();setStatus('Salvo','ok');
   }catch(e){toast(e.message,true);}
