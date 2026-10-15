@@ -45,7 +45,11 @@ test('todas as telas públicas podem ser exibidas sem tocar em rede ou em dados 
     }
     assert.match(store.get('radarContent').innerHTML,/Exemplo/);
     assert.match(store.get('libraryGrid').innerHTML,/EXEMPLO/);
-    assert.match(store.get('lifeWeeks').innerHTML,/guest-life-week/);
+    assert.match(store.get('lifeWeeks').innerHTML,/life-year-cells/);
+    assert.match(store.get('lifeWeeks').innerHTML,/life-week lived/);
+    assert.match(store.get('lifeWeeks').innerHTML,/life-week future/);
+    assert.match(store.get('lifeMomentsList').innerHTML,/Minha primeira conquista/);
+    assert.match(store.get('libraryGrid').innerHTML,/INSTAGRAM · REEL/);
     assert.match(store.get('homeGrid').innerHTML,/EXEMPLO/);
     assert.match(store.get('tipsGrid').innerHTML,/EXEMPLO/);
     assert.match(store.get('thoughtList').innerHTML,/Criar minha conta|Salvar minha primeira reflexão/);

@@ -1,5 +1,5 @@
 import { MOTIVATION_MOMENTS, selectMotivationTips } from './motivation.js';
-import { setupVisualTheme } from './visual-theme.js';
+import { setupVisualTheme,setVisualTheme,setColorMode,readVisualTheme } from './visual-theme.js';
 import { setupAtlasUI, renderAtlasCollections, resetAtlasUI } from './atlas-ui.js';
 import { embeddedMediaLink } from './media-links.js';
 import { guestCategories, renderGuestPreview } from './guest-preview.js';
@@ -59,6 +59,9 @@ async function showGuestMode(){
   wipePreviousAccount();
   state.guest=true;
   document.body.dataset.guest='true';
+  // Padrão público Atlas claro, sem sobrescrever preferências de quem já tem conta.
+  setVisualTheme('atlas',{persist:false});
+  setColorMode('light',{persist:false});
   $('loginOverlay').hidden=true;
   $('guestBanner').hidden=false;
   $('accountLabel').textContent='✦ Modo visitante';
@@ -129,7 +132,7 @@ async function loadList(append = false) {
   } catch(e) { if (requestNumber === listRequest) { box.innerHTML = skeletonEmpty('Erro ao carregar vídeos', e.message, '⚠️', false); toast(e.message, true); } }
   finally { if (requestNumber === listRequest) state.busy = false; }
 }
-const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', canvas: 'Canvas Visual', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados' };
+const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', canvas: 'Mapas mentais', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados' };
 async function navigate(view, category = 'all') {
   const known = viewNames[view] ? view : 'home';
   state.view = known;
@@ -1217,6 +1220,8 @@ function wipePreviousAccount() {
 async function finishAccountLogin(result) {
   state.guest=false;
   document.body.dataset.guest='false';
+  // Ao autenticar, recupera a aparência anteriormente salva pelo usuário.
+  setVisualTheme(readVisualTheme(localStorage),{persist:false});
   $('guestBanner').hidden=true;
   wipePreviousAccount();
   $('logoutBtn').innerHTML='<span class="nav-icon">↪</span> Sair da conta';
@@ -1243,7 +1248,7 @@ async function start() {
   bindEvents();
   resetChatConversation();
   setupFinance({ api, toast, isGuest:()=>state.guest, requireAccount:()=>showAccountGate() });
-  setupCanvas({api,toast,isGuest:()=>state.guest,requireAccount:()=>showAccountGate()});
+  setupCanvas({api,toast,isGuest:()=>state.guest,requireAccount:()=>showAccountGate(),openVideo:editVideo});
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
   try {
     const session=await api('/api/session');
