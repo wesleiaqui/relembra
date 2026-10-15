@@ -574,6 +574,7 @@ function appendMessage(kind, content, sources = [], aiUnavailable = false) {
 }
 
 async function submitChat(message){
+  if(state.guest){showAccountGate();return;}
   const q=String(message||'').trim();
   if(q.length<2||$('sendChatBtn').disabled)return;
   const generation=chatGeneration;
@@ -1049,7 +1050,21 @@ function bindEvents() {
     const element=e.target.closest('button,a[href],input[type="file"],[data-guest-action]');
     if(!element || element.closest('#loginOverlay,#guestBanner'))return;
     if(element.closest('[data-view],[data-go],[data-cat]'))return;
-    if(element.closest('.view-mode-switch,.tips-presets'))return;
+    if(element.closest('.view-mode-switch'))return;
+    if(element.closest('.tips-presets')){
+      e.preventDefault();e.stopImmediatePropagation();
+      const selected=element.closest('[data-tip-context]');
+      if(selected){
+        document.querySelectorAll('.tips-presets [data-tip-context]').forEach(btn=>{
+          const active=btn===selected;
+          btn.classList.toggle('active',active);
+          btn.setAttribute('aria-pressed',String(active));
+        });
+        $('tipsCurrentHeading').textContent=selected.dataset.tipContext==='all'?'Todas as dicas':selected.dataset.tipContext;
+        renderGuestPreview('tips');
+      }
+      return;
+    }
     if(element.matches('[data-fin-action="prev-month"],[data-fin-action="next-month"]'))return;
     if(element.id==='logoutBtn')return;
     if(element.closest('.view') || element.id==='addVideoBtn' || element.id==='addCategoryBtn' || element.id==='atlasCommandTrigger'){
@@ -1062,8 +1077,16 @@ function bindEvents() {
     if(!state.guest || !e.target.closest('main'))return;
     e.preventDefault();e.stopImmediatePropagation();showAccountGate();
   },true);
+  document.addEventListener('input',e=>{
+    if(!state.guest)return;
+    if(e.target.id==='tipsSearch'){e.stopImmediatePropagation();renderGuestPreview('tips');}
+  },true);
   document.addEventListener('change',e=>{
     if(!state.guest)return;
+    if(e.target.matches('#tipsKind,#tipsFavoritesOnly')){
+      e.stopImmediatePropagation();renderGuestPreview('tips');
+      return;
+    }
     if(e.target.type==='file' || e.target.matches('[data-task-check],[data-home-task-id]')){
       e.preventDefault();e.stopImmediatePropagation();showAccountGate();
     }
@@ -1184,6 +1207,7 @@ async function finishAccountLogin(result) {
   wipePreviousAccount();
   $('logoutBtn').innerHTML='<span class="nav-icon">↪</span> Sair da conta';
   $('loginOverlay').hidden=true;
+  $('homeGreeting').textContent='Seu dia, com mais clareza.';
   $('accountLabel').textContent='👤 '+result.user.username+(result.user.role==='owner'?' · Administrador':'');
   for(const id of ['loginForm','ownerSetupForm','registerForm','ownerRecoverForm']) $(id).reset();
   await syncCategories();
