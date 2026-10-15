@@ -37,7 +37,6 @@ async function passwordDigest(password, salt) {
   return base64url(new Uint8Array(bits));
 }
 function newSalt() { const bytes = new Uint8Array(24); crypto.getRandomValues(bytes); return base64url(bytes); }
-function randomCode() { const bytes = new Uint8Array(32); crypto.getRandomValues(bytes); return base64url(bytes); }
 async function authSignature(env, payload) {
   const key = await hmacKey('relembra-users-v2:' + env.APP_PASSWORD);
   return base64url(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))));
@@ -75,6 +74,19 @@ async function countFailedLogin(env, rate) {
 }
 async function clearFailedLogin(env, rate) {
   await env.DB.prepare('DELETE FROM login_attempts WHERE ip_hash=?').bind(rate.key).run();
+}
+// Contém cadastros automáticos, sem limitar acessos normais à página.
+const REGISTRATION_MAX_PER_HOUR=5;
+async function reserveRegistrationAttempt(request,env){
+  const key=await sha256('registration:'+(request.headers.get('CF-Connecting-IP')||'unknown')+':'+env.APP_PASSWORD);
+  const stamp=Date.now(), cutoff=stamp-60*60*1000;
+  // UPSERT atômico: requisições simultâneas também são contabilizadas.
+  const record=await env.DB.prepare(`INSERT INTO login_attempts(ip_hash,attempts,window_start) VALUES (?,1,?)
+    ON CONFLICT(ip_hash) DO UPDATE SET
+      attempts=CASE WHEN window_start<? THEN 1 ELSE attempts+1 END,
+      window_start=CASE WHEN window_start<? THEN excluded.window_start ELSE window_start END
+    RETURNING attempts`).bind(key,stamp,cutoff,cutoff).first();
+  return Number(record?.attempts||0)<=REGISTRATION_MAX_PER_HOUR;
 }
 function ownerCategoryId(ownerId, categorySlug) {
   return ownerId.replaceAll('-', '').slice(0, 16) + '-' + slug(categorySlug).slice(0, 20);
@@ -519,26 +531,23 @@ async function handle(request, env) {
     return json({ok:true,user:{username:user.username,role:user.role}},200,{'set-cookie':await newUserCookie(env,user,request)});
   }
   if (path === '/api/register' && method === 'POST') {
-    const rate=await isRateLimited(request,env);
-    if(rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
+    // Impede que o primeiro visitante reivindique a instância antes do proprietário.
+    const owner=await env.DB.prepare("SELECT id FROM app_users WHERE role='owner' LIMIT 1").first();
+    if(!owner) return error('A conta principal precisa ser configurada antes de liberar cadastros.',409);
     const body=await getBody(request,6000);
     let account;
     try {account=validateAccount(body);}catch(e){return error(e.message);}
-    const invitation=String(body.invitation||'');
-    const hash=await sha256(invitation);
-    const invite=await env.DB.prepare('SELECT token_hash FROM app_invites WHERE token_hash=? AND used_by IS NULL AND expires_at>?').bind(hash,Date.now()).first();
-    if(!invite || invitation.length<20){await countFailedLogin(env,rate);return error('Convite inválido ou expirado.',401);}
+    if(!await reserveRegistrationAttempt(request,env))
+      return error('Muitas tentativas de cadastro. Aguarde uma hora e tente novamente.',429);
     const id=crypto.randomUUID(),salt=newSalt(),digest=await passwordDigest(account.password,salt),stamp=now();
     try{
       await env.DB.batch([
-        env.DB.prepare("INSERT INTO app_users(id,username,password_salt,password_hash,role,invite_hash,created_at) VALUES (?,?,?,?,'member',?,?)")
-          .bind(id,account.username,salt,digest,hash,stamp),
-        env.DB.prepare('UPDATE app_invites SET used_by=? WHERE token_hash=? AND used_by IS NULL').bind(id,hash),
+        env.DB.prepare("INSERT INTO app_users(id,username,password_salt,password_hash,role,created_at) VALUES (?,?,?,?,'member',?)")
+          .bind(id,account.username,salt,digest,stamp),
         ...BASE_CATEGORIES.map(([slugId,name,emoji,color])=>env.DB.prepare('INSERT INTO categories(id,name,emoji,color,owner_id) VALUES (?,?,?,?,?)')
           .bind(ownerCategoryId(id,slugId),name,emoji,color,id))
       ]);
-    }catch{return error('Este nome de usuário ou convite já foi utilizado.',409);}
-    await clearFailedLogin(env,rate);
+    }catch{return error('Este nome de usuário já está em uso.',409);}
     return json({ok:true,user:{username:account.username,role:'member'}},201,{'set-cookie':await newUserCookie(env,{id,session_version:1},request)});
   }
   if (path === '/api/recover-owner' && method === 'POST') {
@@ -565,13 +574,6 @@ async function handle(request, env) {
   if (path === '/api/me' && method === 'GET') return json({user:{username:user.username,role:user.role}});
   if (path === '/api/finance' || path.startsWith('/api/finance/')) return handleFinance(request,env,user);
   if (/^\/api\/(radar|life|habits|history|backup\/images|search\/all)(\/|$)/.test(path)) return handleCompanion(request,env,user);
-  if (path === '/api/invites' && method === 'POST') {
-    if (user.role!=='owner')return error('Somente a conta principal pode convidar.',403);
-    const code=randomCode(),hash=await sha256(code),stamp=now();
-    await env.DB.prepare('INSERT INTO app_invites(token_hash,created_by,expires_at,created_at) VALUES (?,?,?,?)')
-      .bind(hash,user.id,Date.now()+24*60*60*1000,stamp).run();
-    return json({invitation:code,expiresInHours:24},201);
-  }
   if (path === '/api/categories' && method === 'GET') return json({ categories: await categories(env,user.id) });
   if (path === '/api/categories' && method === 'POST') {
     const body=await getBody(request),name=clean(body.name,40);
