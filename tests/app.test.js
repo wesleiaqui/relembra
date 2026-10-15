@@ -21,6 +21,7 @@ function makeDB() {
   db.exec(readFileSync(new URL('../migrations/0011_recurring_monthly_bills.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0012_companion.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0013_canvas_visual.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0014_admin_observability.sql', import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = ON');
   const prepare = sql => {
     const statement = db.prepare(sql);
