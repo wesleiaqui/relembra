@@ -138,3 +138,44 @@ export async function handleCanvas(request,env,user){
     return fail('Não foi possível salvar o Canvas.',500);
   }
 }
+
+
+export async function exportCanvases(env,owner){
+  const rows=(await env.DB.prepare('SELECT id,title,snapshot,created_at FROM canvas_boards WHERE owner_id=? ORDER BY created_at LIMIT 40').bind(owner).all()).results||[];
+  const result=[];
+  for(const row of rows){
+    const links=await taskLinks(env,row.id,owner);
+    result.push({id:row.id,title:row.title,snapshot:JSON.parse(row.snapshot),created_at:row.created_at,
+      task_links:links.map(l=>({node_id:l.node_id,task_id:l.task_id}))});
+  }
+  return result;
+}
+export async function importCanvases(env,owner,input){
+  if(!Array.isArray(input))return {imported:0,skipped:0};
+  if(input.length>40)throw new Error('Importe até 40 quadros por lote.');
+  let imported=0,skipped=0;
+  for(const raw of input){
+    try{
+      const title=text(raw?.title,100),data=validateCanvas(raw?.snapshot);
+      if(!title)throw Error('Título vazio.');
+      const original=uuid.test(raw.id||'')?raw.id:crypto.randomUUID();
+      const taken=await env.DB.prepare('SELECT owner_id FROM canvas_boards WHERE id=?').bind(original).first();
+      if(taken?.owner_id===owner){skipped++;continue;}
+      const count=await env.DB.prepare('SELECT COUNT(*) AS n FROM canvas_boards WHERE owner_id=?').bind(owner).first();
+      if(Number(count.n)>=40){skipped++;continue;}
+      const id=taken?crypto.randomUUID():original,stamp=new Date().toISOString();
+      await env.DB.prepare('INSERT INTO canvas_boards(id,owner_id,title,snapshot,created_at,updated_at) VALUES(?,?,?,?,?,?)')
+        .bind(id,owner,title,data,stamp,stamp).run();
+      const nodes=new Set(JSON.parse(data).nodes.filter(n=>n.type==='task').map(n=>n.id));
+      for(const link of Array.isArray(raw.task_links)?raw.task_links.slice(0,250):[]){
+        if(!nodes.has(link.node_id)||!uuid.test(link.task_id||''))continue;
+        const target=await env.DB.prepare('SELECT id FROM radar_tasks WHERE id=? AND owner_id=?').bind(link.task_id,owner).first();
+        if(!target)continue;
+        await env.DB.prepare('INSERT OR IGNORE INTO canvas_task_links(board_id,owner_id,node_id,task_id) VALUES(?,?,?,?)')
+          .bind(id,owner,link.node_id,link.task_id).run();
+      }
+      imported++;
+    }catch{skipped++;}
+  }
+  return {imported,skipped};
+}
