@@ -7,7 +7,7 @@ A área **Administração** aparece na navegação apenas para quem tiver a fun�
 - **Atividade recente**: último heartbeat ou login nos 10 minutos anteriores. Não é garantia de conexão online; abas suspensas e bloqueios de rede podem causar diferenças. O navegador envia heartbeat a cada 3 minutos quando visível, com gravação limitada no D1.
 - **Painéis somente leitura**: visão geral, biblioteca, finanças, Radar, mapas mentais e anotações. Cada lista mostra um número limitado de registros recentes. Não existem ações de alteração, remoção ou importação em nome de terceiros.
 - **Auditoria**: cada abertura de seção gera registro com administrador, membro, seção e data/hora. Senhas, cookies, tokens e IPs não aparecem nas respostas nem no registro.
-- **Transparência**: cada membro consulta datas e seções de acesso administrativo em Backup e dados. O texto de cadastro informa essa possibilidade.
+- **Transparência**: cada membro consulta datas e seções de acesso administrativo em Backup e dados. A página pública de informações de privacidade, acessível pelo cadastro, explica essa possibilidade.
 
 ## Controles de segurança
 A sessão do administrador nunca assume o identificador de outro usuário. As rotas usam API separada e somente métodos GET para a área administrativa, com filtragem por usuário nas consultas ao banco. Contas de membro recebem HTTP 403 nas rotas administrativas, inclusive se digitarem os endereços diretamente.
