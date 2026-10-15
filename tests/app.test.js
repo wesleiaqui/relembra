@@ -1698,3 +1698,62 @@ test('página de administração não fornece função de edição nem sessão d
   assert.doesNotMatch(js,/method:\s*'PUT'|method:\s*'DELETE'|method:\s*'PATCH'/);
   assert.match(workerSrc,/handleAdministration\(request,env,user\)/);
 });
+
+
+test('auditoria: nenhuma seção privada é retornada antes de permissão explícita, nem após revogação',async()=>{
+  const {req,env}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const member=await req('/api/register','POST',{username:'privacidade02',password:'senha-membro-privacidade-123'});
+  assert.equal(member.status,201);
+  const memberRecord=await env.DB.prepare("SELECT id,admin_view_consent FROM app_users WHERE role='member'").first();
+  assert.equal(memberRecord.admin_view_consent,0);
+  assert.equal((await req('/api/account/admin-view-consent')).data.enabled,false);
+  assert.equal((await req('/api/account/admin-view-consent','PUT',{enabled:1})).status,400);
+  assert.equal((await req('/api/account/admin-view-consent','PUT',{enabled:true,user_id:'different'})).status,200);
+  const consent=await env.DB.prepare('SELECT admin_view_consent FROM app_users WHERE id=?').bind(memberRecord.id).first();
+  assert.equal(consent.admin_view_consent,1);
+  await req('/api/login','POST',{username:'principal',password:'um-passphrase-longo-de-verdade'});
+  assert.equal((await req('/api/admin/users/'+memberRecord.id+'/dashboard?section=notes')).status,200);
+  await req('/api/login','POST',{username:'privacidade02',password:'senha-membro-privacidade-123'});
+  assert.equal((await req('/api/account/admin-view-consent','PUT',{enabled:false})).status,200);
+  const actions=(await env.DB.prepare('SELECT enabled FROM admin_consent_audit WHERE user_id=? ORDER BY created_at DESC,rowid DESC').bind(memberRecord.id).all()).results;
+  assert.deepEqual(actions.map(x=>x.enabled),[0,1]);
+  await req('/api/login','POST',{username:'principal',password:'um-passphrase-longo-de-verdade'});
+  assert.equal((await req('/api/admin/users/'+memberRecord.id+'/dashboard?section=notes')).status,403);
+  const audit=(await req('/api/admin/audit')).data.audit;
+  assert.equal(audit.length,1);
+  assert.equal(audit[0].section,'notes');
+});
+test('auditoria: limite de leitura administrativa do proprietário aplica 429 sem revelar dados',async()=>{
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  for(let i=0;i<120;i++){
+    const result=await req('/api/admin/users');
+    assert.equal(result.status,200,'consulta '+i);
+  }
+  assert.equal((await req('/api/admin/users')).status,429);
+  assert.equal((await req('/api/admin/audit')).status,429);
+});
+test('auditoria: logs antigos são podados e histórico da conta não revela IDs do administrador',async()=>{
+  const {req,env}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  await req('/api/register','POST',{username:'historico02',password:'senha-membro-historico-123'});
+  const member=await env.DB.prepare("SELECT id FROM app_users WHERE role='member'").first();
+  const owner=await env.DB.prepare("SELECT id FROM app_users WHERE role='owner'").first();
+  assert.equal((await req('/api/account/admin-view-consent','PUT',{enabled:true})).status,200);
+  const oldStamp='2020-01-01T00:00:00.000Z';
+  await env.DB.prepare(
+    'INSERT INTO admin_access_audit(id,actor_id,target_id,action,section,created_at) VALUES(?,?,?,?,?,?)'
+  ).bind(crypto.randomUUID(),owner.id,member.id,'view-dashboard','overview',oldStamp).run();
+  await req('/api/login','POST',{username:'principal',password:'um-passphrase-longo-de-verdade'});
+  assert.equal((await req('/api/admin/users/'+member.id+'/dashboard?section=overview')).status,200);
+  const rows=(await env.DB.prepare('SELECT created_at FROM admin_access_audit WHERE actor_id=?').bind(owner.id).all()).results;
+  assert.equal(rows.length,1);
+  assert.notEqual(rows[0].created_at,oldStamp);
+  await req('/api/login','POST',{username:'historico02',password:'senha-membro-historico-123'});
+  const accesses=(await req('/api/account/admin-access')).data.accesses;
+  assert.equal(accesses.length,1);
+  assert.equal(accesses[0].actor_id,undefined);
+  assert.equal(accesses[0].target_id,undefined);
+  assert.equal(accesses[0].section,'overview');
+});
