@@ -1,0 +1,234 @@
+/* Relembra — Home and Life finishing pass. Loaded last after all legacy themes.
+   Scopes stay inside #homeView / #lifeView; selected palettes are respected. */
+
+/* HOME: two independent vertical stacks; recently saved content occupies the
+   former blank area beneath the primary task panel. */
+#homeView .home-focus-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.45fr) minmax(335px,.90fr);
+  gap:17px;align-items:start;
+}
+#homeView .home-main-column{display:flex;flex-direction:column;gap:20px;min-width:0;align-items:stretch}
+#homeView .home-main-column>.home-recent-section{margin:0;min-width:0}
+#homeView .home-main-column>.home-recent-section .home-work-heading{
+  margin:0 0 13px;align-items:center;
+}
+#homeView .home-main-column>.home-recent-section .video-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,205px),1fr));
+  gap:12px;min-width:0;
+}
+#homeView .home-main-column>.home-recent-section .video-card{min-width:0}
+#homeView .home-main-column>.home-recent-section .card-art{height:148px}
+#homeView .home-main-column>.home-recent-section .card-body{padding:13px 14px 14px}
+#homeView .home-main-column>.home-recent-section .card-title{font-size:12.5px;min-height:35px}
+#homeView .home-main-column>.home-recent-section .card-summary{font-size:10.5px;margin:7px 0 11px}
+#homeView .home-main-column>.home-recent-section .home-overline{letter-spacing:1.1px}
+#homeView .home-work-primary{
+  min-height:0!important;
+  display:flex;flex-direction:column;gap:0;
+}
+#homeView .home-work-primary .home-work-heading{margin:0 0 14px}
+#homeView .home-work-primary .home-quick-task{margin:0 0 11px;padding:0}
+#homeView .home-work-primary .home-priorities{flex:none;min-height:0}
+#homeView .home-work-primary .home-empty-priority{
+  min-height:88px;padding:14px 16px;gap:3px;
+  border-radius:10px;
+}
+#homeView .home-work-primary .home-empty-priority>span{
+  width:28px;height:28px;font-size:15px;
+}
+#homeView .home-work-primary .home-empty-priority p{font-size:10.5px;max-width:390px}
+#homeView .home-shortcuts{
+  margin:20px 0 8px;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
+}
+#homeView .home-shortcuts button{min-height:63px}
+
+/* ASIDE: typographic hierarchy and meaningful due dates / habit completion. */
+#homeView .home-support-column{
+  display:flex;flex-direction:column;gap:14px;align-self:start;min-width:0;
+}
+#homeView .home-support-column>.home-work-section{
+  min-height:0;padding:20px 20px 18px;
+  border:1px solid var(--hv-border);border-radius:15px;
+  box-shadow:none;
+  background:var(--hv-card);
+}
+#homeView .home-support-column .home-work-heading{
+  align-items:flex-start;gap:12px;margin:0 0 11px;
+}
+#homeView .home-support-column .home-work-heading h2{
+  font-size:16px;line-height:1.25;margin:5px 0 0;letter-spacing:-.35px;
+  color:var(--hv-text);
+}
+#homeView .home-support-column .home-overline{letter-spacing:1.25px;color:var(--hv-muted)}
+#homeView .home-support-column .home-inline-link{padding-top:12px;font-size:10px}
+#homeView .home-aside-meta{font-size:10px;color:var(--hv-muted);margin:0 0 12px;line-height:1.6}
+#homeView .home-bills-list{gap:0;display:flex;flex-direction:column}
+#homeView .home-bill-item{
+  position:relative;
+  min-height:64px;display:flex;gap:12px;align-items:center;
+  width:100%;padding:12px 0 12px 15px!important;
+  background:transparent!important;border:0!important;border-radius:0!important;
+  border-bottom:1px solid var(--hv-border)!important;
+  box-shadow:none!important;
+  text-align:left;
+}
+#homeView .home-bill-item:first-child{border-top:1px solid var(--hv-border)!important}
+#homeView .home-bill-item::before{
+  content:"";position:absolute;left:0;top:19px;width:4px;height:25px;
+  border-radius:4px;background:var(--hv-muted);opacity:.55;
+}
+#homeView .home-bill-item.is-overdue::before{background:#d18d83;opacity:1}
+#homeView .home-bill-item.is-today::before{background:#dfad6c;opacity:1}
+#homeView .home-bill-item.is-upcoming::before{background:var(--hv-accent);opacity:.65}
+#homeView .home-bill-item:hover{background:var(--hv-hover)!important}
+#homeView .home-bill-item span{min-width:0}
+#homeView .home-bill-item strong{
+  display:block;font-size:11.75px;line-height:1.4;color:var(--hv-text);
+  font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#homeView .home-bill-item small{
+  font-size:10px;line-height:1.4;color:var(--hv-muted)!important;margin-top:3px;
+}
+#homeView .home-bill-item small.home-warning{color:#d99987!important}
+#homeView .home-bill-item .home-bill-amount{
+  display:flex;align-items:center;justify-content:flex-end;flex:none;
+  min-width:80px;max-width:42%;
+}
+#homeView .home-bill-item .home-bill-amount b{
+  font-size:12px;letter-spacing:-.1px;color:var(--hv-text);font-weight:820;
+  font-variant-numeric:tabular-nums;
+}
+#homeView .home-habit-section{padding-bottom:17px!important}
+#homeView .home-habit-progress{
+  padding:12px 13px;margin:2px 0 10px;
+  background:var(--hv-surface);border:1px solid var(--hv-border);
+  border-radius:10px;
+}
+#homeView .home-habit-progress-copy{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  color:var(--hv-muted);font-size:10px;margin-bottom:10px;
+}
+#homeView .home-habit-progress-copy strong{
+  color:var(--hv-text);font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+#homeView .home-habit-meter{
+  height:6px;overflow:hidden;border-radius:10px;
+  background:var(--hv-border);
+}
+#homeView .home-habit-meter>span{
+  width:0;height:100%;display:block;
+  background:var(--hv-accent);border-radius:10px;
+  transition:width .25s ease;
+}
+#homeView .home-habits-list{display:flex;flex-direction:column;gap:0}
+#homeView .home-habit-item{
+  min-height:43px;margin:0;display:flex;align-items:center;gap:12px;
+  padding:10px 6px!important;border:0!important;
+  border-bottom:1px solid var(--hv-border)!important;
+  border-radius:0!important;background:transparent!important;
+  box-shadow:none!important;font-size:11px;line-height:1.5;
+}
+#homeView .home-habit-item:last-child{border-bottom:0!important}
+#homeView .home-habit-item:hover{background:var(--hv-hover)!important}
+#homeView .home-habit-item input{
+  width:16px;height:16px;border-radius:5px;accent-color:var(--hv-accent);margin:0;
+}
+#homeView .home-habit-item span{color:var(--hv-text)}
+#homeView .home-habit-item.checked{opacity:.75}
+#homeView .home-habit-item.checked span{color:var(--hv-muted)}
+/* Pure black must not inherit beige or blue from old Atlas selectors. */
+body[data-color-mode="dark"][data-dark-palette="oled"] #homeView{
+  --hv-card:#111;--hv-surface:#191919;--hv-input:#0a0a0a;
+  --hv-border:#303030;--hv-text:#f0f0f0;--hv-muted:#aeb4b9;
+  --hv-accent:#d2d7dc;--hv-hover:#1e1e1e;
+}
+
+/* LIFE: a cool charcoal / silver gradient of meaning.
+   Green-grey lived blocks from earlier themes are intentionally replaced. */
+body[data-color-mode="light"] #lifeView{
+  --lv-future:#e6eaf1;--lv-lived:#778a9d;--lv-now:#d59a49;
+  --lv-saved:#428e91;--lv-selection:#435e7c;
+}
+body[data-color-mode="dark"] #lifeView{
+  --lv-card:var(--night-card,#121417);
+  --lv-elevated:var(--night-elevated,#1b1e21);
+  --lv-input:var(--night-base,#111316);
+  --lv-border:var(--night-border,#2a3036);
+  --lv-text:var(--night-text,#e8edf2);
+  --lv-muted:var(--night-secondary,#b6bec7);
+  --lv-future:#272b32;
+  --lv-lived:#838e9b;
+  --lv-now:#e6b56e;
+  --lv-saved:#70b2ac;
+  --lv-selection:#f1d5a1;
+}
+body[data-color-mode="dark"][data-dark-palette="oled"] #lifeView{
+  --lv-card:#101010;--lv-elevated:#171717;--lv-input:#090909;
+  --lv-border:#292929;--lv-text:#ededed;--lv-muted:#bbc1c9;
+  --lv-future:#292929;--lv-lived:#898f98;
+  --lv-now:#edbc77;--lv-saved:#78ada8;--lv-selection:#f2d5a7;
+}
+#lifeView .life-calendar-panel,#lifeView .life-moment-panel,
+#lifeView .life-stat,#lifeView .life-old-journal{
+  background:var(--lv-card);border-color:var(--lv-border);color:var(--lv-text);
+}
+#lifeView .life-legend{
+  background:var(--lv-elevated);border-color:var(--lv-border);
+}
+#lifeView .life-dot.future,#lifeView .life-week.future{background-color:var(--lv-future)}
+#lifeView .life-dot.lived,#lifeView .life-week.lived{background-color:var(--lv-lived)}
+#lifeView .life-dot.present,#lifeView .life-week.present{background-color:var(--lv-now)}
+#lifeView .life-dot.saved,#lifeView .life-week.saved{background-color:var(--lv-saved)}
+#lifeView .life-week.present.saved{background-color:var(--lv-now);border:2px solid var(--lv-saved)}
+#lifeView .life-week{
+  border-radius:2.5px;transition:filter .12s ease,transform .12s ease;
+}
+#lifeView .life-week.lived{box-shadow:inset 0 0 0 1px rgb(255 255 255 / 5%)}
+#lifeView .life-week.future{box-shadow:inset 0 0 0 1px rgb(255 255 255 / 2%)}
+#lifeView .life-week.selected,#lifeView .life-week:focus-visible{outline-color:var(--lv-selection)}
+#lifeView .life-year:nth-child(5n+1):not(:first-child){
+  border-color:color-mix(in srgb,var(--lv-border) 55%,transparent);
+}
+#lifeView .life-year:nth-child(5n+1):not(:first-child) .life-year-label{
+  color:var(--lv-text);
+}
+#lifeView .life-moment-form :is(input,select,textarea),#lifeView .companion-form input{
+  background:var(--lv-input);color:var(--lv-text);border-color:var(--lv-border);
+}
+#lifeView .life-moment-item{background:var(--lv-elevated);border-color:var(--lv-border)}
+body[data-guest="true"] #lifeView .life-weeks .life-week.future{background:var(--lv-future)}
+body[data-guest="true"] #lifeView .life-weeks .life-week.lived{background:var(--lv-lived)}
+body[data-guest="true"] #lifeView .life-weeks .life-week.present{background:var(--lv-now)}
+body[data-guest="true"] #lifeView .life-weeks .life-week.saved{background:var(--lv-saved)}
+/* Finer year separators, no thick horizontal bands across the chart. */
+#lifeView .life-year:nth-child(5n+1):not(:first-child){
+  padding-top:5px;margin-top:1px;border-top-width:1px;
+}
+
+/* Responsiveness without reintroducing stretched columns. */
+@media(max-width:1100px){
+  #homeView .home-focus-grid{grid-template-columns:1fr}
+  #homeView .home-main-column>.home-recent-section .video-grid{
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));
+  }
+  #homeView .home-support-column{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;
+  }
+}
+@media(max-width:780px){
+  #homeView .home-support-column{display:flex;flex-direction:column}
+  #homeView .home-main-column{gap:16px}
+  #homeView .home-main-column>.home-recent-section .video-grid{
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,165px),1fr));
+  }
+}
+@media(max-width:520px){
+  #homeView .home-bill-item .home-bill-amount{min-width:70px}
+  #homeView .home-work-primary .home-empty-priority{min-height:82px}
+  #homeView .home-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(prefers-reduced-motion:reduce){
+  #homeView .home-habit-meter>span,#lifeView .life-week{transition:none}
+}
