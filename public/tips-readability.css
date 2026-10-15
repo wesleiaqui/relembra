@@ -1,0 +1,338 @@
+/* Relembra — Dicas para o momento / legibilidade v3.
+ * Último arquivo CSS: apenas #tipsView, sem interferir no Radar ou nas cores
+ * selecionadas em Finanças. Tipografia pensada para leitura prolongada.
+ */
+
+/* Pares de superfícies com separação perceptível e textos em alto contraste. */
+body[data-color-mode="dark"] #tipsView{
+  --tips-bg:var(--night-base,#0c0e10);
+  --tips-hero-bg:var(--night-card,#151719);
+  --tips-card-bg:color-mix(in srgb,var(--night-card,#151719) 87%,#ffffff 13%);
+  --tips-hover-bg:color-mix(in srgb,var(--tips-card-bg) 88%,#ffffff 12%);
+  --tips-field-bg:var(--night-elevated,#222528);
+  --tips-line:color-mix(in srgb,var(--night-border,#34383b) 73%,#c0c5ca 27%);
+  --tips-line-strong:color-mix(in srgb,var(--tips-line) 63%,#d5d9dd 37%);
+  --tips-ink:var(--night-text,#f2f3f4);
+  --tips-body:#d9dee2;
+  --tips-muted:#b6c0c7;
+  --tips-accent:var(--night-accent,#d2d7da);
+}
+body[data-color-mode="dark"][data-dark-palette="oled"] #tipsView{
+  --tips-bg:#000;
+  --tips-hero-bg:#111;
+  --tips-card-bg:#1c1c1e;
+  --tips-hover-bg:#252527;
+  --tips-field-bg:#181819;
+  --tips-line:#414144;
+  --tips-line-strong:#737378;
+  --tips-ink:#f6f6f7;
+  --tips-body:#e2e2e6;
+  --tips-muted:#c0c0c6;
+  --tips-accent:#e6e6e8;
+}
+body[data-color-mode="light"] #tipsView{
+  --tips-bg:#f7f8fc;
+  --tips-hero-bg:#fff;
+  --tips-card-bg:#fff;
+  --tips-hover-bg:#f4f7f9;
+  --tips-field-bg:#f7f9fb;
+  --tips-line:#d9e0e7;
+  --tips-line-strong:#b2c0cd;
+  --tips-ink:#203047;
+  --tips-body:#455366;
+  --tips-muted:#667488;
+  --tips-accent:#357568;
+}
+/* HERO: smaller editorial heading; the advice cards get screen space. */
+#tipsView .tips-hero{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,.65fr);
+  gap:18px;align-items:center;
+  padding:22px 25px;margin:0 0 25px;
+  min-height:0;max-height:none;border-radius:16px;
+  background:var(--tips-hero-bg);
+  border:1px solid var(--tips-line);
+  box-shadow:none;color:var(--tips-ink);
+}
+#tipsView .tips-hero-main{min-width:0}
+#tipsView .tips-hero .eyebrow{
+  display:block;color:var(--tips-muted);font-size:10px;
+  letter-spacing:1.2px;font-weight:750;
+}
+#tipsView .tips-hero h1{
+  font:800 clamp(27px,2.65vw,37px)/1.12 Manrope,system-ui,sans-serif;
+  color:var(--tips-ink);letter-spacing:-1.1px;
+  margin:9px 0 9px;max-width:900px;
+}
+#tipsView .tips-hero h1 em{
+  color:var(--tips-ink);text-decoration:none;font-style:normal;
+}
+#tipsView .tips-hero-main>p{
+  color:var(--tips-body);font-size:13.5px;
+  line-height:1.6;max-width:650px;margin:0;
+}
+#tipsView .tips-hero-stats{
+  display:flex;gap:0;flex-wrap:wrap;margin:17px 0 0;
+  max-width:none;
+}
+#tipsView .tips-stat{
+  display:flex;flex-direction:row;align-items:baseline;gap:8px;
+  padding:0 15px 0 0;margin:0 15px 0 0;
+  min-width:0;min-height:0;border:0;
+  border-right:1px solid var(--tips-line);
+  border-radius:0;background:transparent;box-shadow:none;
+}
+#tipsView .tips-stat:last-child{border:0;margin:0}
+#tipsView .tips-stat strong{
+  color:var(--tips-ink);
+  font:800 19px/1.25 Manrope,system-ui,sans-serif;
+  min-width:1ch;font-variant-numeric:tabular-nums;
+}
+#tipsView .tips-stat span{
+  color:var(--tips-muted);font-size:11px;
+  line-height:1.5;white-space:normal;
+}
+#tipsView .tips-hero-side{
+  display:flex;flex-direction:column;justify-content:center;align-items:stretch;
+  gap:13px;min-width:0;
+}
+#tipsView .tips-hero-actions{
+  display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;
+}
+#tipsView .tips-hero-actions .button{
+  min-height:39px;padding:9px 12px;
+  font-size:11.5px;font-weight:750;border-radius:9px;
+  box-shadow:none;
+}
+#tipsView .tips-hero-actions .button-primary{
+  background:var(--tips-ink);color:var(--tips-bg);
+  border:1px solid var(--tips-ink);
+}
+#tipsView .tips-hero-actions .button-outline{
+  background:var(--tips-field-bg);color:var(--tips-ink);
+  border:1px solid var(--tips-line);
+}
+#tipsView .tips-hero-actions .button-outline:hover{border-color:var(--tips-line-strong)}
+#tipsView .tips-hero-note{
+  display:flex;align-items:center;gap:9px;padding:11px 13px;
+  border:1px solid var(--tips-line);border-radius:10px;
+  background:var(--tips-field-bg);box-shadow:none;
+}
+#tipsView .tips-note-icon{
+  display:grid;place-items:center;width:27px;height:27px;
+  font-size:14px;color:var(--tips-ink);flex:none;border-radius:8px;
+  background:var(--tips-hero-bg);border:1px solid var(--tips-line);
+}
+#tipsView .tips-hero-note strong{
+  color:var(--tips-ink);font-size:11.5px;
+}
+#tipsView .tips-hero-note p{
+  color:var(--tips-body);font-size:11px;
+  line-height:1.55;margin:2px 0 0;
+}
+
+/* Contexto: compact choice without stealing the reading area. */
+#tipsView .tips-situation-heading{
+  display:flex;align-items:end;justify-content:space-between;
+  gap:14px;margin:0 0 13px;
+}
+#tipsView .tips-situation-heading .eyebrow{
+  color:var(--tips-muted);font-size:10px;font-weight:800;
+  letter-spacing:1.1px;
+}
+#tipsView .tips-situation-heading h2{
+  color:var(--tips-ink);font-size:20px;line-height:1.3;
+  letter-spacing:-.3px;margin:5px 0 0;
+}
+#tipsView .tips-situation-heading>span{
+  color:var(--tips-body);font-size:12px;line-height:1.55;
+}
+#tipsView .tips-presets{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;
+}
+#tipsView .tips-preset{
+  position:relative;display:grid;grid-template-columns:28px 1fr;
+  grid-template-rows:auto auto;align-items:center;align-content:center;
+  gap:2px 9px;text-align:left;
+  padding:13px 39px 13px 13px;min-height:88px;
+  border:1px solid var(--tips-line);
+  border-radius:12px;background:var(--tips-hero-bg);
+  box-shadow:none;transform:none;
+}
+#tipsView .tips-preset::before{width:3px}
+#tipsView .tips-preset>span{
+  grid-column:1;grid-row:1/3;
+  display:grid;place-items:center;
+  width:29px;height:29px;border-radius:8px;
+  background:var(--tips-field-bg);
+  border:1px solid var(--tips-line);
+  font-size:16px;filter:none;
+}
+#tipsView .tips-preset strong{
+  grid-column:2;grid-row:1;
+  color:var(--tips-ink);font-size:12.5px;line-height:1.35;
+  letter-spacing:0;
+}
+#tipsView .tips-preset small,
+#tipsView .tips-preset.active small{
+  grid-column:2;grid-row:2;
+  color:var(--tips-muted);font-size:11px;line-height:1.4;
+}
+#tipsView .tips-preset-count{
+  position:absolute;right:9px;top:11px;
+  min-width:23px;height:23px;padding:0 5px;
+  border:1px solid var(--tips-line);border-radius:7px;
+  background:var(--tips-field-bg);color:var(--tips-body);
+  font-size:10.5px;font-weight:750;
+}
+#tipsView .tips-preset:is(:hover,:focus-visible){
+  background:var(--tips-hover-bg);
+  border-color:var(--tips-line-strong);transform:none;
+}
+#tipsView .tips-preset.active,
+#tipsView .tips-preset[aria-pressed="true"]{
+  background:var(--tips-hover-bg);
+  border-color:var(--tips-ink);box-shadow:inset 3px 0 0 var(--tips-ink);
+}
+#tipsView .tips-preset.active::before{opacity:0}
+#tipsView .tips-preset.active strong{color:var(--tips-ink)}
+#tipsView .tips-extra-button{
+  background:var(--tips-field-bg);border:1px solid var(--tips-line);
+  color:var(--tips-ink);font-size:12px;
+}
+#tipsView .tips-extra-button:is(:hover,.active){
+  border-color:var(--tips-line-strong);
+  background:var(--tips-hover-bg);color:var(--tips-ink);
+}
+
+/* Filter controls readable on both dark and light. */
+#tipsView .tips-toolbar{
+  gap:14px;margin:23px 0 16px;align-items:end;
+}
+#tipsView .tips-filter-info h2{
+  color:var(--tips-ink);font-size:22px;
+  letter-spacing:-.4px;line-height:1.3;
+}
+#tipsView .tips-filter-info p,
+#tipsView #tipsResultCount{color:var(--tips-muted);font-size:12px;line-height:1.5}
+#tipsView .tips-filter-controls{gap:10px;align-items:center}
+#tipsView .tips-search,
+#tipsView .tips-type-label select{
+  background:var(--tips-field-bg);border:1px solid var(--tips-line);
+  color:var(--tips-ink);border-radius:9px;
+}
+#tipsView .tips-search{min-height:41px}
+#tipsView .tips-search input{color:var(--tips-ink);font-size:12.5px}
+#tipsView .tips-search input::placeholder{color:var(--tips-muted);opacity:1}
+#tipsView .tips-type-label,
+#tipsView .tips-only-favs{color:var(--tips-body);font-size:12px}
+#tipsView .tips-only-favs input{accent-color:var(--tips-accent)}
+#tipsView .tips-type-label select{min-height:38px;font-size:12px}
+
+/* Readable advice is the primary content, not decoration. */
+#tipsView .tips-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#tipsView .tip-card{
+  display:flex;flex-direction:column;gap:0;
+  min-width:0;min-height:175px;
+  padding:20px 21px;
+  background:var(--tips-card-bg);
+  color:var(--tips-ink);
+  border:1px solid var(--tips-line);border-radius:14px;
+  box-shadow:none;
+  transform:none;
+}
+#tipsView .tip-card:hover{
+  transform:none;background:var(--tips-hover-bg);border-color:var(--tips-line-strong);
+}
+#tipsView .tip-card.is-highlighted{
+  background:var(--tips-card-bg);border-color:var(--tips-line-strong);
+  box-shadow:inset 3px 0 0 var(--tips-accent);
+}
+#tipsView .tip-card-top{margin:0 0 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+#tipsView .tip-kind{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:10.5px;line-height:1.4;letter-spacing:1px;
+  font-weight:800;color:var(--tips-body);
+}
+#tipsView .tip-kind i{
+  width:29px;height:29px;
+  display:grid;place-items:center;
+  border:1px solid var(--tips-line);border-radius:9px;
+  background:var(--tips-field-bg);color:var(--tips-ink);
+  font-size:15px;margin:0;flex:none;
+}
+#tipsView .tip-card h3{
+  color:var(--tips-ink);font:800 19px/1.42 Manrope,system-ui,sans-serif;
+  letter-spacing:-.35px;margin:0 0 10px;
+  overflow-wrap:anywhere;
+}
+#tipsView .tip-card .tip-content{
+  color:var(--tips-body);font:400 15px/1.77 'DM Sans',system-ui,sans-serif;
+  letter-spacing:0;white-space:pre-wrap;
+  overflow-wrap:anywhere;margin:0 0 19px;flex:1;
+}
+#tipsView .tip-card-foot{
+  margin-top:auto;padding-top:14px;
+  border-top:1px solid var(--tips-line);
+  display:flex;align-items:center;gap:12px;justify-content:space-between;
+}
+#tipsView .tip-context-tag{
+  background:var(--tips-field-bg);
+  border:1px solid var(--tips-line);color:var(--tips-body);
+  font-size:11px;padding:6px 10px;border-radius:20px;
+}
+#tipsView .tip-card-actions{display:flex;gap:15px;align-items:center}
+#tipsView .tip-card-actions a,#tipsView .tip-card-actions button{
+  color:var(--tips-ink);font-size:12px;font-weight:800;
+  text-decoration:none;
+}
+#tipsView .tip-card-actions :is(a,button):hover{
+  text-decoration:underline;text-underline-offset:3px;
+}
+#tipsView .tip-star{
+  color:var(--tips-muted);font-size:22px;min-width:32px;min-height:32px;
+}
+#tipsView .tip-star.is-favorite{color:#e7bf78}
+#tipsView .tips-bottom-note,#tipsView .tips-empty{
+  background:var(--tips-hero-bg);
+  border-color:var(--tips-line);color:var(--tips-body);
+  font-size:12.5px;line-height:1.6;
+}
+#tipsView .tips-empty strong{color:var(--tips-ink)}
+#tipsView :is(button,input,select,a):focus-visible{
+  outline:2px solid var(--tips-ink);outline-offset:3px;
+}
+@media(max-width:1050px){
+  #tipsView .tips-hero{grid-template-columns:1fr}
+  #tipsView .tips-hero-side{flex-direction:row;align-items:center;justify-content:space-between}
+  #tipsView .tips-hero-actions{justify-content:flex-start}
+  #tipsView .tips-hero-note{max-width:285px}
+}
+@media(max-width:800px){
+  #tipsView .tips-presets{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #tipsView .tips-grid{grid-template-columns:1fr}
+  #tipsView .tips-hero-side{flex-direction:column;align-items:stretch}
+  #tipsView .tips-hero-note{max-width:none}
+}
+@media(max-width:520px){
+  #tipsView .tips-hero{padding:19px;margin-bottom:18px}
+  #tipsView .tips-hero h1{font-size:27px}
+  #tipsView .tips-hero-stats{gap:8px}
+  #tipsView .tips-stat{margin:0 10px 0 0;padding:0 11px 0 0}
+  #tipsView .tips-stat strong{font-size:17px}
+  #tipsView .tips-stat span{font-size:10px}
+  #tipsView .tips-situation-heading{align-items:start;flex-direction:column}
+  #tipsView .tips-presets{gap:7px}
+  #tipsView .tips-preset{padding:12px 31px 12px 10px;min-height:81px;grid-template-columns:23px 1fr;gap:5px}
+  #tipsView .tips-preset>span{width:25px;height:25px;font-size:15px}
+  #tipsView .tips-preset strong{font-size:11.5px}
+  #tipsView .tips-preset small{font-size:10px}
+  #tipsView .tips-toolbar{align-items:stretch}
+  #tipsView .tips-filter-controls{align-items:stretch;flex-wrap:wrap}
+  #tipsView .tips-search{width:100%}
+  #tipsView .tip-card{padding:17px}
+  #tipsView .tip-card h3{font-size:18px}
+  #tipsView .tip-card .tip-content{font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  #tipsView :is(.tip-card,.tips-preset){transition:none}
+}
