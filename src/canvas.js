@@ -1,4 +1,5 @@
 // Canvas Visual — todos os acessos usam owner_id da sessão autenticada.
+import {reserveAIQuota,readLimitedJSON} from './security.js';
 // Grava o quadro com controle otimista de revisão e mantém tarefas reais no Radar.
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{
   status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}
@@ -15,9 +16,7 @@ const dayValid=value=>{
   return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===value;
 };
 async function readJson(request,max=145000){
-  const raw=await request.text();
-  if(raw.length>max)throw new Error('O quadro excede o limite de tamanho.');
-  return JSON.parse(raw);
+  return readLimitedJSON(request,max);
 }
 export function validateCanvas(snapshot){
   if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))throw new Error('Quadro inválido.');
@@ -75,9 +74,7 @@ async function generateOutline(request,env,user){
   if(!env.AI)return fail('A geração por IA não está disponível nesta instalação.',503);
   const body=await readJson(request,2000),prompt=text(body?.prompt,450);
   if(prompt.length<8)return fail('Descreva o assunto com pelo menos 8 caracteres.');
-  const key='canvas-ai:'+user.id,nowMs=Date.now(),cutoff=nowMs-3600000;
-  const row=await env.DB.prepare('INSERT INTO login_attempts(ip_hash,attempts,window_start) VALUES(?,1,?) ON CONFLICT(ip_hash) DO UPDATE SET attempts=CASE WHEN window_start<? THEN 1 ELSE attempts+1 END,window_start=CASE WHEN window_start<? THEN excluded.window_start ELSE window_start END RETURNING attempts').bind(key,nowMs,cutoff,cutoff).first();
-  if(Number(row?.attempts||0)>6)return fail('Limite de 6 mapas com IA por hora. Tente novamente mais tarde.',429);
+  if(!await reserveAIQuota(env,user.id,'canvas'))return fail('Limite de 6 mapas com IA por hora. Tente novamente mais tarde.',429);
   try{
     const answer=await env.AI.run('@cf/meta/llama-3.1-8b-instruct-fp8',{
       messages:[
@@ -171,7 +168,7 @@ export async function handleCanvas(request,env,user){
     return fail('Operação não permitida.',405);
   }catch(e){
     if(e instanceof SyntaxError)return fail('JSON inválido.');
-    if(e instanceof Error && /inválid|limite|título|tamanho|cartão|conexão|prioridade|http|data|posição|informe|excede|quadros|nós/i.test(e.message))return fail(e.message);
+    if(e instanceof Error && /inválid|limite|título|tamanho|cartão|conexão|prioridade|http|data|posição|informe|excede|quadros|nós|grande|vídeo/i.test(e.message))return fail(e.message);
     console.error('Canvas:',e?.message||String(e));
     return fail('Não foi possível salvar o Canvas.',500);
   }

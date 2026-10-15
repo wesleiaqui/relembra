@@ -27,7 +27,7 @@ test('Canvas tem navegação, controles de zoom, editor e integração com visit
   assert.match(client,/pointerdown/);
   assert.match(client,/setPointerCapture/);
   assert.match(client,/saveNow/);
-  assert.match(client,/revision:board.revision/);
+  assert.match(client,/revision:targetBoard.revision/);
   assert.match(client,/radar\/tasks/);
 });
 test('Canvas demonstração fictícia contém quatro tipos, conexões e IDs únicos',()=>{

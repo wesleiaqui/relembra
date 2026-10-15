@@ -32,7 +32,7 @@ export const exampleCanvas=()=>({
 let api,toast,guest,gate,openVideo;
 let board=null,boards=[],links=new Map(),selected=null,selectedEdge=null,connectFrom=null,zoom=1,offset={x:90,y:64};
 let quickPosition=null,connectDraft=null;
-let saveTimer=null,saving=false,editEpoch=0,savedEpoch=0,conflicted=false,initialized=false;
+let saveTimer=null,saving=false,editEpoch=0,savedEpoch=0,conflicted=false,initialized=false,retryCount=0;
 const viewer=()=>$('canvasViewport');
 const snap=()=>board?.snapshot;
 const nodeById=id=>snap()?.nodes.find(n=>n.id===id);
@@ -80,18 +80,43 @@ function choosePort(node,point){
     ?point.x<cx?'left':'right'
     :point.y<cy?'top':'bottom';
 }
+// Curvas cúbicas com tangentes opostas. Nunca prolongar o controle final
+// além do cartão de destino: isso gerava voltas e laços indesejados.
 export function canvasCurve(p,q,fromPort=null,toPort=null){
-  const horizontal=fromPort?['left','right'].includes(fromPort):Math.abs(q.x-p.x)>=Math.abs(q.y-p.y);
-  if(horizontal){
-    const dx=Math.max(45,Math.min(190,Math.abs(q.x-p.x)*.5));
-    const sign=fromPort==='left'?-1:fromPort==='right'?1:q.x>p.x?1:-1;
-    const targetSign=toPort==='left'?-1:toPort==='right'?1:sign;
-    return 'M'+p.x+','+p.y+' C'+(p.x+sign*dx)+','+p.y+' '+(q.x+targetSign*dx)+','+q.y+' '+q.x+','+q.y;
-  }
-  const dy=Math.max(45,Math.min(190,Math.abs(q.y-p.y)*.5));
-  const sign=fromPort==='top'?-1:fromPort==='bottom'?1:q.y>p.y?1:-1;
-  const targetSign=toPort==='top'?-1:toPort==='bottom'?1:sign;
-  return 'M'+p.x+','+p.y+' C'+p.x+','+(p.y+sign*dy)+' '+q.x+','+(q.y+targetSign*dy)+' '+q.x+','+q.y;
+  const axis=Math.abs(q.x-p.x)>=Math.abs(q.y-p.y)?'horizontal':'vertical';
+  const start=fromPort||(axis==='horizontal'?(q.x>=p.x?'right':'left'):(q.y>=p.y?'bottom':'top'));
+  const opposite={left:'right',right:'left',top:'bottom',bottom:'top'};
+  const finish=toPort||opposite[start];
+  const directions={
+    left:{x:-1,y:0},right:{x:1,y:0},top:{x:0,y:-1},bottom:{x:0,y:1}
+  };
+  const a=directions[start],b=directions[finish];
+  if(!a||!b)return 'M'+p.x+','+p.y+' L'+q.x+','+q.y;
+  const distance=Math.hypot(q.x-p.x,q.y-p.y);
+  const aligned=a.x&&b.x?-Math.sign(a.x*b.x)*(q.x-p.x)*a.x
+    :a.y&&b.y?-Math.sign(a.y*b.y)*(q.y-p.y)*a.y:distance;
+  const length=Math.max(0,Math.min(110,distance*.33,Math.abs(aligned)*.46));
+  // No caso de cartões sobrepostos, não alongar as tangentes ao contrário.
+  const forward=(q.x-p.x)*a.x+(q.y-p.y)*a.y;
+  const backward=(p.x-q.x)*b.x+(p.y-q.y)*b.y;
+  const handle=(a.x&&b.x||a.y&&b.y)&&Math.min(forward,backward)<0?0:length;
+  const c1={x:p.x+a.x*handle,y:p.y+a.y*handle};
+  const c2={x:q.x+b.x*handle,y:q.y+b.y*handle};
+  return 'M'+p.x+','+p.y+' C'+c1.x+','+c1.y+' '+c2.x+','+c2.y+' '+q.x+','+q.y;
+}
+// Define sempre lados opostos das duas bordas, priorizando espaço livre.
+export function canvasConnectionRoute(from,to){
+  const dx=to.x+to.width/2-from.x-from.width/2;
+  const dy=to.y+to.height/2-from.y-from.height/2;
+  const clearX=Math.abs(dx)-(from.width+to.width)/2;
+  const clearY=Math.abs(dy)-(from.height+to.height)/2;
+  const horizontal=clearX>0&&clearY>0?clearX>=clearY
+    :clearX>0?true:clearY>0?false
+    :Math.abs(dx)/(from.width+to.width)>=Math.abs(dy)/(from.height+to.height);
+  const fromPort=horizontal?(dx>=0?'right':'left'):(dy>=0?'bottom':'top');
+  const toPort={right:'left',left:'right',bottom:'top',top:'bottom'}[fromPort];
+  const p=nodePort(from,fromPort),q=nodePort(to,toPort);
+  return {p,q,fromPort,toPort,d:canvasCurve(p,q,fromPort,toPort)};
 }
 function createConnection(from,to){
   if(!board||!canvasCanConnect(snap().nodes,snap().edges,from,to))return false;
@@ -103,7 +128,7 @@ function selectEdge(id){selected=null;selectedEdge=id;draw();}
 function edgeMidpoint(edge){
   const a=nodeById(edge.from),b=nodeById(edge.to);
   if(!a||!b)return {x:0,y:0};
-  const p=endpoint(a,b),q=endpoint(b,a);
+  const {p,q}=canvasConnectionRoute(a,b);
   return viewportPoint({x:(p.x+q.x)/2,y:(p.y+q.y)/2});
 }
 function positionEdgeEditor(){
@@ -128,6 +153,7 @@ function setStatus(message,kind=''){
 function dirty(){
   if(guest())return;
   editEpoch++;
+  retryCount=0;
   setStatus('Alterações pendentes');
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{void saveNow()},850);
@@ -141,26 +167,41 @@ async function saveNow(){
   });
   if(savedEpoch===editEpoch)return true;
   saving=true;
-  const targetEpoch=editEpoch;
+  const targetBoard=board,targetEpoch=editEpoch;
+  let canRetry=false;
   setStatus('Salvando…');
   try{
-    const result=await api(apiPath(board.id),{method:'PUT',body:JSON.stringify({title:board.title,revision:board.revision,snapshot:snap()})});
-    board.revision=result.revision;
+    // Copia o snapshot antes do envio. Um arrasto em andamento não deve
+    // alterar os dados de uma requisição que já saiu.
+    const snapshot=structuredClone(snap());
+    const result=await api(apiPath(targetBoard.id),{
+      method:'PUT',body:JSON.stringify({title:targetBoard.title,revision:targetBoard.revision,snapshot})
+    });
+    if(board!==targetBoard)return false; // Logout/troca de conta durante o POST.
+    targetBoard.revision=result.revision;
     savedEpoch=targetEpoch;
-    board.updated_at=result.updated_at;
+    targetBoard.updated_at=result.updated_at;
+    retryCount=0;
     setStatus(editEpoch===savedEpoch?'Salvo':'Alterações pendentes',editEpoch===savedEpoch?'ok':'');
     return true;
   }catch(e){
+    if(board!==targetBoard)return false;
     if(/outra aba|recarregue|alterado/i.test(e.message)){
-      conflicted=true;setStatus('Conflito de edição — recarregue o quadro','error');
-      toast('Outra aba modificou este quadro. Seu rascunho não será sobrescrito; copie o texto antes de recarregar.',true);
-    }else{setStatus('Erro ao salvar — tentar novamente','error');toast(e.message,true);}
+      conflicted=true;setStatus('Conflito de edição — recarregue o mapa','error');
+      toast('Outra aba modificou este mapa. Suas alterações locais não serão sobrescritas.',true);
+    }else{
+      retryCount++;
+      canRetry=retryCount<=3&&/rede|network|fetch|conexão|servidor|processar|tempor|timeout|503|502|500/i.test(e.message);
+      setStatus(canRetry?'Falha temporária — tentando novamente':'Falha ao salvar — revise o mapa e tente novamente','error');
+      if(retryCount===1 || !canRetry)toast('Não foi possível salvar o mapa: '+e.message,true);
+    }
     return false;
   }finally{
     saving=false;
-    if(!conflicted && savedEpoch!==editEpoch){
+    if(board===targetBoard&&!conflicted&&savedEpoch!==editEpoch &&
+      (editEpoch!==targetEpoch||canRetry)){
       clearTimeout(saveTimer);
-      saveTimer=setTimeout(()=>{void saveNow()},1000);
+      saveTimer=setTimeout(()=>{void saveNow()},canRetry?Math.min(9000,1000*2**retryCount):900);
     }
   }
 }
@@ -195,14 +236,6 @@ function updateCamera(){
   $('canvasZoomLevel').textContent=Math.round(zoom*100)+'%';
   positionEdgeEditor();
 }
-function endpoint(node,other){
-  const cx=node.x+node.width/2,cy=node.y+node.height/2;
-  const ox=other.x+other.width/2,oy=other.y+other.height/2;
-  if(Math.abs(ox-cx)>Math.abs(oy-cy)){
-    return {x:cx+(ox>cx?node.width/2:-node.width/2),y:cy};
-  }
-  return {x:cx,y:cy+(oy>cy?node.height/2:-node.height/2)};
-}
 function updateEdges(){
   const svg=$('canvasEdges');svg.replaceChildren();
   if(!board)return;
@@ -218,7 +251,7 @@ function updateEdges(){
   for(const edge of snap().edges){
     const a=nodeById(edge.from),b=nodeById(edge.to);
     if(!a||!b)continue;
-    const p=endpoint(a,b),q=endpoint(b,a),d=canvasCurve(p,q);
+    const {p,q,d}=canvasConnectionRoute(a,b);
     const visible=document.createElementNS(ns,'path');
     visible.setAttribute('d',d);visible.setAttribute('class','canvas-edge-line'+(selectedEdge===edge.id?' is-selected':''));
     visible.setAttribute('marker-end','url(#canvasArrow)');svg.append(visible);
@@ -238,9 +271,10 @@ function updateEdges(){
     if(start){
       const p=nodePort(start,connectDraft.port);
       const dest=connectDraft.targetId?nodeById(connectDraft.targetId):null;
-      const q=dest?nodePort(dest,choosePort(dest,p)):(connectDraft.point||p);
+      const endPort=dest?choosePort(dest,p):null;
+      const q=dest?nodePort(dest,endPort):(connectDraft.point||p);
       const preview=document.createElementNS(ns,'path');
-      preview.setAttribute('d',canvasCurve(p,q,connectDraft.port));
+      preview.setAttribute('d',canvasCurve(p,q,connectDraft.port,endPort));
       preview.setAttribute('class','canvas-edge-preview');svg.append(preview);
     }
   }
@@ -905,7 +939,7 @@ export async function loadCanvas(){
 }
 export function resetCanvas(){
   clearTimeout(saveTimer);saveTimer=null;board=null;boards=[];links=new Map();selected=null;
-  saving=false;editEpoch=0;savedEpoch=0;conflicted=false;
+  saving=false;editEpoch=0;savedEpoch=0;conflicted=false;retryCount=0;
   selectedEdge=null;connectFrom=null;connectDraft=null;
   if(initialized){
     $('canvasWorkspaceBar').dataset.hasMap='false';

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {canvasWorldPoint,canvasCanConnect,canvasCurve,exampleCanvas} from '../public/canvas.js';
+import {canvasWorldPoint,canvasCanConnect,canvasCurve,canvasConnectionRoute,exampleCanvas} from '../public/canvas.js';
 import {validateCanvas} from '../src/canvas.js';
 const load=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8');
 
@@ -62,7 +62,7 @@ test('conexões rejeitam auto ligação, nós inexistentes e duplicatas direcion
   assert.equal(canvasCanConnect(example.nodes,example.edges,c.id,b.id),true);
   assert.equal(canvasCanConnect(example.nodes,example.edges,a.id,b.id),true);
   const curve=canvasCurve({x:0,y:15},{x:250,y:55},'right','left');
-  assert.match(curve,/^M0,15 C\d+,15 \d+,55 250,55$/);
+  assert.match(curve,/^M0,15 C[\d.]+,15 [\d.]+,55 250,55$/);
   assert.equal(canvasCurve({x:20,y:10},{x:20,y:200},'bottom','top').includes('20,200'),true);
 });
 
@@ -71,7 +71,43 @@ test('cartões e conexões antigas continuam compatíveis com servidor e backup'
   assert.equal(JSON.parse(validateCanvas(example)).edges.length,2);
   const js=load('canvas.js');
   assert.match(js,/snap\(\)\.edges.push\(\{id:crypto.randomUUID\(\),from,to,label:''\}\)/);
-  assert.match(js,/revision:board.revision/);
+  assert.match(js,/revision:targetBoard.revision/);
   assert.match(js,/dirty\(\);draw\(\)/);
   assert.doesNotMatch(js,/eval\(|innerHTML\s*=\s*e.target.value/);
+});
+
+test('conexões existentes não dão voltas e terminam na borda de destino',()=>{
+  const cards=[
+    [{x:7,y:20,width:230,height:140},{x:156,y:305,width:230,height:160}],
+    [{x:10,y:15,width:230,height:140},{x:450,y:15,width:230,height:140}],
+    [{x:450,y:15,width:230,height:140},{x:10,y:15,width:230,height:140}],
+    [{x:150,y:470,width:230,height:140},{x:150,y:10,width:230,height:140}],
+    [{x:30,y:20,width:230,height:140},{x:370,y:380,width:230,height:140}]
+  ];
+  for(const [first,second] of cards){
+    const {p,q,d,fromPort,toPort}=canvasConnectionRoute(first,second);
+    assert.match(d,/^M[-\d.]+,[-\d.]+ C[-\d.]+,[-\d.]+ [-\d.]+,[-\d.]+ [-\d.]+,[-\d.]+$/);
+    const values=d.match(/[-]?\d+(?:\.\d+)?/g).map(Number);
+    const [x1,y1,c1x,c1y,c2x,c2y,x2,y2]=values;
+    assert.deepEqual([x1,y1,x2,y2],[p.x,p.y,q.x,q.y]);
+    const horiz=['left','right'].includes(fromPort);
+    assert.equal(toPort,{left:'right',right:'left',top:'bottom',bottom:'top'}[fromPort]);
+    const axis=horiz?[x1,c1x,c2x,x2]:[y1,c1y,c2y,y2];
+    const min=Math.min(axis[0],axis[3]),max=Math.max(axis[0],axis[3]);
+    for(const value of axis)assert.ok(value>=min-0.001&&value<=max+0.001,
+      'Conexão não pode ultrapassar o cartão-alvo: '+d);
+  }
+});
+test('cartões alinhados e sobrepostos não geram coordenadas inválidas',()=>{
+  const a={x:0,y:0,width:260,height:170};
+  for(const b of [
+    {x:0,y:180,width:260,height:170},
+    {x:130,y:90,width:260,height:170},
+    {x:0,y:0,width:260,height:170},
+    {x:-260,y:-180,width:260,height:170}
+  ]){
+    const route=canvasConnectionRoute(a,b);
+    assert.ok(!route.d.includes('NaN'));
+    assert.ok(!route.d.includes('Infinity'));
+  }
 });

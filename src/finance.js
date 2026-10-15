@@ -1,4 +1,5 @@
 // Finanças ficam isoladas por owner_id e não são usadas no chat de vídeos.
+import {readLimitedText} from './security.js';
 const json = (value, status = 200) => new Response(JSON.stringify(value), {
   status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
 });
@@ -176,12 +177,12 @@ export async function handleFinance(request, env, user) {
   if(recurringRoute){
     const id=recurringRoute[1];
     if(request.method==='POST' && !id){
-      let body;try{body=JSON.parse(await request.text());if(!body||typeof body!=='object')throw Error('Dados inválidos.')}
+      let body;try{body=JSON.parse(await readLimitedText(request,6000));if(!body||typeof body!=='object')throw Error('Dados inválidos.')}
       catch(e){return fail('Dados inválidos.')}
       try{return await createRecurring(env,user.id,body)}catch(e){return fail(e.message||'Falha ao criar recorrência.')}
     }
     if(request.method==='PUT' && id){
-      let body;try{body=JSON.parse(await request.text())}catch{return fail('Dados inválidos.')}
+      let body;try{body=JSON.parse(await readLimitedText(request,6000))}catch{return fail('Dados inválidos.')}
       return updateRecurring(env,user.id,id,body);
     }
     return fail('Método não permitido.',405);
@@ -190,8 +191,7 @@ export async function handleFinance(request, env, user) {
   if (paymentId) {
     const method = request.method;
     if (method === 'POST') {
-      const raw = await request.text();
-      if (raw.length > 4000) return fail('Pagamento muito grande.',413);
+      let raw;try{raw=await readLimitedText(request,4000);}catch{return fail('Pagamento muito grande.',413);}
       let data;
       try { data=paymentData(JSON.parse(raw)); } catch(e) { return fail(e.message); }
       const result = await env.DB.prepare(
@@ -237,8 +237,7 @@ export async function handleFinance(request, env, user) {
     return result.meta.changes ? json({ ok: true }) : fail('Registro não encontrado.', 404);
   }
   if ((method === 'POST' && !id) || (method === 'PUT' && id)) {
-    const raw = await request.text();
-    if (raw.length > 5000) return fail('Registro muito grande.', 413);
+    let raw;try{raw=await readLimitedText(request,5000);}catch{return fail('Registro muito grande.',413);}
     let data;
     try { data = validate(kind, JSON.parse(raw)); }
     catch (e) { return fail(e.message || 'Dados inválidos.'); }

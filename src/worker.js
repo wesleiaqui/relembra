@@ -1,6 +1,7 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
 import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
 import { handleCanvas, exportCanvases, importCanvases } from './canvas.js';
+import { reserveAIQuota, secureResponse, readLimitedJSON } from './security.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
@@ -116,10 +117,7 @@ function hasSameOrigin(request) {
   return request.headers.get('sec-fetch-site') !== 'cross-site';
 }
 async function getBody(request, max = 900000) {
-  if (Number(request.headers.get('content-length') || 0) > max) throw new Error('O arquivo ou texto é muito grande.');
-  const body = await request.text();
-  if (new TextEncoder().encode(body).length > max) throw new Error('O arquivo ou texto é muito grande.');
-  try { return JSON.parse(body); } catch { throw new Error('JSON inválido.'); }
+  return readLimitedJSON(request,max);
 }
 function validUrl(raw) {
   const str = clean(raw, 2048);
@@ -346,6 +344,10 @@ async function answerQuestion(env, message, userId) {
   if (!env.AI) {
     return { answer: sourceListAnswer(matches, message), sources, aiUsed: false };
   }
+  if(!await reserveAIQuota(env,userId,'chat'))return {
+    answer:'Você atingiu o limite de consultas com IA nesta hora. Ainda posso mostrar as fontes da sua biblioteca.\n\n'+sourceListAnswer(matches,message),
+    sources,aiUsed:false,aiLimited:true
+  };
   const selected = matches.slice(0, 8);
   const context = selected.map((v, i) =>
     'FONTE [' + (i + 1) + '] - ' + v.title +
@@ -463,6 +465,7 @@ async function analyzeImage(env, id, userId) {
   if (!video) return error('Vídeo não encontrado.', 404);
   const img = await env.DB.prepare('SELECT media_type, data_base64 FROM video_images WHERE video_id=?').bind(id).first();
   if (!img) return error('Anexe uma imagem antes de analisar.', 400);
+  if(!await reserveAIQuota(env,userId,'image'))return error('Limite de 10 análises de imagem por hora atingido. Tente novamente mais tarde.',429);
   let output;
   try {
     const result = await env.AI.run(VISION_MODEL, {
@@ -638,6 +641,7 @@ async function handle(request, env) {
     const input = await getBody(request, 12000);
     const situation = clean(input.situation, 1000), automatic = clean(input.automatic_thought, 1500);
     if (!situation || !automatic) return error('Informe a situação e o pensamento automático antes de pedir uma sugestão.');
+    if(!await reserveAIQuota(env,user.id,'thought'))return error('Limite de 12 sugestões por hora atingido. Tente novamente mais tarde.',429);
     try {
       const reply = await env.AI.run(AI_MODEL, {
         messages: [
@@ -874,9 +878,14 @@ async function handle(request, env) {
 export default {
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
-    if (!pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
-    if (!hasSameOrigin(request)) return error('Origem não autorizada.', 403);
-    try { return await handle(request, env); }
-    catch (e) { console.error('API:', e?.message || String(e)); return error(e instanceof Error && ['Informações do vídeo inválidas.', 'Informe um link HTTP ou HTTPS válido.', 'Dê um título ao vídeo.', 'JSON inválido.', 'O arquivo ou texto é muito grande.'].includes(e.message) ? e.message : 'Erro ao processar a solicitação. Verifique sua conexão ou configuração.', 400); }
+    if (!pathname.startsWith('/api/'))return secureResponse(await env.ASSETS.fetch(request),{asset:true});
+    if (!hasSameOrigin(request))return secureResponse(error('Origem não autorizada.',403));
+    let response;
+    try { response=await handle(request, env); }
+    catch (e) {
+      console.error('API:', e?.message || String(e));
+      response=error(e instanceof Error && ['Informações do vídeo inválidas.', 'Informe um link HTTP ou HTTPS válido.', 'Dê um título ao vídeo.', 'JSON inválido.', 'O arquivo ou texto é muito grande.'].includes(e.message) ? e.message : 'Erro ao processar a solicitação. Verifique sua conexão ou configuração.', 400);
+    }
+    return secureResponse(response);
   }
 };
