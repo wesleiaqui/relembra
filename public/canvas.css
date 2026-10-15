@@ -138,7 +138,7 @@ body[data-color-mode="dark"][data-dark-palette="oled"] #canvasView{
   position:absolute;z-index:8;display:block;width:18px;height:18px;padding:0;
   border:3px solid var(--cv-card);border-radius:50%;background:var(--canvas-accent);
   box-shadow:0 0 0 1px var(--cv-border),0 2px 6px rgb(0 0 0 / 16%);
-  cursor:crosshair;pointer-events:auto;touch-action:none;
+  cursor:crosshair;pointer-events:none;touch-action:none;
   opacity:0;transform:translate(-50%,-50%) scale(.78);
   transition:opacity .12s ease,transform .12s ease,box-shadow .12s ease
 }
@@ -148,7 +148,7 @@ body[data-color-mode="dark"][data-dark-palette="oled"] #canvasView{
 .canvas-port-left{top:50%;left:0}
 .canvas-node:hover .canvas-port,.canvas-node.is-selected .canvas-port,
 .canvas-node:focus-within .canvas-port,.canvas-viewport.is-connecting .canvas-port{
-  opacity:1;transform:translate(-50%,-50%) scale(1)
+  opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)
 }
 .canvas-port:hover,.canvas-port:focus-visible{
   transform:translate(-50%,-50%) scale(1.22);
@@ -240,7 +240,7 @@ body[data-color-mode="dark"][data-dark-palette="oled"] #canvasView{
   color:#d78585;cursor:pointer}
 .canvas-edge-editor button:hover{border-color:#d78585}
 @media(hover:none),(pointer:coarse){
-  .canvas-port{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+  .canvas-port{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1.15)}
   .canvas-node{touch-action:none}
   .canvas-port{width:24px;height:24px}
   .canvas-floating-add{left:10px;bottom:10px}
