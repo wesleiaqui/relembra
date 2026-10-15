@@ -108,6 +108,17 @@ function homeHabitList(data){
   }
   target.append(list);
 }
+function renderHomeSummary(data,habitsData){
+  // Números sempre derivados dos mesmos dados já usados no Radar e nos Hábitos.
+  const tasks=(data.tasks||[]).filter(task=>!task.done_at).length;
+  const bills=(data.bills||[]).length;
+  const allHabits=habitsData.habits||[];
+  const finished=allHabits.filter(habit=>habit.done).length;
+  const txt=(id,value)=>{const node=$(id);if(node)node.textContent=String(value);};
+  txt('homeSummaryTasks',tasks);
+  txt('homeSummaryBills',bills);
+  txt('homeSummaryHabits',finished+' / '+allHabits.length);
+}
 export async function loadHomeRadar(){
   const serial=++radarSerial;
   const date=$('homeDate'),quick=$('homeQuickTaskDate');
@@ -117,10 +128,12 @@ export async function loadHomeRadar(){
     const [data,habitsData]=await Promise.all([api('/api/radar'),api('/api/habits')]);
     if(serial!==radarSerial)return;
     radar=data;habits=habitsData;
+    renderHomeSummary(data,habitsData);
     homePriorities(data);homeBills(data);homeHabitList(habitsData);
   }catch{
     if(serial!==radarSerial)return;
     for(const id of ['homeRadar','homeBills','homeHabits']) $(id).textContent='Não foi possível carregar agora. Tente abrir o Radar.';
+    for(const id of ['homeSummaryTasks','homeSummaryBills','homeSummaryHabits']) $(id).textContent='—';
   }
 }
 // A pesquisa agora faz parte do fluxo do Chat, não possui tela ou caixa de resultados próprias.
