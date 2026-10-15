@@ -116,6 +116,12 @@ async function dashboard(env,actor,targetId,section){
       'SELECT id,title,content,created_at FROM situational_tips WHERE owner_id=? ORDER BY created_at DESC LIMIT 25'
     ),person.id);
   }
+  // Revalida antes de liberar o conteúdo: o membro pode revogar enquanto
+  // as consultas do banco estão em andamento.
+  const currentConsent=await env.DB.prepare(
+    'SELECT admin_view_consent FROM app_users WHERE id=? AND role=\'member\''
+  ).bind(person.id).first();
+  if(currentConsent?.admin_view_consent!==1)return deny('A autorização para esta visualização foi revogada.',403);
   const stamp=new Date().toISOString();
   // O registro de acesso é obrigatório: erros de gravação interrompem a entrega.
   await env.DB.prepare('INSERT INTO admin_access_audit(id,actor_id,target_id,action,section,created_at) VALUES(?,?,?,?,?,?)')
