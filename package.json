@@ -9,7 +9,7 @@
     "deploy": "wrangler deploy",
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:remote": "wrangler d1 migrations apply DB --remote",
-    "test": "node --check public/atlas-ui.js && node --check public/visual-theme.js && node --check public/companion.js && node --check src/companion.js && node --check public/app.js && node --check public/finance.js && node --check src/finance.js && node --check src/worker.js && node --experimental-sqlite --test tests/*.test.js",
+    "test": "node --check public/atlas-ui.js && node --check public/visual-theme.js && node --check public/companion.js && node --check public/canvas.js && node --check src/canvas.js && node --check src/companion.js && node --check public/app.js && node --check public/finance.js && node --check src/finance.js && node --check src/worker.js && node --experimental-sqlite --test tests/*.test.js",
     "configurar:db": "node scripts/configure-db.mjs",
     "atualizar:publicar": "bash ATUALIZAR-E-PUBLICAR.sh"
   },
