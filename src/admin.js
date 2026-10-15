@@ -134,6 +134,11 @@ async function dashboard(env,actor,targetId,section){
   return response(result);
 }
 
+export async function cleanupExpiredAdminAudits(env){
+  // Purga diária independente de haver novas consultas administrativas.
+  const cutoff=new Date(Date.now()-90*86400000).toISOString();
+  return env.DB.prepare('DELETE FROM admin_access_audit WHERE created_at<?').bind(cutoff).run();
+}
 async function reserveAdminRead(env,user){
   // D1: contagem atômica por proprietário, independente da instância do Worker.
   const raw='relembra-admin-read:'+user.id+':'+env.APP_PASSWORD;
