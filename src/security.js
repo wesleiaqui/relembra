@@ -46,3 +46,34 @@ export function secureResponse(response,{asset=false}={}){
   headers.set('Content-Security-Policy',asset?PAGE_CSP:"default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
   return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
+
+// Lê o corpo incrementalmente, inclusive quando falta Content-Length.
+// Request.text() sozinho permite que clientes em streaming contornem o limite.
+export async function readLimitedText(request,maxBytes){
+  const contentLength=Number(request.headers.get('content-length')||0);
+  if(contentLength>maxBytes)throw new Error('O arquivo ou texto é muito grande.');
+  if(!request.body)throw new Error('JSON inválido.');
+  const reader=request.body.getReader(),decoder=new TextDecoder();
+  let size=0,body='';
+  try{
+    for(;;){
+      const {done,value}=await reader.read();
+      if(done)break;
+      size+=value.byteLength;
+      if(size>maxBytes){
+        await reader.cancel().catch(()=>{});
+        throw new Error('O arquivo ou texto é muito grande.');
+      }
+      body+=decoder.decode(value,{stream:true});
+    }
+    body+=decoder.decode();
+  }finally{reader.releaseLock();}
+  return body;
+}
+export async function readLimitedJSON(request,maxBytes){
+  const raw=await readLimitedText(request,maxBytes);
+  let data;
+  try{data=JSON.parse(raw);}catch{throw new Error('JSON inválido.');}
+  if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('JSON inválido.');
+  return data;
+}
