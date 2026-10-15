@@ -382,7 +382,9 @@ async function loadBoard(id){
   const result=await api(apiPath(id));
   board=result.board;links=new Map(result.links.map(l=>[l.node_id,l]));
   $('canvasBoardTitle').value=board.title;
-  selected=null;connectFrom=null;conflicted=false;editEpoch=0;savedEpoch=0;
+  closeQuickCreate();
+  viewer().classList.remove('is-connecting');
+  selected=null;selectedEdge=null;connectFrom=null;connectDraft=null;conflicted=false;editEpoch=0;savedEpoch=0;
   resetCamera();paintBoardNames();draw();setStatus('Salvo','ok');
 }
 async function listBoards(){
@@ -404,7 +406,9 @@ async function createBoard(){
   try{
     const result=await api('/api/canvas',{method:'POST',body:JSON.stringify({title:title.trim()})});
     boards.unshift({id:result.board.id,title:result.board.title});
-    board=result.board;links=new Map();selected=null;editEpoch=0;savedEpoch=0;conflicted=false;
+    board=result.board;links=new Map();selected=null;selectedEdge=null;connectFrom=null;connectDraft=null;
+    closeQuickCreate();
+    editEpoch=0;savedEpoch=0;conflicted=false;
     $('canvasBoardTitle').value=board.title;
     $('canvasEmpty').hidden=true;
     resetCamera();paintBoardNames();draw();setStatus('Salvo','ok');
@@ -499,7 +503,7 @@ function bindCanvasEvents(){
     $(id).addEventListener('input',e=>{
       const n=selectedNode();if(!n||!ensureWrite())return;
       const val=field==='priority'?Number(e.target.value):e.target.value;
-      n[field]=field==='title'?val.slice(0,120):field==='body'?val.slice(0,2200):val;
+      n[field]=field==='title'?(val.slice(0,120)||'Nova anotação'):field==='body'?val.slice(0,2200):val;
       const dom=$('canvasNodes').querySelector('[data-canvas-node="'+n.id+'"]');
       if(dom){
         dom.querySelector('.canvas-node-title').textContent=n.title||'Sem título';
@@ -577,7 +581,8 @@ function bindCanvasEvents(){
       offset.x=gesture.startX+dx;offset.y=gesture.startY+dy;updateCamera();return;
     }
     const n=nodeById(gesture.id);if(!n)return;
-    n.x=Math.round(gesture.startX+dx/zoom);n.y=Math.round(gesture.startY+dy/zoom);
+    n.x=Math.round(bounds(gesture.startX+dx/zoom,-100000,100000));
+    n.y=Math.round(bounds(gesture.startY+dy/zoom,-100000,100000));
     const el=$('canvasNodes').querySelector('[data-canvas-node="'+n.id+'"]');
     if(el){el.style.left=n.x+'px';el.style.top=n.y+'px';}
     updateEdges();
@@ -657,7 +662,8 @@ export async function loadCanvas(){
   if(!initialized)return;
   if(guest()){
     board={id:'demo',title:'Planejamento de viagem (demonstração)',revision:1,snapshot:exampleCanvas()};
-    boards=[{id:'demo',title:board.title}];links=new Map();selected=null;conflicted=false;
+    boards=[{id:'demo',title:board.title}];links=new Map();
+    closeQuickCreate();selected=null;selectedEdge=null;connectFrom=null;connectDraft=null;conflicted=false;
     $('canvasEmpty').hidden=true;
     $('canvasBoardTitle').value=board.title;
     $('canvasBoardTitle').disabled=true;
@@ -672,5 +678,11 @@ export async function loadCanvas(){
 export function resetCanvas(){
   clearTimeout(saveTimer);saveTimer=null;board=null;boards=[];links=new Map();selected=null;
   saving=false;editEpoch=0;savedEpoch=0;conflicted=false;
-  if(initialized){$('canvasNodes').replaceChildren();$('canvasEdges').replaceChildren();$('canvasInspector').hidden=true;}
+  selectedEdge=null;connectFrom=null;connectDraft=null;
+  if(initialized){
+    closeQuickCreate();
+    viewer().classList.remove('is-connecting');
+    $('canvasNodes').replaceChildren();$('canvasEdges').replaceChildren();
+    $('canvasInspector').hidden=true;$('canvasEdgeEditor').hidden=true;
+  }
 }
