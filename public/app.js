@@ -129,7 +129,7 @@ async function loadList(append = false) {
   } catch(e) { if (requestNumber === listRequest) { box.innerHTML = skeletonEmpty('Erro ao carregar vídeos', e.message, '⚠️', false); toast(e.message, true); } }
   finally { if (requestNumber === listRequest) state.busy = false; }
 }
-const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', canvas: 'Canvas Visual', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados' };
+const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', canvas: 'Mapas mentais', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados' };
 async function navigate(view, category = 'all') {
   const known = viewNames[view] ? view : 'home';
   state.view = known;
@@ -1243,7 +1243,7 @@ async function start() {
   bindEvents();
   resetChatConversation();
   setupFinance({ api, toast, isGuest:()=>state.guest, requireAccount:()=>showAccountGate() });
-  setupCanvas({api,toast,isGuest:()=>state.guest,requireAccount:()=>showAccountGate()});
+  setupCanvas({api,toast,isGuest:()=>state.guest,requireAccount:()=>showAccountGate(),openVideo:editVideo});
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
   try {
     const session=await api('/api/session');
