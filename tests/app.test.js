@@ -1505,3 +1505,41 @@ test('Canvas entra no backup completo e restaura mapas e vínculos do próprio u
   const again=await req('/api/import','POST',{canvases:backup.canvases});
   assert.equal(again.data.canvasSkipped,1);
 });
+
+
+test('Mapas mentais: cartões de vídeo exigem propriedade da própria biblioteca',async()=>{
+  const {req}=setup();
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  const created=(await req('/api/videos','POST',vid)).data.video;
+  const boardId=(await req('/api/canvas','POST',{title:'Referências de culinária'})).data.board.id;
+  const node={id:crypto.randomUUID(),type:'video',video_id:created.id,x:50,y:60,width:305,height:190,title:'Receita de exemplo',body:'Resumo da aula',color:'#278a69'};
+  const save=await req('/api/canvas/'+boardId,'PUT',{title:'Referências de culinária',revision:1,snapshot:{nodes:[node],edges:[]}});
+  assert.equal(save.status,200);
+  assert.equal((await req('/api/canvas/'+boardId)).data.board.snapshot.nodes[0].video_id,created.id);
+  const fake={...node,id:crypto.randomUUID(),video_id:crypto.randomUUID()};
+  assert.equal((await req('/api/canvas/'+boardId,'PUT',{title:'Mapa indevido',revision:2,snapshot:{nodes:[fake],edges:[]}})).status,403);
+  assert.equal((await req('/api/canvas/'+boardId,'PUT',{title:'Sem vínculo',revision:2,snapshot:{nodes:[{...node,video_id:''}],edges:[]}})).status,400);
+  const attacker=await req('/api/register','POST',{username:'mapas_visitante',password:'senha-segura-do-visitante-123'});
+  assert.equal(attacker.status,201);
+  const his=(await req('/api/canvas','POST',{title:'Mapa próprio'})).data.board.id;
+  assert.equal((await req('/api/canvas/'+his,'PUT',{title:'Tentativa de vínculo',revision:1,snapshot:{nodes:[node],edges:[]}})).status,403);
+});
+test('Mapas mentais: esboço IA exige login, valida entrada e limita consumo por conta',async()=>{
+  let count=0;
+  const ai={async run(_model,opts){
+    count++;
+    assert.match(opts.messages[1].content,/organizar estudos/i);
+    return {response:'{"branches":[{"title":"Matemática","ideas":["Revisão","Exercícios"]},{"title":"Português","ideas":["Leitura","Escrita"]}]}'};
+  }};
+  const {req}=setup(ai);
+  assert.equal((await req('/api/canvas/outline','POST',{prompt:'organizar estudos'})).status,401);
+  await req('/api/login','POST',{password:'um-passphrase-longo-de-verdade'});
+  assert.equal((await req('/api/canvas/outline','POST',{prompt:'curto'})).status,400);
+  for(let i=0;i<6;i++){
+    const response=await req('/api/canvas/outline','POST',{prompt:'organizar estudos e minhas matérias'});
+    assert.equal(response.status,200);
+    assert.equal(response.data.branches.length,2);
+  }
+  assert.equal((await req('/api/canvas/outline','POST',{prompt:'organizar estudos e minhas matérias'})).status,429);
+  assert.equal(count,6);
+});
