@@ -1,7 +1,7 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
 import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
 import { handleCanvas, exportCanvases, importCanvases } from './canvas.js';
-import { reserveAIQuota, secureResponse, readLimitedJSON } from './security.js';
+import { reserveAIQuota, secureResponse, readLimitedJSON, turnstileConfig, verifyRegistrationTurnstile } from './security.js';
 const SESSION_NAME = 'relembra_session';
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
@@ -69,6 +69,12 @@ async function isRateLimited(request, env) {
   const stamp = Date.now();
   const prior = await env.DB.prepare('SELECT attempts,window_start FROM login_attempts WHERE ip_hash=?').bind(key).first();
   return { key, stamp, limited: Boolean(prior && prior.window_start > stamp - 15 * 60 * 1000 && prior.attempts >= 8) };
+}
+async function reserveLoginAttempt(request,env){
+  const key=await sha256('login:'+(request.headers.get('CF-Connecting-IP')||'local')+env.APP_PASSWORD);
+  const stamp=Date.now(),cutoff=stamp-15*60*1000;
+  const row=await env.DB.prepare('INSERT INTO login_attempts(ip_hash,attempts,window_start) VALUES(?,1,?) ON CONFLICT(ip_hash) DO UPDATE SET attempts=CASE WHEN window_start<? THEN 1 ELSE attempts+1 END,window_start=CASE WHEN window_start<? THEN excluded.window_start ELSE window_start END RETURNING attempts').bind(key,stamp,cutoff,cutoff).first();
+  return {key,stamp,limited:Number(row?.attempts||0)>8};
 }
 async function countFailedLogin(env, rate) {
   await env.DB.prepare('INSERT INTO login_attempts(ip_hash,attempts,window_start) VALUES (?,1,?) ON CONFLICT(ip_hash) DO UPDATE SET attempts=CASE WHEN window_start<? THEN 1 ELSE attempts+1 END,window_start=CASE WHEN window_start<? THEN excluded.window_start ELSE window_start END')
@@ -495,7 +501,7 @@ async function handle(request, env) {
     const total = await env.DB.prepare('SELECT COUNT(*) AS count FROM app_users').first();
     const user = total.count ? await verifySession(request, env) : null;
     return json({ configured:true, setupRequired:total.count===0, authenticated:Boolean(user),
-      user:user ? {username:user.username,role:user.role} : null, aiAvailable:Boolean(env.AI) });
+      user:user ? {username:user.username,role:user.role} : null, aiAvailable:Boolean(env.AI), turnstile:turnstileConfig(env) });
   }
   if (path === '/api/setup-owner' && method === 'POST') {
     const rate = await isRateLimited(request,env);
@@ -521,7 +527,7 @@ async function handle(request, env) {
     return json({ok:true,user:{username:account.username,role:'owner'}},201,{'set-cookie':await newUserCookie(env,{id,session_version:1},request)});
   }
   if (path === '/api/login' && method === 'POST') {
-    const rate=await isRateLimited(request,env);
+    const rate=await reserveLoginAttempt(request,env);
     if(rate.limited) return error('Muitas tentativas. Aguarde 15 minutos.',429);
     const body=await getBody(request,5000);
     const username=String(body.username||'').trim().toLowerCase();
@@ -529,7 +535,7 @@ async function handle(request, env) {
     const salt=user?.password_salt || newSalt();
     const digest=await passwordDigest(String(body.password||''),salt);
     if(!user || digest!==user.password_hash) {
-      await countFailedLogin(env,rate); return error('Usuário ou senha incorretos.',401);
+      return error('Usuário ou senha incorretos.',401);
     }
     await clearFailedLogin(env,rate);
     return json({ok:true,user:{username:user.username,role:user.role}},200,{'set-cookie':await newUserCookie(env,user,request)});
@@ -543,6 +549,8 @@ async function handle(request, env) {
     try {account=validateAccount(body);}catch(e){return error(e.message);}
     if(!await reserveRegistrationAttempt(request,env))
       return error('Muitas tentativas de cadastro. Aguarde uma hora e tente novamente.',429);
+    const challenge=await verifyRegistrationTurnstile(request,env,body.turnstile_token||body['cf-turnstile-response']);
+    if(!challenge.ok)return error(challenge.message,challenge.status);
     const id=crypto.randomUUID(),salt=newSalt(),digest=await passwordDigest(account.password,salt),stamp=now();
     try{
       await env.DB.batch([
@@ -576,6 +584,10 @@ async function handle(request, env) {
   const user=await verifySession(request,env);
   if (!user) return error('Faça login para acessar sua biblioteca.',401);
   if (path === '/api/me' && method === 'GET') return json({user:{username:user.username,role:user.role}});
+  if(path==='/api/sessions/revoke-all'&&method==='POST'){
+    await env.DB.prepare('UPDATE app_users SET session_version=session_version+1 WHERE id=?').bind(user.id).run();
+    return json({ok:true},200,{'set-cookie':cookie('',request,true)});
+  }
   if (path === '/api/canvas' || path.startsWith('/api/canvas/')) return handleCanvas(request,env,user);
   if (path === '/api/finance' || path.startsWith('/api/finance/')) return handleFinance(request,env,user);
   if (/^\/api\/(radar|life|habits|history|backup\/images|search\/all)(\/|$)/.test(path)) return handleCompanion(request,env,user);
