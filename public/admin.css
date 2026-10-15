@@ -94,3 +94,16 @@ body[data-color-mode="dark"] .admin-view{--ad-background:var(--night-bg,var(--bg
 @media(max-width:520px){.admin-stats{grid-template-columns:1fr 1fr}
 .admin-stats .admin-stat:last-child{grid-column:span 2}
 .admin-tabs{padding:8px}.admin-detail-body{padding:15px}}
+
+
+.admin-consent-toggle{
+  display:flex;gap:12px;align-items:flex-start;padding:14px 16px;margin-top:15px;
+  border:1px solid var(--stroke,#dce5eb);border-radius:12px;cursor:pointer;
+  background:var(--panel2,#f7f8fc);
+}
+.admin-consent-toggle input{width:18px;height:18px;flex:none;margin-top:2px;accent-color:#15946e;cursor:pointer}
+.admin-consent-toggle span{display:grid;gap:5px;min-width:0;color:var(--text,#253047)}
+.admin-consent-toggle strong{font-size:12px;line-height:1.4}
+.admin-consent-toggle small{font-size:11px;line-height:1.6;color:var(--muted,#79859a)}
+.admin-consent-toggle:has(input:focus-visible){outline:2px solid #1b9872;outline-offset:2px}
+#myAdminConsentStatus{font-size:11px;margin-top:10px;color:var(--muted,#79859a);line-height:1.5}
