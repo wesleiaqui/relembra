@@ -205,7 +205,7 @@ function updateEdges(){
     visible.setAttribute('marker-end','url(#canvasArrow)');svg.append(visible);
     const hit=document.createElementNS(ns,'path');
     hit.setAttribute('d',d);hit.setAttribute('class','canvas-edge-hit');
-    hit.dataset.canvasEdge=edge.id;hit.setAttribute('aria-label','Editar conexão');svg.append(hit);
+    hit.dataset.canvasEdge=edge.id;hit.setAttribute('aria-label','Editar conexão');hit.setAttribute('tabindex','0');hit.setAttribute('role','button');svg.append(hit);
     if(edge.label){
       const label=document.createElementNS(ns,'text');
       label.setAttribute('x',String((p.x+q.x)/2));
@@ -628,6 +628,10 @@ function bindCanvasEvents(){
       selectedEdge=null;positionEdgeEditor();return;
     }
     if(e.target.closest('input,textarea,select,[contenteditable]'))return;
+    const accessibleEdge=e.target.closest('[data-canvas-edge]');
+    if(accessibleEdge && (e.key==='Enter'||e.key===' ')){
+      e.preventDefault();selectEdge(accessibleEdge.dataset.canvasEdge);return;
+    }
     const key=e.key.toLowerCase();
     if((e.key==='Delete'||e.key==='Backspace')&&selectedEdge){e.preventDefault();removeEdge();return;}
     if((e.key==='Delete'||e.key==='Backspace')&&selected){e.preventDefault();removeSelected();return;}
