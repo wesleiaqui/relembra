@@ -56,7 +56,7 @@ body[data-color-mode="dark"][data-dark-palette="oled"] #canvasView{
 .canvas-edge-line{fill:none;stroke:#74a798;stroke-width:2.4;opacity:.84;stroke-linecap:round;stroke-linejoin:round}
 .canvas-nodes{position:absolute;left:0;top:0;width:0;height:0}
 .canvas-node{
-  position:absolute;box-sizing:border-box;z-index:3;display:flex;flex-direction:column;overflow:hidden;
+  position:absolute;box-sizing:border-box;z-index:3;display:flex;flex-direction:column;overflow:visible;
   border:1px solid color-mix(in srgb,var(--canvas-accent) 36%,var(--cv-border));
   border-radius:13px;background:var(--cv-card);color:var(--cv-text);
   box-shadow:var(--cv-shadow);cursor:default;user-select:none}
@@ -129,4 +129,127 @@ body[data-color-mode="dark"][data-dark-palette="oled"] #canvasView{
   .canvas-inspector{width:100%;min-width:0;min-height:0;max-height:none;box-sizing:border-box}
   .canvas-viewport-hint{display:none}
   .canvas-node-title{font-size:14px}
+}
+
+
+/* Edição direta e conexões por arrastar — pontos aparecem no hover/foco. */
+.canvas-node-ports{position:absolute;inset:0;pointer-events:none}
+.canvas-port{
+  position:absolute;z-index:8;display:block;width:18px;height:18px;padding:0;
+  border:3px solid var(--cv-card);border-radius:50%;background:var(--canvas-accent);
+  box-shadow:0 0 0 1px var(--cv-border),0 2px 6px rgb(0 0 0 / 16%);
+  cursor:crosshair;pointer-events:auto;touch-action:none;
+  opacity:0;transform:translate(-50%,-50%) scale(.78);
+  transition:opacity .12s ease,transform .12s ease,box-shadow .12s ease
+}
+.canvas-port-top{top:0;left:50%}
+.canvas-port-right{top:50%;left:100%}
+.canvas-port-bottom{top:100%;left:50%}
+.canvas-port-left{top:50%;left:0}
+.canvas-node:hover .canvas-port,.canvas-node.is-selected .canvas-port,
+.canvas-node:focus-within .canvas-port,.canvas-viewport.is-connecting .canvas-port{
+  opacity:1;transform:translate(-50%,-50%) scale(1)
+}
+.canvas-port:hover,.canvas-port:focus-visible{
+  transform:translate(-50%,-50%) scale(1.22);
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--canvas-accent) 24%,transparent)
+}
+.canvas-node.is-connect-target{
+  outline:3px solid #55bf90;outline-offset:4px;
+  box-shadow:0 0 0 7px rgb(85 191 144 / 15%);
+}
+.canvas-viewport.is-connecting{cursor:crosshair}
+.canvas-inline-editor{
+  display:block;width:100%;box-sizing:border-box;min-height:35px;margin:0;padding:8px 10px;
+  resize:none;border:1px solid var(--canvas-accent);border-radius:6px;
+  background:var(--cv-surface);color:var(--cv-text);
+  font:600 13px/1.5 'DM Sans',sans-serif;user-select:text;outline:2px solid color-mix(in srgb,var(--canvas-accent) 22%,transparent)
+}
+.canvas-node-body .canvas-inline-editor{font-size:12px;font-weight:500;min-height:94px}
+/* Setas e zonas de toque invisíveis — linha inteira é clicável. */
+.canvas-edges{pointer-events:none}
+.canvas-edge-line{pointer-events:none;stroke:#73ac98;stroke-width:2.6;opacity:.86}
+.canvas-edge-line.is-selected{stroke:#32b78c;stroke-width:3.7;opacity:1}
+.canvas-arrow-tip{fill:#73ac98}
+.canvas-edge-hit{fill:none;stroke:transparent;stroke-width:22;pointer-events:stroke;cursor:pointer}
+.canvas-edge-hit:hover{stroke:rgb(77 174 139 / 10%)}
+.canvas-edge-label{
+  fill:var(--cv-text);stroke:var(--cv-bg);stroke-width:4;paint-order:stroke;
+  font:600 11px 'DM Sans',sans-serif;text-anchor:middle;pointer-events:none
+}
+.canvas-edge-preview{
+  fill:none;stroke:#42ba8a;stroke-width:3;stroke-dasharray:8 7;
+  stroke-linecap:round;pointer-events:none
+}
+/* Menu abre na posição exata do cursor, em vez de inserir um cartão no centro. */
+.canvas-quick-create{
+  position:absolute;z-index:30;box-sizing:border-box;width:min(294px,calc(100% - 20px));
+  padding:13px;border:1px solid var(--cv-border);border-radius:15px;
+  background:var(--cv-surface);color:var(--cv-text);
+  box-shadow:0 16px 45px rgb(0 0 0 / 20%)
+}
+.canvas-quick-create[hidden],.canvas-edge-editor[hidden]{display:none}
+.canvas-quick-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.canvas-quick-heading span{font-size:12px;font-weight:800}
+.canvas-quick-heading button{border:0;background:transparent;color:var(--cv-muted);
+  cursor:pointer;padding:3px 8px;font-size:20px;border-radius:6px}
+.canvas-quick-heading button:hover{background:var(--cv-card)}
+#canvasQuickTitle{
+  width:100%;box-sizing:border-box;padding:11px 12px;margin-bottom:9px;
+  border:1px solid var(--cv-border);border-radius:9px;background:var(--cv-bg);
+  color:var(--cv-text);font:500 13px 'DM Sans',sans-serif;outline:none
+}
+#canvasQuickTitle:focus{border-color:#55b48d;box-shadow:0 0 0 3px rgb(85 180 141 / 14%)}
+.canvas-quick-options{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.canvas-quick-options button{
+  display:flex;align-items:center;gap:7px;text-align:left;
+  padding:10px 8px;min-height:55px;border-radius:10px;border:1px solid var(--cv-border);
+  background:var(--cv-card);color:var(--cv-text);cursor:pointer
+}
+.canvas-quick-options button:hover,.canvas-quick-options button:focus-visible{
+  border-color:#50ae88;background:color-mix(in srgb,#50ae88 10%,var(--cv-card));
+}
+.canvas-quick-icon{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:8px;
+  background:color-mix(in srgb,#5bb699 16%,var(--cv-surface));color:#55b493;font-size:15px}
+.canvas-quick-options button>span:last-child{display:grid;gap:3px;min-width:0}
+.canvas-quick-options strong{font-size:11px}
+.canvas-quick-options small{font-size:9px;font-weight:400;color:var(--cv-muted)}
+.canvas-quick-create>small{display:block;margin:10px 1px 0;font-size:10px;color:var(--cv-muted)}
+.canvas-floating-add{
+  position:absolute;z-index:12;bottom:58px;left:15px;display:grid;place-items:center;
+  width:46px;height:46px;border:1px solid color-mix(in srgb,var(--primary,#13896b) 65%,transparent);
+  border-radius:14px;background:var(--primary,#13896b);color:white;
+  font:500 30px/1 'DM Sans',sans-serif;
+  box-shadow:0 8px 18px rgb(0 0 0 / 17%);cursor:pointer;
+  transition:transform .12s ease,filter .12s ease
+}
+.canvas-floating-add:hover{transform:translateY(-2px);filter:brightness(1.08)}
+/* Editor flutuante de relação com rótulo e exclusão imediata. */
+.canvas-edge-editor{
+  position:absolute;z-index:22;display:flex;align-items:flex-end;gap:8px;
+  box-sizing:border-box;width:208px;padding:11px;border:1px solid var(--cv-border);border-radius:12px;
+  background:var(--cv-surface);box-shadow:0 12px 35px rgb(0 0 0 / 18%);
+  color:var(--cv-text)
+}
+.canvas-edge-editor label{flex:1;min-width:0;font-size:10px;font-weight:750;display:grid;gap:5px}
+.canvas-edge-editor input{min-width:0;width:100%;box-sizing:border-box;padding:8px;
+  border:1px solid var(--cv-border);border-radius:8px;background:var(--cv-bg);
+  color:var(--cv-text);font:500 11px 'DM Sans',sans-serif}
+.canvas-edge-editor button{flex:none;display:grid;place-items:center;width:31px;height:32px;
+  border:1px solid var(--cv-border);border-radius:8px;background:var(--cv-card);
+  color:#d78585;cursor:pointer}
+.canvas-edge-editor button:hover{border-color:#d78585}
+@media(hover:none),(pointer:coarse){
+  .canvas-port{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+  .canvas-node{touch-action:none}
+  .canvas-port{width:24px;height:24px}
+  .canvas-floating-add{left:10px;bottom:10px}
+}
+@media(max-width:740px){
+  .canvas-floating-add{bottom:12px}
+  .canvas-zoom{bottom:12px}
+  .canvas-quick-create{max-height:350px;overflow:auto}
+}
+@media(prefers-reduced-motion:reduce){
+  .canvas-port,.canvas-floating-add{transition:none}
 }
