@@ -196,6 +196,10 @@ export async function importCanvases(env,owner,input){
     try{
       const title=text(raw?.title,100),data=validateCanvas(raw?.snapshot);
       if(!title)throw Error('Título vazio.');
+      for(const video of JSON.parse(data).nodes.filter(n=>n.type==='video')){
+        const own=video.video_id&&await env.DB.prepare('SELECT id FROM videos WHERE id=? AND owner_id=?').bind(video.video_id,owner).first();
+        if(!own)throw Error('Vídeo do backup não pertence ao usuário.');
+      }
       const original=uuid.test(raw.id||'')?raw.id:crypto.randomUUID();
       const taken=await env.DB.prepare('SELECT owner_id FROM canvas_boards WHERE id=?').bind(original).first();
       if(taken?.owner_id===owner){skipped++;continue;}
