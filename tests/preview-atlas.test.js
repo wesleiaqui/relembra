@@ -37,8 +37,8 @@ test('prévia oferece exemplos de Instagram sem dados privados e sem embeds remo
   assert.match(js,/data-guest-action/);
   assert.doesNotMatch(js,/EXEMPLO FICTÍCIO/);
   const css=read('guest-preview.css');
-  assert.match(css,/\.guest-reel-screen/);
-  assert.match(css,/\.guest-reel-play/);
+  assert.match(css,/\.guest-reel-embed/);
+  assert.match(css,/\.guest-reel-frame/);
   assert.match(css,/\.life-year-cells/);
 });
 
