@@ -710,6 +710,11 @@ async function loadTips() {
     state.tips = result.tips || [];
     renderTips();
   } catch(e) {
+    // Evita contagens antigas após falha de sincronização ou troca de conta.
+    state.tips=[];
+    for(const id of ['tipsStatTotal','tipsStatFavorites','tipsStatContexts'])$(id).textContent='0';
+    document.querySelectorAll('.tips-preset-count').forEach(el=>el.textContent='0');
+    $('tipsResultCount').textContent='Não foi possível consultar as dicas agora.';
     $('tipsGrid').replaceChildren();
     const msg = document.createElement('p');
     msg.className = 'tips-empty';
