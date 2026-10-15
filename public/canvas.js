@@ -1,18 +1,21 @@
-// Relembra Canvas v1 — quadro de nós e setas, sem bibliotecas externas.
+// Relembra Mapas Mentais — ideias, tarefas, vídeos e modelos com mapas privados.
+import {MAP_TEMPLATES,makeMentalTemplate,graphFromOutline} from './canvas-templates.js';
 // Coordenadas e conexões persistem no D1; visitantes veem apenas um mapa fictício.
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const apiPath=id=>'/api/canvas/'+encodeURIComponent(id);
 const colors=['#4d8896','#278a69','#b78050','#9a76b5','#b86572','#71809a'];
+let chosenTemplate='mind',creationBusy=false,videoSearchTimer=null,videoSearchEpoch=0;
 const bounds=(v,a,b)=>Math.max(a,Math.min(b,v));
 const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');};
 const makeNode=(type,x,y)=>({
   id:crypto.randomUUID(),type,x:Math.round(x),y:Math.round(y),
-  width:type==='group'?430:270,height:type==='group'?250:170,
-  title:{note:'Nova anotação',task:'Nova tarefa',link:'Nova referência',group:'Grupo de ideias'}[type],
+  width:type==='group'?430:type==='video'?305:270,height:type==='group'?250:type==='video'?190:170,
+  title:{note:'Nova anotação',task:'Nova tarefa',link:'Nova referência',group:'Grupo de ideias',video:'Vídeo da biblioteca'}[type],
   body:'',color:colors[0],
   ...(type==='task'?{due_date:today(),priority:2,done:false}:{}),
-  ...(type==='link'?{url:''}:{})
+  ...(type==='link'?{url:''}:{}),
+  ...(type==='video'?{video_id:''}:{})
 });
 export const exampleCanvas=()=>({
   nodes:[
@@ -168,6 +171,10 @@ function paintBoardNames(){
   }
   select.hidden=!boards.length;
   $('canvasRemoveBoard').disabled=!board||guest();
+  $('canvasWorkspaceBar').dataset.hasMap=String(Boolean(board));
+  $('canvasMapCount').textContent=boards.length===1?'1 mapa salvo':boards.length+' mapas salvos';
+  $('canvasBoardSelect').disabled=!board;
+  $('canvasSaveNow').disabled=!board||guest();
   if(board)select.value=board.id;
 }
 function resetCamera(){zoom=1;offset={x:85,y:64};updateCamera();}
@@ -231,7 +238,7 @@ function cardHtml(n){
   const selectedClass=selected===n.id?' is-selected':'';
   const linked=links.get(n.id);
   const snippet=esc(n.body|| (n.type==='task'?'Defina uma data e envie ao Radar.':n.type==='link'?'Adicione um link de referência.':'Clique para editar este cartão.'));
-  const badge={note:'Nota',task:'Tarefa',link:'Link',group:'Grupo'}[n.type];
+  const badge={note:'Ideia',task:'Tarefa',link:'Link',group:'Grupo',video:'Vídeo salvo'}[n.type];
   return `<article class="canvas-node canvas-type-${n.type}${selectedClass}" data-canvas-node="${n.id}"
     style="left:${n.x}px;top:${n.y}px;width:${n.width}px;height:${n.height}px;--canvas-accent:${n.color}"
     tabindex="0" aria-label="${esc(n.title)}">
@@ -240,6 +247,7 @@ function cardHtml(n){
     <p class="canvas-node-body">${snippet}</p>
     ${n.type==='task'?'<div class="canvas-node-foot"><span>'+esc(n.due_date||'Sem prazo')+'</span><span>'+ (linked?(linked.done_at?'✓ Concluída':'↗ Radar'):(n.done?'✓ Concluída':'Não vinculada'))+'</span></div>':''}
     ${n.type==='link'&&n.url?'<small class="canvas-node-url">'+esc(n.url)+'</small>':''}
+    ${n.type==='video'?'<span class="mental-video-node-badge">▣ Vídeo da biblioteca</span>':''}
     <div class="canvas-node-ports" aria-label="Conectar cartões">
       ${['top','right','bottom','left'].map(port=>`<button class="canvas-port canvas-port-${port}" type="button"
         data-canvas-port="${port}" data-canvas-owner="${n.id}" aria-label="Arraste para conectar: ${esc(n.title)}"
@@ -268,7 +276,8 @@ function drawInspector(){
   if(!n)return;
   $('canvasNodeTitle').value=n.title;
   $('canvasNodeBody').value=n.body;
-  $('canvasNodeType').textContent={note:'Anotação',task:'Tarefa',link:'Link',group:'Grupo'}[n.type];
+  $('canvasNodeType').textContent={note:'Ideia',task:'Tarefa',link:'Link',group:'Grupo',video:'Vídeo da biblioteca'}[n.type];
+  $('canvasVideoOpen').hidden=n.type!=='video';
   $('canvasNodeUrlWrap').hidden=n.type!=='link';
   $('canvasNodeUrl').value=n.url||'';
   $('canvasNodeTaskWrap').hidden=n.type!=='task';
