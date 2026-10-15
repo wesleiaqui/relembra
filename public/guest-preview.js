@@ -20,12 +20,13 @@ const instagramExample=(title,description,emoji)=>{
 export function renderGuestLifeCalendar(){
   const sampleBirth='1998-02-14',years=90,weeksPerRow=53,liveYear=28;
   const form=$('lifeProfileForm');
-  if(form){
+  if(form?.elements){
     form.elements.namedItem('birth_date').value=sampleBirth;
     form.elements.namedItem('reference_age').value=String(years);
   }
   const now=new Date().toISOString().slice(0,10);
-  $('lifeMomentForm').elements.namedItem('moment_date').value=now;
+  const dateInput=$('lifeMomentForm')?.elements?.namedItem('moment_date');
+  if(dateInput)dateInput.value=now;
   $('lifeMomentHeading').textContent='Guarde um momento (exemplo)';
   $('lifeOverview').innerHTML='<div class="life-stat"><strong>'+liveYear+' anos</strong><small>Idade ilustrativa</small></div>'+
     '<div class="life-stat"><strong>1.484 semanas</strong><small>Semanas representadas como vividas</small></div>'+
