@@ -1,5 +1,5 @@
 import { MOTIVATION_MOMENTS, selectMotivationTips } from './motivation.js';
-import { setupVisualTheme } from './visual-theme.js';
+import { setupVisualTheme,setVisualTheme,setColorMode,readVisualTheme } from './visual-theme.js';
 import { setupAtlasUI, renderAtlasCollections, resetAtlasUI } from './atlas-ui.js';
 import { embeddedMediaLink } from './media-links.js';
 import { guestCategories, renderGuestPreview } from './guest-preview.js';
@@ -59,6 +59,9 @@ async function showGuestMode(){
   wipePreviousAccount();
   state.guest=true;
   document.body.dataset.guest='true';
+  // Padrão público Atlas claro, sem sobrescrever preferências de quem já tem conta.
+  setVisualTheme('atlas',{persist:false});
+  setColorMode('light',{persist:false});
   $('loginOverlay').hidden=true;
   $('guestBanner').hidden=false;
   $('accountLabel').textContent='✦ Modo visitante';
@@ -1217,6 +1220,8 @@ function wipePreviousAccount() {
 async function finishAccountLogin(result) {
   state.guest=false;
   document.body.dataset.guest='false';
+  // Ao autenticar, recupera a aparência anteriormente salva pelo usuário.
+  setVisualTheme(readVisualTheme(localStorage),{persist:false});
   $('guestBanner').hidden=true;
   wipePreviousAccount();
   $('logoutBtn').innerHTML='<span class="nav-icon">↪</span> Sair da conta';
