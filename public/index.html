@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="/workspace-visual-refinement.css">
   <link rel="stylesheet" href="/home-life-finish.css">
   <link rel="stylesheet" href="/tips-radar-preview-v2.css">
+  <link rel="stylesheet" href="/tips-readability.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -301,15 +302,15 @@
               <div class="eyebrow">✦ SUA BÚSSOLA PESSOAL</div>
               <h1>O que você precisa <em>lembrar agora?</em></h1>
               <p>Uma pequena orientação para cada situação. Encontre as palavras certas, cuide da sua atenção e decida com mais clareza.</p>
-              <div class="tips-hero-stats" aria-label="Resumo das suas dicas">
-                <div class="tips-stat"><strong id="tipsStatTotal">—</strong><span>Dicas guardadas</span></div>
-                <div class="tips-stat"><strong id="tipsStatFavorites">—</strong><span>Em destaque</span></div>
-                <div class="tips-stat"><strong id="tipsStatContexts">—</strong><span>Situações</span></div>
+              <div class="tips-hero-stats" aria-label="Resumo das suas dicas" aria-live="polite">
+                <div class="tips-stat"><strong id="tipsStatTotal">0</strong><span>Dicas guardadas</span></div>
+                <div class="tips-stat"><strong id="tipsStatFavorites">0</strong><span>Em destaque</span></div>
+                <div class="tips-stat"><strong id="tipsStatContexts">0</strong><span>Situações</span></div>
               </div>
             </div>
             <div class="tips-hero-side">
               <div class="tips-hero-actions"><button type="button" class="button button-primary" id="tipsAddBtn">＋ Nova dica</button><button type="button" class="button button-outline" data-open-motivation>✧ Preciso de motivação</button></div>
-              <div class="tips-hero-note"><span class="tips-note-icon" aria-hidden="true">✦</span><div><strong>Encontre a ideia certa.</strong><p>Escolha um contexto abaixo e veja apenas os lembretes que fazem sentido para esse momento.</p></div></div>
+              <div class="tips-hero-note"><span class="tips-note-icon" aria-hidden="true">✦</span><div><strong>Escolha o momento.</strong><p>Suas dicas aparecem logo abaixo, prontas para consultar.</p></div></div>
             </div>
           </header>
           <div class="tips-situation-heading"><div><span class="eyebrow">SEUS CONTEXTOS</span><h2>Para qual momento?</h2></div><span>Um filtro por situação, sem perder suas anotações.</span></div>
@@ -684,6 +685,6 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="/app.js"></script>
+  <script type="module" src="/app.js?v=tips-readable-20261015"></script>
 </body>
 </html>
