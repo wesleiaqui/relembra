@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="/admin.css">
   <link rel="stylesheet" href="/workspace-visual-refinement.css">
   <link rel="stylesheet" href="/home-life-finish.css">
+  <link rel="stylesheet" href="/tips-radar-preview-v2.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -295,24 +296,32 @@
         </section>
 
         <section id="tipsView" class="view" hidden>
-          <div class="tips-hero">
-            <div>
-              <div class="eyebrow">✦ PARA RELEMBRAR NA HORA CERTA</div>
-              <h1>Dicas para <em>o momento.</em></h1>
-              <p>Um lembrete rápido antes de sair, conversar ou fazer algo importante. Guarde o que funciona para você.</p>
+          <header class="tips-hero">
+            <div class="tips-hero-main">
+              <div class="eyebrow">✦ SUA BÚSSOLA PESSOAL</div>
+              <h1>O que você precisa <em>lembrar agora?</em></h1>
+              <p>Uma pequena orientação para cada situação. Encontre as palavras certas, cuide da sua atenção e decida com mais clareza.</p>
+              <div class="tips-hero-stats" aria-label="Resumo das suas dicas">
+                <div class="tips-stat"><strong id="tipsStatTotal">—</strong><span>Dicas guardadas</span></div>
+                <div class="tips-stat"><strong id="tipsStatFavorites">—</strong><span>Em destaque</span></div>
+                <div class="tips-stat"><strong id="tipsStatContexts">—</strong><span>Situações</span></div>
+              </div>
             </div>
-            <div class="tips-hero-actions"><button type="button" class="button button-outline" data-open-motivation>🔥 Preciso de motivação</button><button type="button" class="button button-primary" id="tipsAddBtn">＋ Nova dica</button></div>
-          </div>
-          <div class="tips-situation-heading"><h2>O que você vai fazer?</h2><span>Escolha uma situação para ver só o que importa agora.</span></div>
+            <div class="tips-hero-side">
+              <div class="tips-hero-actions"><button type="button" class="button button-primary" id="tipsAddBtn">＋ Nova dica</button><button type="button" class="button button-outline" data-open-motivation>✧ Preciso de motivação</button></div>
+              <div class="tips-hero-note"><span class="tips-note-icon" aria-hidden="true">✦</span><div><strong>Encontre a ideia certa.</strong><p>Escolha um contexto abaixo e veja apenas os lembretes que fazem sentido para esse momento.</p></div></div>
+            </div>
+          </header>
+          <div class="tips-situation-heading"><div><span class="eyebrow">SEUS CONTEXTOS</span><h2>Para qual momento?</h2></div><span>Um filtro por situação, sem perder suas anotações.</span></div>
           <div class="tips-presets" id="tipsPresets" role="group" aria-label="Filtrar dicas por situação">
-            <button type="button" class="tips-preset active" data-tip-context="all" aria-pressed="true"><span aria-hidden="true">▦</span><strong>Todas</strong><small>Minha coleção</small></button>
-            <button type="button" class="tips-preset" data-tip-context="Conversar" aria-pressed="false"><span aria-hidden="true">💬</span><strong>Vou conversar</strong><small>Conversas e frases</small></button>
-            <button type="button" class="tips-preset" data-tip-context="Sair de casa" aria-pressed="false"><span aria-hidden="true">🚪</span><strong>Vou sair</strong><small>Antes de sair</small></button>
-            <button type="button" class="tips-preset" data-tip-context="Na rua" aria-pressed="false"><span aria-hidden="true">🚶</span><strong>Na rua</strong><small>Observação e rotina</small></button>
-            <button type="button" class="tips-preset" data-tip-context="Segurança" aria-pressed="false"><span aria-hidden="true">🛡</span><strong>Segurança</strong><small>Cuidados práticos</small></button>
-            <button type="button" class="tips-preset" data-tip-context="Para mim" aria-pressed="false"><span aria-hidden="true">✳</span><strong>Para mim</strong><small>Notas pessoais</small></button>
-            <button type="button" class="tips-preset" data-tip-context="Foco e produtividade" aria-pressed="false"><span aria-hidden="true">🎯</span><strong>Foco e produtividade</strong><small>Telas, atenção e hábitos</small></button>
-            <button type="button" class="tips-preset" data-tip-context="Motivação e mentalidade" aria-pressed="false"><span aria-hidden="true">🔥</span><strong>Motivação e mentalidade</strong><small>Ânimo e perspectiva</small></button>
+            <button type="button" class="tips-preset active" data-tip-context="all" aria-pressed="true"><span aria-hidden="true">▦</span><strong>Todas</strong><small>Minha coleção</small><b class="tips-preset-count" aria-label="Dicas nesta situação">0</b></button>
+            <button type="button" class="tips-preset" data-tip-context="Conversar" aria-pressed="false"><span aria-hidden="true">💬</span><strong>Vou conversar</strong><small>Conversas e frases</small><b class="tips-preset-count" aria-label="Dicas nesta situação">0</b></button>
+            <button type="button" class="tips-preset" data-tip-context="Sair de casa" aria-pressed="false"><span aria-hidden="true">🚪</span><strong>Vou sair</strong><small>Antes de sair</small><b class="tips-preset-count" aria-label="Dicas nesta situação">0</b></button>
+            <button type="button" class="tips-preset" data-tip-context="Na rua" aria-pressed="false"><span aria-hidden="true">🚶</span><strong>Na rua</strong><small>Observação e rotina</small><b class="tips-preset-count" aria-label="Dicas nesta situação">0</b></button>
+            <button type="button" class="tips-preset" data-tip-context="Segurança" aria-pressed="false"><span aria-hidden="true">🛡</span><strong>Segurança</strong><small>Cuidados práticos</small><b class="tips-preset-count" aria-label="Dicas nesta situação">0</b></button>
+            <button type="button" class="tips-preset" data-tip-context="Para mim" aria-pressed="false"><span aria-hidden="true">✳</span><strong>Para mim</strong><small>Notas pessoais</small><b class="tips-preset-count" aria-label="Dicas nesta situação">0</b></button>
+            <button type="button" class="tips-preset" data-tip-context="Foco e produtividade" aria-pressed="false"><span aria-hidden="true">🎯</span><strong>Foco e produtividade</strong><small>Telas, atenção e hábitos</small><b class="tips-preset-count" aria-label="Dicas nesta situação">0</b></button>
+            <button type="button" class="tips-preset" data-tip-context="Motivação e mentalidade" aria-pressed="false"><span aria-hidden="true">🔥</span><strong>Motivação e mentalidade</strong><small>Ânimo e perspectiva</small><b class="tips-preset-count" aria-label="Dicas nesta situação">0</b></button>
           </div>
           <div class="tips-custom-contexts" id="tipsCustomContexts" aria-label="Outras situações" hidden></div>
           <div class="tips-toolbar">

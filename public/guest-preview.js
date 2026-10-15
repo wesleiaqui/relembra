@@ -27,6 +27,14 @@ const instagramExample=()=>{
     '<button class="button button-primary" type="button" data-guest-action>Salvar na minha biblioteca</button></div>'+
     '</div></article>';
 };
+// Home usa teaser horizontal; o player real fica na biblioteca.
+const instagramHomeTeaser=()=>'<article class="guest-showcase-card guest-reel-teaser">'+
+  '<div class="guest-showcase-cover guest-reel-teaser-cover"><span aria-hidden="true">◎</span><span>REEL REAL</span>'+
+  '<div class="guest-reel-teaser-play" aria-hidden="true">▶</div></div>'+
+  '<div class="guest-showcase-body"><strong>Um Reel para guardar e rever</strong>'+
+  '<p>Veja como vídeos do Instagram ficam organizados com suas outras referências.</p>'+
+  '<div class="guest-teaser-actions"><a href="'+EXAMPLE_INSTAGRAM_REEL+'" target="_blank" rel="noopener noreferrer" class="button button-outline">↗ Ver Reel real</a>'+
+  '<button type="button" class="button button-primary" data-guest-action>Salvar na biblioteca</button></div></div></article>';
 export function renderGuestLifeCalendar(){
   const sampleBirth='1998-02-14',years=90,weeksPerRow=53,liveYear=28;
   const form=$('lifeProfileForm');
@@ -70,13 +78,21 @@ export function renderGuestPreview(view){
     $('homeHabitProgressLabel').textContent='1 de 3';
     $('homeHabitMeter')?.setAttribute?.('aria-valuenow','33');
     if($('homeHabitMeterFill')?.style)$('homeHabitMeterFill').style.width='33%';
-    $('homeRadar').innerHTML='<div class="home-empty-priority"><span aria-hidden="true">✦</span><strong>Planeje o que importa hoje</strong><p>Organize tarefas, prioridades e lembretes em um único lugar.</p></div>';
-    $('homeBills').innerHTML='<div class="guest-home-preview"><strong>Contas e vencimentos</strong><span>Veja o que precisa pagar, sem perder nenhuma data.</span></div>';
-    $('homeHabits').innerHTML='<div class="guest-home-preview"><strong>Rotinas e hábitos</strong><span>Acompanhe os hábitos e pequenas conquistas do dia.</span></div>';
+    // Exemplos correspondem aos contadores 2 / 2 / 1 de 3.
+    $('homeRadar').innerHTML='<div class="guest-home-task-list" aria-label="Tarefas fictícias">'+
+      '<button class="guest-demo-task" type="button" data-guest-action><span class="guest-task-box" aria-hidden="true"></span><span><strong>Revisar meus planos da semana</strong><small>Exemplo · Hoje</small></span><b>↗</b></button>'+
+      '<button class="guest-demo-task" type="button" data-guest-action><span class="guest-task-box" aria-hidden="true"></span><span><strong>Organizar referências para estudar</strong><small>Exemplo · Amanhã</small></span><b>↗</b></button></div>';
+    $('homeBills').innerHTML='<div class="guest-home-bill-list" aria-label="Vencimentos fictícios">'+
+      '<div class="guest-demo-bill"><span><strong>Internet residencial</strong><small>Exemplo · Vence em 3 dias</small></span><b>R$ 120,00</b></div>'+
+      '<div class="guest-demo-bill"><span><strong>Conta de energia</strong><small>Exemplo · Vence em 7 dias</small></span><b>R$ 180,00</b></div></div>';
+    $('homeHabits').innerHTML='<div class="guest-home-habit-list" aria-label="Hábitos fictícios">'+
+      '<button type="button" class="guest-demo-habit is-done" data-guest-action><span aria-hidden="true">✓</span>Planejar as prioridades</button>'+
+      '<button type="button" class="guest-demo-habit" data-guest-action><span aria-hidden="true">○</span>Ler por 15 minutos</button>'+
+      '<button type="button" class="guest-demo-habit" data-guest-action><span aria-hidden="true">○</span>Registrar uma lembrança</button></div>';
     $('homeGrid').innerHTML='<div class="guest-showcase-grid">'+
       sample('🍝','Uma receita que vale guardar','Salve links, resumos e descobertas para consultar depois.')+
       sample('✈️','Ideias para sua próxima viagem','Organize referências com imagens e anotações.')+
-      instagramExample()+'</div>';
+      instagramHomeTeaser()+'</div>';
   }
   if(view==='library'){
     $('libraryTitle').textContent='Minha biblioteca';
@@ -104,7 +120,15 @@ export function renderGuestPreview(view){
   }
   if(view==='life')renderGuestLifeCalendar();
   if(view==='tips'){
-    $('tipsResultCount').textContent='Exemplos de situações e lembretes';
+    $('tipsStatTotal').textContent='3';
+    $('tipsStatFavorites').textContent='1';
+    $('tipsStatContexts').textContent='3';
+    const demoCounts={'all':3,'Conversar':1,'Foco e produtividade':1,'Para mim':1};
+    document.querySelectorAll?.('.tips-presets .tips-preset')?.forEach(button=>{
+      const count=button.querySelector('.tips-preset-count');
+      if(count)count.textContent=String(demoCounts[button.dataset.tipContext]||0);
+    });
+    $('tipsResultCount').textContent='3 lembretes demonstrativos';
     $('tipsGrid').innerHTML='<div class="guest-showcase-grid">'+
       sample('🎯','Antes de começar um projeto','Tenha à mão as dicas que ajudam você a manter o foco.')+
       sample('💬','Antes de uma conversa','Recupere anotações que fez em momentos importantes.')+
