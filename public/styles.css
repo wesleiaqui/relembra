@@ -404,3 +404,8 @@
 #accountSessionPanel .button{flex:none;align-self:center;min-height:42px}
 @media(max-width:750px){#accountSessionPanel{flex-direction:column;align-items:stretch}
 #accountSessionPanel .button{align-self:stretch}}
+
+/* Cadastro: link discreto para as informações de privacidade. */
+.register-privacy-link{font-size:11px;line-height:1.7;text-align:center;color:#aab8cc;margin:9px 0 4px}
+.register-privacy-link a{font-weight:700;color:#c8c1ff;text-decoration:underline;text-underline-offset:3px}
+.register-privacy-link a:hover,.register-privacy-link a:focus-visible{color:#fff}
