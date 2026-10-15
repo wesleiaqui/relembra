@@ -659,6 +659,43 @@ test('tela de contas permite registro aberto e recuperação sem expor dados ant
 });
 
 
+
+test('cadastro público exige conta principal configurada, valida dados e cria membro isolado',async()=>{
+  const {req,env}=setup();
+  assert.equal((await req('/api/register','POST',{username:'primeiro',password:'senha-muito-segura-123'})).status,409);
+  const owner=await req('/api/setup-owner','POST',{setup_key:env.APP_PASSWORD,username:'administrador',password:'senha-do-admin-muito-forte'});
+  assert.equal(owner.status,201);
+  await req('/api/tips','POST',{title:'Particular',content:'Conteúdo reservado do proprietário',situation:'Geral',kind:'dica'});
+  assert.equal((await req('/api/register','POST',{username:'ab',password:'senha-muito-segura-123'})).status,400);
+  assert.equal((await req('/api/register','POST',{username:'publico',password:'curta'})).status,400);
+  const registered=await req('/api/register','POST',{username:'publico',password:'senha-muito-segura-123'});
+  assert.equal(registered.status,201);
+  assert.deepEqual(registered.data.user,{username:'publico',role:'member'});
+  const current=await req('/api/session');
+  assert.equal(current.data.authenticated,true);
+  assert.equal(current.data.user.role,'member');
+  assert.equal((await req('/api/tips')).data.tips.some(x=>x.title==='Particular'),false);
+  const ownCategories=(await req('/api/categories')).data.categories;
+  assert.ok(ownCategories.some(c=>c.name==='Culinária'));
+  assert.equal((await req('/api/register','POST',{username:'publico',password:'outra-senha-forte-123'})).status,409);
+  assert.equal((await req('/api/invites','POST',{})).status,404);
+  assert.equal((await req('/api/login','POST',{username:'administrador',password:'senha-do-admin-muito-forte'})).status,200);
+  assert.equal((await req('/api/tips')).data.tips.some(x=>x.title==='Particular'),true);
+});
+test('cadastro público limita cinco tentativas por hora e não afeta login normal',async()=>{
+  const {req,env}=setup();
+  assert.equal((await req('/api/setup-owner','POST',{
+    setup_key:env.APP_PASSWORD,username:'admin',password:'senha-do-admin-super-forte'
+  })).status,201);
+  for(let i=0;i<5;i++){
+    const result=await req('/api/register','POST',{username:'membro_'+i,password:'senha-registrada-bem-forte-'+i});
+    assert.equal(result.status,201,'novo membro '+i);
+  }
+  assert.equal((await req('/api/register','POST',{username:'membro_extra',password:'senha-registrada-bem-forte-123'})).status,429);
+  assert.equal((await req('/api/login','POST',{username:'admin',password:'senha-do-admin-super-forte'})).status,200);
+  assert.equal((await env.DB.prepare("SELECT COUNT(*) AS n FROM app_users WHERE role='member'").first()).n,5);
+});
+
 test('PBKDF2 respeita limite de 100 mil iterações do Cloudflare Workers', async () => {
   const source = readFileSync(new URL('../src/worker.js', import.meta.url), 'utf8');
   const matched = source.match(/const ITERATIONS = (\d+);/);
