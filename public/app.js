@@ -719,6 +719,11 @@ async function loadTips() {
 }
 function renderTips() {
   const contexts = [...new Set(state.tips.map(t => t.situation || 'Geral'))];
+  // Esses valores pertencem à coleção real, não ao filtro visível.
+  $('tipsStatTotal').textContent=String(state.tips.length);
+  $('tipsStatFavorites').textContent=String(state.tips.filter(t=>t.favorite).length);
+  $('tipsStatContexts').textContent=String(contexts.length);
+
   const extra = contexts.filter(c => !standardTipContexts.includes(c));
   const extraBox = $('tipsCustomContexts');
   extraBox.replaceChildren();
@@ -728,10 +733,13 @@ function renderTips() {
     button.type = 'button';
     button.className = 'tips-extra-button';
     button.dataset.tipContext = context;
-    button.textContent = '# ' + context;
+    button.textContent = '# '+context+' · '+state.tips.filter(t=>t.situation===context).length;
     extraBox.append(button);
   });
   document.querySelectorAll('[data-tip-context]').forEach(button => {
+    const count=button.querySelector('.tips-preset-count');
+    if(count)count.textContent=String(button.dataset.tipContext==='all'
+      ?state.tips.length:state.tips.filter(t=>t.situation===button.dataset.tipContext).length);
     const selected = button.dataset.tipContext === state.tipsContext;
     button.classList.toggle('active', selected);
     button.setAttribute('aria-pressed', String(selected));
@@ -746,11 +754,11 @@ function renderTips() {
   $('tipsCurrentHeading').textContent = state.tipsContext === 'all' ? 'Minhas dicas' : tipLabel(state.tipsContext);
   $('tipsResultCount').textContent = tips.length + (tips.length === 1 ? ' lembrete disponível' : ' lembretes disponíveis');
   const box = $('tipsGrid');
-  box.innerHTML = tips.length ? tips.map(t => {
+  box.innerHTML = tips.length ? tips.map((t,index) => {
     const icon = t.kind === 'frase' ? '❝' : '✦';
     const tag = t.kind === 'frase' ? 'FRASE PRÁTICA' : 'DICA ÚTIL';
     const url = t.source_url && /^https?:\/\//i.test(t.source_url) ? t.source_url : '';
-    return '<article class="tip-card">' +
+    return '<article class="tip-card'+((t.favorite||index===0)?' is-highlighted':'')+'">' +
       '<div class="tip-card-top"><span class="tip-kind"><i aria-hidden="true">'+icon+'</i>'+tag+'</span>' +
       '<button class="tip-star '+(t.favorite?'is-favorite':'')+'" type="button" data-tip-fav="'+esc(t.id)+'" aria-label="'+(t.favorite?'Remover favorito':'Favoritar dica')+'" title="Destacar">'+(t.favorite?'★':'☆')+'</button></div>' +
       '<h3>'+esc(t.title)+'</h3><p class="tip-content">'+esc(t.content)+'</p>' +
