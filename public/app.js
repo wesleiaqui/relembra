@@ -2,10 +2,11 @@ import { MOTIVATION_MOMENTS, selectMotivationTips } from './motivation.js';
 import { setupVisualTheme } from './visual-theme.js';
 import { setupAtlasUI, renderAtlasCollections, resetAtlasUI } from './atlas-ui.js';
 import { embeddedMediaLink } from './media-links.js';
+import { guestCategories, renderGuestPreview } from './guest-preview.js';
 import { setupFinance, loadFinance, resetFinance } from './finance.js';
 import { setupCompanion, loadRadar, loadHomeRadar, searchMemory, openSearchItem, loadLife, loadHabits, resetCompanion, openHistory } from './companion.js';
 const $ = id => document.getElementById(id);
-const state = { thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
+const state = { guest: false, thoughts: [], thoughtEditId: null, thoughtSuggestion: '', view: 'home', tips: [], tipsContext: 'all', tipsSearch: '', tipsKind: 'all', tipsFavoritesOnly: false, tipEditId: null, categories: [], videos: [], total: 0, offset: 0, editId: null, category: 'all', search: '', sort: 'recent', busy: false };
 let toastTimer;
 let listRequest = 0;
 let playerVideoId = null;
@@ -29,6 +30,9 @@ const catOf = id => state.categories.find(c => c.id === id) || { id: 'outros', n
 const platform = url => { try { const h = new URL(url).hostname.toLowerCase(); if (h.includes('instagram.com')) return 'Instagram'; if (h.includes('tiktok.com')) return 'TikTok'; if (h.includes('youtu.be') || h.includes('youtube.com')) return 'YouTube'; if (h.includes('pinterest.')) return 'Pinterest'; return 'Link salvo'; } catch { return 'Vídeo'; } };
 function toast(message, fail = false) { const t = $('toast'); t.textContent = message; t.className = 'toast show' + (fail ? ' fail' : ''); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = 'toast', 3600); }
 async function api(path, opts = {}) {
+  // A prévia usa somente exemplos locais: nunca faz requisições privadas ao backend.
+  if(state.guest && !['/api/session','/api/login','/api/register','/api/recover-owner','/api/logout'].includes(path))
+    throw new Error('Crie sua conta para acessar suas informações pessoais.');
   const response = await fetch(path, { credentials: 'same-origin', ...opts, headers: { 'x-relembra-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', ...(opts.body && typeof opts.body === 'string' ? { 'content-type': 'application/json' } : {}), ...(opts.headers || {}) } });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -36,6 +40,30 @@ async function api(path, opts = {}) {
     throw new Error(data.error || `Erro ${response.status}`);
   }
   return data;
+}
+function showAccountGate(mode='register'){
+  if(!state.guest)return true;
+  showAccountMode(mode);
+  $('loginOverlay').hidden=false;
+  return false;
+}
+function renderGuestCategories(){
+  state.categories=guestCategories.map(c=>({...c}));
+  $('categoryNav').innerHTML=state.categories.map(c=>'<div class="category-wrap"><button class="category-item" data-cat="'+c.id+'"><span class="category-emoji">'+c.emoji+'</span>'+c.name+'</button></div>').join('');
+  $('videoCategory').innerHTML=state.categories.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');
+  $('categoryFilter').innerHTML='<option value="all">Todas as categorias</option>'+state.categories.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');
+  renderAtlasCollections(state.categories,'all');
+}
+async function showGuestMode(){
+  wipePreviousAccount();
+  state.guest=true;
+  document.body.dataset.guest='true';
+  $('loginOverlay').hidden=true;
+  $('guestBanner').hidden=false;
+  $('accountLabel').textContent='✦ Modo visitante';
+  $('logoutBtn').innerHTML='<span class="nav-icon">↪</span> Entrar / Criar conta';
+  renderGuestCategories();
+  await navigate('home');
 }
 async function syncCategories() {
   const res = await api('/api/categories');
@@ -73,11 +101,13 @@ function card(video) {
 }
 
 async function loadHome() {
+  if(state.guest){renderGuestPreview('home');return;}
   try { const res = await api('/api/videos?limit=3'); state.homeVideos = res.videos; $('homeGrid').innerHTML = res.videos.length ? res.videos.map(card).join('') : skeletonEmpty('Seu espaço começa aqui', 'Salve seu primeiro vídeo e crie uma biblioteca de ideias para consultar quando quiser.'); }
   catch (e) { $('homeGrid').innerHTML = skeletonEmpty('Não foi possível carregar', e.message, '⚠️', false); }
 }
 function listFilters() { return { q: state.search, category: state.category, sort: state.sort }; }
 async function loadList(append = false) {
+  if(state.guest){renderGuestPreview('library');return;}
   if (append && state.busy) return;
   const requestNumber = ++listRequest;
   state.busy = true;
@@ -113,6 +143,13 @@ async function navigate(view, category = 'all') {
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === known && (known !== 'library' || state.category === 'all')));
   document.querySelectorAll('[data-cat]').forEach(el => el.classList.toggle('active', known === 'library' && el.dataset.cat === category));
   $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true;
+  if(state.guest){
+    if(known==='finance') await loadFinance();
+    else if(known==='chat')resetChatConversation();
+    renderGuestPreview(known);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    return;
+  }
   if (known === 'home') { await loadHome(); await loadHomeRadar(); }
   if (known === 'radar') await loadRadar();
   if (known === 'life') await loadLife();
@@ -129,6 +166,7 @@ async function navigate(view, category = 'all') {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 function openEditor(video = null, related = []) {
+  if(state.guest){showAccountGate();return;}
   const form = $('videoForm'); form.reset(); state.editId = video?.id || null;
   $('editorTitle').textContent = video ? 'Editar vídeo salvo' : 'Adicionar novo vídeo';
   $('deleteVideoBtn').hidden = !video;
@@ -997,11 +1035,39 @@ function bindEvents() {
   $('cancelCategoryBtn').addEventListener('click', () => $('categoryModal').hidden = true);
   $('categoryModal').addEventListener('click', e => { if (e.target === $('categoryModal')) $('categoryModal').hidden = true; });
   $('categoryForm').addEventListener('submit', createCategory);
-  $('logoutBtn').addEventListener('click', async () => { try { await api('/api/logout', { method: 'POST' }); wipePreviousAccount(); $('loginOverlay').hidden = false; showAccountMode('login'); toast('Você saiu da biblioteca.'); } catch (e) { toast(e.message, true); } });
+  $('logoutBtn').addEventListener('click', async () => {
+    if(state.guest){showAccountGate('login');return;}
+    try { await api('/api/logout', { method: 'POST' }); await showGuestMode(); toast('Você saiu da biblioteca.'); }
+    catch (e) { toast(e.message, true); }
+  });
   $('menuBtn').addEventListener('click', () => { $('sidebar').classList.add('open'); $('sidebarBackdrop').hidden = false; });
   $('sidebarBackdrop').addEventListener('click', () => { $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMotivation(); closeMediaPlayer(); closeImageViewer(); closeTipEditor(); closeEditor(); $('categoryModal').hidden = true; $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; } });
   document.addEventListener('keydown', e => { if (!$('imageViewerModal').hidden && e.key === 'ArrowLeft') showImagePreview(imagePreviewIndex - 1); if (!$('imageViewerModal').hidden && e.key === 'ArrowRight') showImagePreview(imagePreviewIndex + 1); });
+  document.addEventListener('click',e=>{
+    if(!state.guest)return;
+    const element=e.target.closest('button,a[href],input[type="file"],[data-guest-action]');
+    if(!element || element.closest('#loginOverlay,#guestBanner'))return;
+    if(element.closest('[data-view],[data-go],[data-cat]'))return;
+    if(element.closest('.view-mode-switch,.tips-presets'))return;
+    if(element.matches('[data-fin-action="prev-month"],[data-fin-action="next-month"]'))return;
+    if(element.id==='logoutBtn')return;
+    if(element.closest('.view') || element.id==='addVideoBtn' || element.id==='addCategoryBtn' || element.id==='atlasCommandTrigger'){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      showAccountGate();
+    }
+  },true);
+  document.addEventListener('submit',e=>{
+    if(!state.guest || !e.target.closest('main'))return;
+    e.preventDefault();e.stopImmediatePropagation();showAccountGate();
+  },true);
+  document.addEventListener('change',e=>{
+    if(!state.guest)return;
+    if(e.target.type==='file' || e.target.matches('[data-task-check],[data-home-task-id]')){
+      e.preventDefault();e.stopImmediatePropagation();showAccountGate();
+    }
+  },true);
   document.addEventListener('click', e => {
     const a = e.target.closest('[data-view]'); if (a) { navigate(a.dataset.view); return; }
     const cat = e.target.closest('[data-cat]'); if (cat) { navigate('library', cat.dataset.cat); return; }
@@ -1074,6 +1140,9 @@ function bindEvents() {
   $('showLoginBtn').addEventListener('click',()=>showAccountMode('login'));
   $('showRegisterBtn').addEventListener('click',()=>showAccountMode('register'));
   $('showRecoverBtn').addEventListener('click',()=>showAccountMode('recover'));
+  $('exploreGuestBtn').addEventListener('click',showGuestMode);
+  $('guestLoginBtn').addEventListener('click',()=>showAccountGate('login'));
+  $('guestRegisterBtn').addEventListener('click',()=>showAccountGate('register'));
 
 }
 function showAccountMode(mode) {
@@ -1088,6 +1157,7 @@ function showAccountMode(mode) {
   $('loginModeTitle').textContent=labels[mode][0];
   $('loginModeDescription').textContent=labels[mode][1];
   $('loginLinks').hidden=mode==='setup';
+  $('exploreGuestBtn').hidden=mode==='setup';
   $('loginError').textContent='';
 }
 function wipePreviousAccount() {
@@ -1108,7 +1178,11 @@ function wipePreviousAccount() {
   $('thoughtSuggestion').hidden=true;
 }
 async function finishAccountLogin(result) {
+  state.guest=false;
+  document.body.dataset.guest='false';
+  $('guestBanner').hidden=true;
   wipePreviousAccount();
+  $('logoutBtn').innerHTML='<span class="nav-icon">↪</span> Sair da conta';
   $('loginOverlay').hidden=true;
   $('accountLabel').textContent='👤 '+result.user.username+(result.user.role==='owner'?' · Administrador':'');
   for(const id of ['loginForm','ownerSetupForm','registerForm','ownerRecoverForm']) $(id).reset();
@@ -1130,14 +1204,14 @@ async function start() {
   setupAtlasUI({api,navigate,editVideo,openTipEditor,editThought,openEditor,openUnifiedSearch});
   bindEvents();
   resetChatConversation();
-  setupFinance({ api, toast });
+  setupFinance({ api, toast, isGuest:()=>state.guest, requireAccount:()=>showAccountGate() });
   setupCompanion({ api, toast, navigate, editVideo, openTip:openTipEditor, editThought });
   try {
     const session=await api('/api/session');
     if(!session.configured){$('loginError').textContent='Configure a senha administrativa e o D1 na Cloudflare.';return;}
     if(session.setupRequired){showAccountMode('setup');return;}
     if(session.authenticated){await finishAccountLogin({user:session.user});return;}
-    showAccountMode('login');
+    await showGuestMode();
   }catch(e){$('loginError').textContent='Servidor indisponível: '+e.message;}
 }
 start();
