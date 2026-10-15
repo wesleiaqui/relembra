@@ -16,7 +16,7 @@ test('a coluna principal da home contém prioridades e salvos, sem intervalo vaz
   assert.match(css,/#homeView \.home-main-column\{display:flex;flex-direction:column/);
   assert.match(css,/#homeView \.home-main-column>\.home-recent-section \.video-grid/);
   assert.match(css,/#homeView \.home-work-primary\{[\s\S]*?min-height:0!important/);
-  assert.match(css,/#homeView \.home-empty-priority/);
+  assert.match(css,/#homeView \.home-work-primary \.home-empty-priority/);
 });
 
 test('criação rápida não repete etiquetas visíveis, mas preserva rótulos acessíveis',()=>{
