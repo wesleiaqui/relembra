@@ -47,7 +47,7 @@ async function auditHistory(env,actor){
   const audit=await getRows(env.DB.prepare(
     "SELECT a.id,a.action,a.section,a.created_at,u.username AS target_username "+
     "FROM admin_access_audit a JOIN app_users u ON a.target_id=u.id "+
-    "WHERE a.actor_id=? ORDER BY a.created_at DESC LIMIT 50"
+    "WHERE a.actor_id=? ORDER BY a.created_at DESC, a.rowid DESC LIMIT 50"
   ),actor.id);
   return response({audit});
 }
@@ -132,6 +132,6 @@ export async function handleAdministration(request,env,user){
 }
 export async function listOwnAdminAccess(env,user){
   return response({accesses:await getRows(env.DB.prepare(
-    'SELECT a.created_at,a.section FROM admin_access_audit a WHERE target_id=? ORDER BY a.created_at DESC LIMIT 10'
+    'SELECT a.created_at,a.section FROM admin_access_audit a WHERE target_id=? ORDER BY a.created_at DESC, a.rowid DESC LIMIT 10'
   ),user.id)});
 }
