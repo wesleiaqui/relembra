@@ -583,12 +583,10 @@ test('contas distintas não enxergam nem alteram vídeos, dicas, diário e image
   const id=video.data.video.id;
   const thought=await req('/api/thoughts','POST',{situation:'Privado',automatic_thought:'Pensamento pessoal',intensity_before:5});
   const tip=await req('/api/tips','POST',{title:'Privado',content:'Minha dica particular',situation:'Para mim',kind:'dica'});
-  const invite=await req('/api/invites','POST',{});
-  assert.equal(invite.status,201);
-  assert.equal(invite.data.invitation.length>20,true);
-  const member=await req('/api/register','POST',{invitation:invite.data.invitation,username:'convidado',password:'senha-convidado-123'});
+  const member=await req('/api/register','POST',{username:'convidado',password:'senha-convidado-123'});
   assert.equal(member.status,201);
-  assert.equal((await req('/api/invites','POST',{})).status,403);
+  assert.equal(member.data.user.role,'member');
+  assert.equal((await req('/api/invites','POST',{})).status,404);
   assert.equal((await req('/api/videos')).data.total,0);
   assert.equal((await req('/api/videos/'+id)).status,404);
   assert.equal((await req('/api/videos/'+id,'DELETE')).status,404);
@@ -605,7 +603,7 @@ test('contas distintas não enxergam nem alteram vídeos, dicas, diário e image
   assert.equal((await req('/api/chat','POST',{message:'macarrão branco parmesão'})).data.sources.length,0);
   const guestVideo=await req('/api/videos','POST',{...vid,category:(await req('/api/categories')).data.categories.find(c=>c.name==='Culinária').id});
   assert.equal(guestVideo.status,201);
-  assert.equal((await req('/api/register','POST',{invitation:invite.data.invitation,username:'outro',password:'senha-convidado-456'})).status,401);
+  assert.equal((await req('/api/register','POST',{username:'convidado',password:'senha-convidado-456'})).status,409);
   const back=await req('/api/login','POST',{username:'principal',password:'uma-senha-segura-123'});
   assert.equal(back.status,200);
   assert.equal((await req('/api/videos')).data.total,1);
@@ -645,14 +643,17 @@ test('primeiro cadastro preserva os conteúdos anteriores da instância',async()
 });
 
 
-test('tela de contas oferece cadastro por convite e recuperação sem expor dados antigos',()=>{
+test('tela de contas permite registro aberto e recuperação sem expor dados antigos',()=>{
   const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
   const js=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
-  for(const id of ['loginForm','ownerSetupForm','inviteRegisterForm','ownerRecoverForm','loginModeTitle','loginModeDescription','inviteBtn','inviteModal','inviteCode','generateInviteBtn','accountLabel']) {
+  for(const id of ['loginForm','ownerSetupForm','registerForm','ownerRecoverForm','loginModeTitle','loginModeDescription','accountLabel']) {
     assert.equal((html.match(new RegExp('id="'+id+'"','g')) || []).length,1,id);
   }
-  for(const endpoint of ['/api/setup-owner','/api/login','/api/register','/api/recover-owner','/api/invites'])
+  for(const endpoint of ['/api/setup-owner','/api/login','/api/register','/api/recover-owner'])
     assert.ok(js.includes(endpoint),'Endpoint '+endpoint);
+  assert.match(html,/Criar conta/);
+  assert.doesNotMatch(html,/name="invitation"|Tenho um convite|inviteModal/);
+  assert.doesNotMatch(js,/\/api\/invites|inviteRegisterForm/);
   for(const target of ['closeEditor()','resetThoughtForm()','closeImageViewer()','closeMediaPlayer()','chatMessages'])
     assert.ok(js.includes(target),'Limpeza '+target);
 });
@@ -775,8 +776,7 @@ test('quatro dicas de motivação entram somente na conta principal e são priva
   assert.equal(owner.status,201);
   let tips=(await req('/api/tips')).data.tips;
   assert.equal(tips.filter(t=>t.situation==='Motivação e mentalidade').length,4);
-  const invite=(await req('/api/invites','POST',{})).data.invitation;
-  const guest=await req('/api/register','POST',{invitation:invite,username:'convidado',password:'senha-convidado-123'});
+  const guest=await req('/api/register','POST',{username:'convidado',password:'senha-convidado-123'});
   assert.equal(guest.status,201);
   tips=(await req('/api/tips')).data.tips;
   assert.equal(tips.filter(t=>t.situation==='Motivação e mentalidade').length,0);
@@ -857,9 +857,7 @@ test('finanças: renda prevista, pagamento, validação e privacidade entre usu�
   assert.equal(backup.finances.goals.length,1);
   assert.equal(backup.finances.entries.length,1);
   assert.equal((await req('/api/import','POST',backup)).data.financeSkipped,3);
-  const invite = await req('/api/invites','POST',{});
-  assert.equal(invite.status,201);
-  const register = await req('/api/register','POST',{username:'finance_member',password:'uma-senha-diferente-123',invitation:invite.data.invitation});
+  const register = await req('/api/register','POST',{username:'finance_member',password:'uma-senha-diferente-123'});
   assert.equal(register.status,201);
   const isolated = (await req('/api/finance')).data;
   assert.equal(isolated.entries.length,0);
@@ -938,8 +936,7 @@ test('pagamentos entram no backup e não são alterados por outra conta', async 
   const backup=(await req('/api/export')).data;
   assert.equal(backup.finances.bills[0].payment_source,'Conta Mercado Pago');
   assert.equal(backup.finances.bills[0].paid_amount_cents,7200);
-  const invite=await req('/api/invites','POST',{});
-  await req('/api/register','POST',{username:'finance_extra',password:'uma-senha-diferente-123',invitation:invite.data.invitation});
+  await req('/api/register','POST',{username:'finance_extra',password:'uma-senha-diferente-123'});
   assert.equal((await req(payment,'POST',{paid_at:'2026-10-12',
     paid_amount_cents:7000,payment_method:'pix',payment_source:'Outro'})).status,404);
   assert.equal((await req(payment,'DELETE')).status,404);
@@ -1063,9 +1060,8 @@ test('contas fixas: validação, privacidade e backup com vínculos entre usuár
   const backup=(await req('/api/export')).data;
   assert.equal(backup.finances.recurring.length,1);
   assert.equal(backup.finances.bills[0].recurring_id,created.data.id);
-  const invite=await req('/api/invites','POST',{});
   const registered=await req('/api/register','POST',{
-    username:'recurring_guest',password:'senha-de-convidado-123',invitation:invite.data.invitation
+    username:'recurring_guest',password:'senha-de-convidado-123'
   });
   assert.equal(registered.status,201);
   assert.equal((await req('/api/finance')).data.recurring.length,0);
@@ -1135,8 +1131,7 @@ test('busca universal exclui finanças por padrão e nunca cruza usuários',asyn
   const tip=await req('/api/tips','POST',{title:'Valor da verdade',content:'Uma ideia só minha uniquepessoal',situation:'Para mim',kind:'dica'});
   assert.equal(tip.status,201);
   assert.equal((await req('/api/search/all?q=uniquepessoal')).data.results.length,1);
-  const invite=await req('/api/invites','POST',{});
-  await req('/api/register','POST',{username:'convidado_search',password:'senha-convidado-bastante-segura',invitation:invite.data.invitation});
+  await req('/api/register','POST',{username:'convidado_search',password:'senha-convidado-bastante-segura'});
   assert.equal((await req('/api/search/all?q=secretonuvem&finance=1')).data.results.length,0);
   assert.equal((await req('/api/search/all?q=uniquepessoal')).data.results.length,0);
   assert.equal((await req('/api/history?type=tip&id='+tip.data.tip.id)).status,404);
@@ -1174,8 +1169,7 @@ test('backup completo de textos inclui itens pessoais e exportação de prints �
   assert.equal(backup.extras.profile.reference_age,95);
   assert.ok(backup.finances);
   assert.equal((await req('/api/import','POST',backup)).status,200);
-  const invite=await req('/api/invites','POST',{});
-  await req('/api/register','POST',{username:'convidado_backup',password:'senha-de-convidado-diferente',invitation:invite.data.invitation});
+  await req('/api/register','POST',{username:'convidado_backup',password:'senha-de-convidado-diferente'});
   assert.equal((await req('/api/backup/images')).data.total,0);
   assert.equal((await req('/api/life')).data.profile,null);
   assert.equal((await req('/api/radar')).data.bills.length,0);
