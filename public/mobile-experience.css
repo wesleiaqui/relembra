@@ -159,7 +159,7 @@
   #libraryView .view-mode-btn{
     min-height:34px;padding:7px 9px;gap:4px;font-size:11px;border-radius:8px;
   }
-  #libraryView .view-mode-btn span{display:none}
+  #libraryView .view-mode-btn span{display:inline;font-size:10px;white-space:nowrap}
   #libraryView .view-mode-btn.active{
     background:var(--mobile-panel2);color:var(--mobile-ink);
     border:1px solid var(--mobile-border);
