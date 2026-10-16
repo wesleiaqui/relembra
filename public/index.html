@@ -31,6 +31,7 @@
   <link rel="stylesheet" href="/home-life-finish.css">
   <link rel="stylesheet" href="/tips-radar-preview-v2.css">
   <link rel="stylesheet" href="/tips-readability.css">
+  <link rel="stylesheet" href="/mobile-experience.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -530,6 +531,14 @@
       </main>
     </div>
   </div>
+
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Navegação principal do celular">
+    <button type="button" class="mobile-nav-link active" data-go="home" data-mobile-route="home" aria-current="page" aria-label="Ir para Início"><span aria-hidden="true">⌂</span><small>Início</small></button>
+    <button type="button" class="mobile-nav-link" data-go="library" data-mobile-route="library" aria-label="Abrir Biblioteca"><span aria-hidden="true">▦</span><small>Biblioteca</small></button>
+    <button type="button" class="mobile-nav-link" data-go="chat" data-mobile-route="chat" aria-label="Abrir Chat e pesquisa"><span aria-hidden="true">✧</span><small>Chat</small></button>
+    <button type="button" class="mobile-nav-link" data-go="finance" data-mobile-route="finance" aria-label="Abrir Minhas finanças"><span aria-hidden="true">◇</span><small>Finanças</small></button>
+    <button type="button" class="mobile-nav-link" id="mobileMoreBtn" aria-label="Abrir todas as seções" aria-haspopup="true" aria-controls="sidebar"><span aria-hidden="true">☰</span><small>Mais</small></button>
+  </nav>
 
   <div class="modal-backdrop" id="videoModal" hidden><div class="editor-modal" role="dialog" aria-modal="true" aria-labelledby="editorTitle"><div class="modal-head"><div><span class="eyebrow">ORGANIZE SUA MEMÓRIA</span><h2 id="editorTitle">Adicionar novo vídeo</h2></div><button class="close-btn" id="closeVideoBtn" aria-label="Fechar">×</button></div>
     <form id="videoForm"><div class="form-scroll"><div class="form-info">Cole o link do Instagram, TikTok, YouTube ou de outro site. O mesmo link pode ter várias fichas com informações, prints e títulos diferentes.</div>
