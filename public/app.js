@@ -148,6 +148,15 @@ async function navigate(view, category = 'all') {
   $('addVideoBtn').hidden = known === 'finance' || known === 'canvas' || known==='admin';
   $('breadcrumbActive').textContent = known === 'library' && state.category !== 'all' ? catOf(state.category).name : viewNames[known];
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === known && (known !== 'library' || state.category === 'all')));
+  // A navegação inferior acompanha a seção ativa sem duplicar a lógica das rotas.
+  document.querySelectorAll('[data-mobile-route]').forEach(el=>{
+    const on=el.dataset.mobileRoute===known;
+    el.classList.toggle('active',on);
+    if(on)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
+  });
+  const otherSection=!['home','library','chat','finance'].includes(known);
+  $('mobileMoreBtn').classList.toggle('active',otherSection);
+  $('mobileMoreBtn').setAttribute('aria-label',otherSection?'Outras seções, seção atual: '+viewNames[known]:'Abrir todas as seções');
   document.querySelectorAll('[data-cat]').forEach(el => el.classList.toggle('active', known === 'library' && el.dataset.cat === category));
   $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true;
   if(state.guest){
@@ -1076,6 +1085,7 @@ function bindEvents() {
     catch (e) { toast(e.message, true); }
   });
   $('menuBtn').addEventListener('click', () => { $('sidebar').classList.add('open'); $('sidebarBackdrop').hidden = false; });
+  $('mobileMoreBtn').addEventListener('click', () => { $('sidebar').classList.add('open'); $('sidebarBackdrop').hidden = false; });
   $('sidebarBackdrop').addEventListener('click', () => { $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMotivation(); closeMediaPlayer(); closeImageViewer(); closeTipEditor(); closeEditor(); $('categoryModal').hidden = true; $('sidebar').classList.remove('open'); $('sidebarBackdrop').hidden = true; } });
   document.addEventListener('keydown', e => { if (!$('imageViewerModal').hidden && e.key === 'ArrowLeft') showImagePreview(imagePreviewIndex - 1); if (!$('imageViewerModal').hidden && e.key === 'ArrowRight') showImagePreview(imagePreviewIndex + 1); });
