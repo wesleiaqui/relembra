@@ -382,6 +382,65 @@
   #imageViewerModal .image-viewer-stage{flex:1;min-height:0}
   #imageViewerModal .image-viewer-stage img{max-height:100%;object-fit:contain}
 
+  /* Visitor preview: show two example references and give the real Reel
+     a full-width playable space rather than a cramped third column. */
+  body[data-guest="true"] #homeView #homeGrid>.guest-showcase-grid,
+  body[data-guest="true"] #libraryView #libraryGrid>.guest-showcase-grid{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:stretch;gap:9px;width:100%;
+  }
+  body[data-guest="true"] #homeView .guest-showcase-card,
+  body[data-guest="true"] #libraryView .guest-showcase-card{
+    min-width:0;min-height:0;height:auto;
+    border-radius:11px;
+  }
+  body[data-guest="true"] #libraryView .guest-showcase-body,
+  body[data-guest="true"] #homeView .guest-showcase-body{
+    padding:11px;gap:7px;
+  }
+  body[data-guest="true"] #libraryView .guest-showcase-body strong,
+  body[data-guest="true"] #homeView .guest-showcase-body strong{
+    font-size:12px;line-height:1.4;
+  }
+  body[data-guest="true"] #libraryView .guest-showcase-body p,
+  body[data-guest="true"] #homeView .guest-showcase-body p{
+    font-size:10.5px;line-height:1.55;min-height:0;
+  }
+  body[data-guest="true"] #libraryView .guest-showcase-body button,
+  body[data-guest="true"] #homeView .guest-showcase-body button{
+    white-space:normal;font-size:10px;padding:9px;min-height:40px;
+  }
+  body[data-guest="true"] #homeView .guest-reel-teaser{
+    grid-column:1/-1;display:grid;
+    grid-template-columns:minmax(100px,.85fr) minmax(0,1.3fr);
+    min-height:142px!important;
+  }
+  body[data-guest="true"] #homeView .guest-reel-teaser-cover{
+    min-height:142px;height:100%;border-right:1px solid var(--mobile-border);
+    border-bottom:0;
+  }
+  body[data-guest="true"] #homeView .guest-teaser-actions{
+    display:flex;flex-wrap:wrap;gap:6px;
+  }
+  body[data-guest="true"] #homeView .guest-teaser-actions :is(a,button){
+    padding:7px;font-size:10px;min-height:34px;
+  }
+  body[data-guest="true"] #libraryView .guest-reel-card{
+    grid-column:1/-1;min-width:0;
+    border:1px solid var(--mobile-border);
+    border-radius:12px;overflow:hidden;
+  }
+  body[data-guest="true"] #libraryView .guest-reel-embed{
+    display:flex;justify-content:center;min-height:0;
+    height:min(64dvh,540px);max-height:540px;overflow:hidden;
+  }
+  body[data-guest="true"] #libraryView .guest-reel-frame{
+    width:min(100%,490px);max-width:100%;
+    min-width:0;height:100%;min-height:0;max-height:100%;
+  }
+  body[data-guest="true"] #libraryView .guest-reel-meta{
+    padding:14px;
+  }
   /* Mobile refinements beyond library, without changing underlying functionality. */
   #homeView .home-new-heading{gap:13px;margin-bottom:15px}
   #homeView .home-new-heading h1{font-size:clamp(25px,6vw,31px)}
