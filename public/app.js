@@ -6,6 +6,7 @@ import { guestCategories, renderGuestPreview } from './guest-preview.js';
 import { configureRegistrationProtection, showRegistrationProtection, registrationChallengeToken, resetRegistrationProtection } from './register-protection.js';
 import { setupFinance, loadFinance, resetFinance } from './finance.js';
 import { setupCanvas, loadCanvas, resetCanvas } from './canvas.js';
+import { setupSocial, loadSocial, resetSocial } from './social.js';
 import { setupAdmin, loadAdmin, setAdminOwner, resetAdmin, showOwnAdminAccess } from './admin.js';
 import { setupCompanion, loadRadar, loadHomeRadar, searchMemory, openSearchItem, loadLife, loadHabits, resetCompanion, openHistory } from './companion.js';
 const $ = id => document.getElementById(id);
@@ -70,7 +71,7 @@ async function showGuestMode(){
   $('accountLabel').textContent='✦ Modo visitante';
   $('logoutBtn').innerHTML='<span class="nav-icon">↪</span> Entrar / Criar conta';
   renderGuestCategories();
-  await navigate('home');
+  await navigate(new URLSearchParams(location.search).has('perfil')?'community':'home');
 }
 async function syncCategories() {
   const res = await api('/api/categories');
@@ -135,7 +136,7 @@ async function loadList(append = false) {
   } catch(e) { if (requestNumber === listRequest) { box.innerHTML = skeletonEmpty('Erro ao carregar vídeos', e.message, '⚠️', false); toast(e.message, true); } }
   finally { if (requestNumber === listRequest) state.busy = false; }
 }
-const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', canvas: 'Mapas mentais', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados', admin: 'Administração' };
+const viewNames = { home: 'Início', library: 'Minha biblioteca', chat: 'Chat e pesquisa', thoughts: 'Diário anterior', tips: 'Dicas para o momento', finance: 'Minhas finanças', canvas: 'Mapas mentais', radar: 'Radar do dia', life: 'Calendário da vida', backup: 'Backup e dados', admin: 'Administração', community: 'Comunidade', profile: 'Meu perfil' };
 async function navigate(view, category = 'all') {
   const known = viewNames[view] && (view!=='admin'||(!state.guest && $('adminNavItem').hidden===false)) ? view : 'home';
   state.view = known;
@@ -144,8 +145,8 @@ async function navigate(view, category = 'all') {
   else state.category = 'all';
   state.search = ''; state.sort = 'recent'; state.videos = [];
   document.querySelectorAll('.view').forEach(el => el.hidden = true);
-  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'radar' ? 'radarView' : known === 'life' ? 'lifeView' : known === 'finance' ? 'financeView' : known === 'canvas' ? 'canvasView' : known === 'backup' ? 'backupView' : known==='admin' ? 'adminView' : 'libraryView').hidden = false;
-  $('addVideoBtn').hidden = known === 'finance' || known === 'canvas' || known==='admin';
+  $(known === 'home' ? 'homeView' : known === 'chat' ? 'chatView' : known === 'thoughts' ? 'thoughtsView' : known === 'tips' ? 'tipsView' : known === 'radar' ? 'radarView' : known === 'life' ? 'lifeView' : known === 'finance' ? 'financeView' : known === 'canvas' ? 'canvasView' : known === 'community' ? 'communityView' : known === 'profile' ? 'profileView' : known === 'backup' ? 'backupView' : known==='admin' ? 'adminView' : 'libraryView').hidden = false;
+  $('addVideoBtn').hidden = known === 'finance' || known === 'canvas' || known==='admin' || known==='community' || known==='profile';
   $('breadcrumbActive').textContent = known === 'library' && state.category !== 'all' ? catOf(state.category).name : viewNames[known];
   document.querySelectorAll('[data-view]').forEach(el => el.classList.toggle('active', el.dataset.view === known && (known !== 'library' || state.category === 'all')));
   // A navegação inferior acompanha a seção ativa sem duplicar a lógica das rotas.
@@ -162,6 +163,7 @@ async function navigate(view, category = 'all') {
   if(state.guest){
     if(known==='finance') await loadFinance();
     if(known==='canvas')await loadCanvas();
+    if(known==='community'||known==='profile')await loadSocial(known);
     else if(known==='chat')resetChatConversation();
     renderGuestPreview(known);
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -174,6 +176,7 @@ async function navigate(view, category = 'all') {
   if (known === 'tips') await loadTips();
   if (known === 'finance') await loadFinance();
   if (known === 'canvas') await loadCanvas();
+  if (known === 'community' || known === 'profile') await loadSocial(known);
   if (known === 'admin') await loadAdmin();
   if (known === 'backup') await showOwnAdminAccess();
   if (known === 'library') {
@@ -1245,6 +1248,7 @@ function wipePreviousAccount() {
   resetFinance();
   resetCanvas();
   resetAdmin();
+  resetSocial();
   state.videos=[];state.homeVideos=[];state.categories=[];
   state.thoughts=[];state.tips=[];state.total=0;state.offset=0;
   state.editId=null;state.tipEditId=null;state.thoughtEditId=null;
@@ -1272,6 +1276,7 @@ async function finishAccountLogin(result) {
   for(const id of ['loginForm','ownerSetupForm','registerForm','ownerRecoverForm']) $(id).reset();
   await syncCategories();
   await navigate('home');
+  if(new URLSearchParams(location.search).has('perfil'))await navigate('community');
 }
 async function submitAccountForm(event,endpoint) {
   event.preventDefault();
@@ -1300,6 +1305,7 @@ async function start() {
   setupFinance({ api, toast, isGuest:()=>state.guest, requireAccount:()=>showAccountGate() });
   setupCanvas({api,toast,isGuest:()=>state.guest,requireAccount:()=>showAccountGate(),openVideo:editVideo});
   setupAdmin({api,toast});
+  setupSocial({api,toast,navigate,isGuest:()=>state.guest});
   setInterval(()=>{
     if(!state.guest&&document.visibilityState==='visible'){
       void api('/api/activity',{method:'POST'}).catch(()=>{});
