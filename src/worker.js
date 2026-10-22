@@ -1,6 +1,7 @@
 import { handleFinance, exportFinances, importFinances } from './finance.js';
 import { handleCompanion, exportCompanion, importCompanion, archiveVersion } from './companion.js';
 import { handleCanvas, exportCanvases, importCanvases } from './canvas.js';
+import { handleSocial } from './social.js';
 import { handleAdministration, updateAccountActivity, listOwnAdminAccess, cleanupExpiredAdminAudits } from './admin.js';
 import { reserveAIQuota, secureResponse, readLimitedJSON, turnstileConfig, verifyRegistrationTurnstile } from './security.js';
 const SESSION_NAME = 'relembra_session';
@@ -598,6 +599,7 @@ async function handle(request, env) {
     await env.DB.prepare('UPDATE app_users SET session_version=session_version+1 WHERE id=?').bind(user.id).run();
     return json({ok:true},200,{'set-cookie':cookie('',request,true)});
   }
+  if (path === '/api/social' || path.startsWith('/api/social/')) return handleSocial(request,env,user);
   if (path === '/api/canvas' || path.startsWith('/api/canvas/')) return handleCanvas(request,env,user);
   if (path === '/api/finance' || path.startsWith('/api/finance/')) return handleFinance(request,env,user);
   if (/^\/api\/(radar|life|habits|history|backup\/images|search\/all)(\/|$)/.test(path)) return handleCompanion(request,env,user);
