@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="/tips-radar-preview-v2.css">
   <link rel="stylesheet" href="/tips-readability.css">
   <link rel="stylesheet" href="/mobile-experience.css">
+  <link rel="stylesheet" href="/social-pleny.css">
   <title>Relembra — sua biblioteca inteligente</title>
 </head>
 <body>
@@ -50,6 +51,8 @@
         <button class="nav-item" data-view="tips"><span class="nav-icon">✦</span> Dicas para o momento <span class="nav-new">NOVO</span></button>
         <button class="nav-item" data-view="finance"><span class="nav-icon">◈</span> Minhas finanças</button>
         <button class="nav-item" data-view="canvas"><span class="nav-icon">⤧</span> Mapas mentais <span class="nav-new">NOVO</span></button>
+        <button class="nav-item" data-view="community"><span class="nav-icon">✺</span> Comunidade <span class="nav-new">NOVO</span></button>
+        <button class="nav-item" data-view="profile"><span class="nav-icon">◉</span> Meu perfil</button>
       </nav>
       <div class="side-separator"></div>
       <div class="category-heading"><span class="nav-caption">COLEÇÕES</span><button title="Adicionar coleção" aria-label="Adicionar categoria" id="addCategoryBtn" class="tiny-btn">+</button></div>
@@ -151,6 +154,73 @@
             <button type="button" data-go="library"><span aria-hidden="true">▣</span><strong>Minha biblioteca</strong><small>Consulte suas referências</small><b aria-hidden="true">↗</b></button>
             <button type="button" data-open-motivation><span aria-hidden="true">✦</span><strong>Preciso de incentivo</strong><small>Seus próprios lembretes</small><b aria-hidden="true">↗</b></button>
           </section>
+        </section>
+
+        <section id="communityView" class="view" hidden>
+          <div class="social-page">
+            <header class="social-heading"><div><span class="social-overline">CONEXÕES E DESCOBERTAS</span><h1>Comunidade</h1><p>Um lugar para dividir descobertas, conversar e aprender com outras pessoas.</p></div><button class="social-button outline" type="button" data-social-go="profile">Meu perfil ↗</button></header>
+            <div class="social-guest-gate" hidden><h2>Conecte-se à comunidade</h2><p>Entre ou crie uma conta para escolher seu @, seguir pessoas e publicar suas descobertas.</p></div>
+            <div id="socialCommunityContent">
+              <div class="social-grid">
+                <div class="social-stack">
+                  <article class="social-panel social-compose">
+                    <div id="socialMyBadge" class="social-identity"></div>
+                    <div id="socialPublishGate" class="social-note"></div>
+                    <form id="socialPostForm" hidden>
+                      <label for="socialPostContent" class="social-muted">O que você gostaria de compartilhar?</label>
+                      <textarea id="socialPostContent" name="content" maxlength="1200" required placeholder="Compartilhe um aprendizado, uma descoberta ou uma conquista..."></textarea>
+                      <div class="social-compose-footer"><small>Publicação visível aos membros da comunidade · até 1.200 caracteres.</small><button class="social-button" type="submit" id="socialPostSubmit">Publicar →</button></div>
+                    </form>
+                  </article>
+                  <div class="social-tabs" role="tablist" aria-label="Filtrar comunidade">
+                    <button type="button" role="tab" data-social-tab="all" aria-selected="true">Para você</button>
+                    <button type="button" role="tab" data-social-tab="following" aria-selected="false">Seguindo</button>
+                  </div>
+                  <div id="socialNotice" class="social-note" hidden role="status"></div>
+                  <div id="socialFeed" class="social-feed" aria-live="polite"><p class="social-loading">Carregando comunidade...</p></div>
+                  <button class="social-button outline" type="button" id="socialLoadMore" hidden>Ver mais publicações</button>
+                </div>
+                <aside class="social-stack" aria-label="Informações da comunidade">
+                  <section class="social-panel sidebar-card"><h2>Descubra seu próximo interesse</h2><p>Compartilhe aprendizados, dicas e experiências. Cada pessoa tem algo interessante para ensinar.</p><div class="social-banner"><h2>✦ Sua memória merece ser compartilhada</h2><p>Você escolhe o que publicar. Nada da sua biblioteca ou finanças sai do modo privado automaticamente.</p></div></section>
+                  <section class="social-panel"><h2>Compartilhar com intenção</h2><p>Curta publicações, siga perfis e participe de conversas construtivas.</p><p>Regras de comunidade e recursos de moderação podem ser ampliados nas próximas versões.</p></section>
+                </aside>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="profileView" class="view" hidden>
+          <div class="social-page">
+            <header class="social-heading"><div><span class="social-overline">SUA IDENTIDADE</span><h1>Meu perfil</h1><p>Escolha seu @ e controle sua presença na comunidade.</p></div><button class="social-button outline" type="button" data-social-go="community">Comunidade ↗</button></header>
+            <div class="social-guest-gate" hidden><h2>Crie sua identidade</h2><p>Entre ou crie sua conta para definir seu nome público e seu @.</p></div>
+            <div id="socialProfileContent">
+              <div class="social-profile-layout">
+                <section class="social-panel">
+                  <div class="social-profile-hero" id="socialProfileHero"></div>
+                  <form id="socialProfileForm" class="social-form">
+                    <label for="socialDisplayName">Nome de exibição
+                      <input id="socialDisplayName" name="display_name" required minlength="2" maxlength="60" autocomplete="nickname" placeholder="Como quer ser chamado?">
+                    </label>
+                    <label for="socialHandle">Seu @ exclusivo <small class="social-field-hint">Comece com uma letra. Use letras minúsculas, números e underline (3–20).</small>
+                      <span class="social-handle-input"><b aria-hidden="true">@</b><input id="socialHandle" name="handle" required minlength="3" maxlength="20" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="seu_usuario"></span>
+                      <small id="socialHandleStatus" class="social-field-hint" role="status">O @ é independente do nome usado para entrar na conta.</small>
+                    </label>
+                    <label for="socialBio">Biografia <small class="social-field-hint">Conte um pouco do que você gosta de aprender.</small>
+                      <textarea id="socialBio" name="bio" maxlength="240" placeholder="Interesses, estudos e descobertas..."></textarea>
+                    </label>
+                    <label class="social-privacy-toggle" for="socialPublic">
+                      <input id="socialPublic" type="checkbox" name="is_public">
+                      <span><strong>Perfil público</strong><small id="socialProfileVisibility">Privado — ninguém consegue encontrar seu perfil</small><small>Com o perfil público, seu nome, @, biografia, publicações e contadores sociais podem ser vistos por usuários conectados.</small></span>
+                    </label>
+                    <button class="social-button" type="submit" id="socialProfileSave">Salvar meu perfil</button>
+                  </form>
+                </section>
+                <aside class="social-stack">
+                  <section class="social-panel"><h2>Seu endereço na comunidade</h2><div id="socialProfileAddress" class="social-profile-address"></div><button type="button" class="social-button outline" id="socialProfileCopy">Copiar link do perfil</button><p>Para acessar um perfil, é necessário estar conectado ao Relembra.</p></section>
+                  <section class="social-panel"><h2>Privacidade em primeiro lugar</h2><p>Você decide se quer ser encontrado na comunidade.</p><ul><li>Finanças e contas continuam privadas.</li><li>Vídeos, notas e transcrições nunca são publicados sem ação explícita.</li><li>É possível tornar seu perfil privado novamente a qualquer momento.</li></ul></section>
+                </aside>
+              </div>
+            </div>
+          </div>
         </section>
         <section id="libraryView" class="view" hidden>
           <div class="page-head"><div><div class="eyebrow">SUAS DESCOBERTAS</div><h1 id="libraryTitle">Minha biblioteca</h1><p id="librarySubtitle">Suas inspirações, sempre por perto.</p></div><button class="button button-ghost" id="newFromLibrary">+ Novo vídeo</button></div>
@@ -692,6 +762,9 @@
       <div class="modal-head"><div><span class="eyebrow">VERSÕES ANTERIORES</span><h2 id="historyTitle">Histórico de edições</h2></div><button id="historyClose" type="button" class="close-btn" aria-label="Fechar histórico">×</button></div>
       <div id="historyContent" class="history-content" aria-live="polite"></div>
     </div>
+  </div>
+  <div class="social-modal" id="socialOtherProfileModal" hidden role="dialog" aria-modal="true" aria-labelledby="socialOtherProfileName">
+    <article class="social-modal-card"><button class="social-modal-close" type="button" id="socialOtherProfileClose" aria-label="Fechar perfil">×</button><div id="socialOtherProfileAvatar"></div><h2 id="socialOtherProfileName"></h2><p id="socialOtherProfileHandle"></p><p id="socialOtherProfileBio"></p><p id="socialOtherProfileStats"></p><button type="button" class="social-button" id="socialOtherProfileFollow">Seguir</button></article>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="/app.js?v=tips-readable-20261015"></script>
