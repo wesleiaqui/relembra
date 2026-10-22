@@ -71,7 +71,7 @@ async function showGuestMode(){
   $('accountLabel').textContent='✦ Modo visitante';
   $('logoutBtn').innerHTML='<span class="nav-icon">↪</span> Entrar / Criar conta';
   renderGuestCategories();
-  await navigate('home');
+  await navigate(new URLSearchParams(location.search).has('perfil')?'community':'home');
 }
 async function syncCategories() {
   const res = await api('/api/categories');
