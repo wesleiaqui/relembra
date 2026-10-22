@@ -25,7 +25,7 @@ function populateForm(){
   $('socialHandle').value=profile?.handle||'';
   $('socialBio').value=profile?.bio||'';
   $('socialPublic').checked=Boolean(profile?.is_public);
-  $('socialProfileAddress').textContent=profile?.handle?'relembra.weslleys.com/u/'+profile.handle:'Escolha seu nome de usuário';
+  $('socialProfileAddress').textContent=profile?.handle?'relembra.weslleys.com/?perfil='+profile.handle:'Escolha seu nome de usuário';
   $('socialProfileHero').innerHTML=avatar(profile?.display_name||'Relembra')+'<div><strong>'+esc(profile?.display_name||'Seu perfil')+'</strong><span>'+esc(profile?.handle?'@'+profile.handle:'Ainda sem @')+'</span></div>';
   $('socialProfileVisibility').textContent=profile?.is_public?'Público — visível para pessoas conectadas':'Privado — ninguém consegue encontrar seu perfil';
 }
@@ -160,7 +160,7 @@ export function setupSocial(options){
   $('socialHandle').addEventListener('input',()=>{showProfileStatus('Verifique a disponibilidade antes de salvar.');clearTimeout($('socialHandle')._checkTimer);$('socialHandle')._checkTimer=setTimeout(checkHandle,350);});
   $('socialProfileCopy').addEventListener('click',async()=>{
     if(!profile?.handle){toast('Escolha seu @ primeiro.',true);return;}
-    try{await navigator.clipboard.writeText(location.origin+'/u/'+profile.handle);toast('Link copiado.');}
+    try{await navigator.clipboard.writeText(location.origin+'/?perfil='+encodeURIComponent(profile.handle));toast('Link copiado.');}
     catch{toast('Não foi possível copiar o link.',true);}
   });
   $('socialLoadMore').addEventListener('click',()=>loadFeed({append:true}));
@@ -180,17 +180,17 @@ export function setupSocial(options){
 }
 export async function loadSocial(view){
   if(isGuest()){
-    $('socialGuestGate').hidden=false;
+    document.querySelectorAll('.social-guest-gate').forEach(el=>el.hidden=false);
     $('socialProfileContent').hidden=true;
     $('socialCommunityContent').hidden=true;
     return;
   }
-  $('socialGuestGate').hidden=true;
+  document.querySelectorAll('.social-guest-gate').forEach(el=>el.hidden=true);
   $('socialProfileContent').hidden=view!=='profile';
   $('socialCommunityContent').hidden=view!=='community';
   try{
     await fetchMe();
-    if(view==='community'){notice('');await loadFeed();}
+    if(view==='community'){notice('');await loadFeed();const target=new URLSearchParams(location.search).get('perfil');if(target){await openProfile(target);}}
   }catch(e){toast('Não foi possível abrir a área social: '+e.message,true);}
 }
 export function resetSocial(){
