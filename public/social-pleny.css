@@ -118,6 +118,7 @@ body:not([data-visual-theme="atlas"]) .social-page{--social-bg:#111314;--social-
 .social-banner h2,.social-banner p{color:#fff}
 .social-banner p{opacity:.8;margin-bottom:0}
 .social-note{font-size:12px;border-radius:12px;padding:11px 14px;background:var(--social-soft);border:1px solid var(--social-line);color:var(--social-muted)}
+body[data-visual-theme="atlas"] .social-modal{--social-panel:var(--pl-panel);--social-text:var(--pl-text);--social-muted:var(--pl-muted);--social-line:var(--pl-line)}
 .social-modal{position:fixed;inset:0;background:#0009;z-index:500;display:flex;justify-content:center;align-items:center;padding:16px}
 .social-modal-card{width:min(410px,100%);background:var(--social-panel,#1b1f22);color:var(--social-text,#fff);border:1px solid var(--social-line,#555);border-radius:22px;padding:24px;position:relative}
 .social-modal-close{position:absolute;right:16px;top:12px;border:0;background:none;color:inherit;font-size:26px;cursor:pointer}
